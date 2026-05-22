@@ -1,0 +1,26 @@
+name: Deploy to cPanel
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Despliegue a Produccion
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar codigo mas reciente
+        uses: actions/checkout@v4
+
+      - name: Subir archivos via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          # Si tu FTP apunta directamente a la carpeta del proyecto, deja esto como "/".
+          # Si tu FTP apunta a la raíz de tu cPanel, cambia esto a la carpeta web (ej: "/public_html/")
+          server-dir: ./
+          protocol: ftp
+          port: 21
