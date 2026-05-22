@@ -1,6 +1,6 @@
 /* INVENTARIO MODULE — JavaScript */
 (function() {
-    const BASE = document.querySelector('script[src*="inventario.js"]').src.split('/modules/')[0];
+    const BASE = document.querySelector('script[src*="inventario_v2.js"]').src.split('/modules/')[0];
     let customColumns = [];
     let previewCustomData = []; // [{col: value, ...}, ...] per SKU row
     let previewSkuCodes = [];

@@ -3,7 +3,7 @@
    Off-canvas, camera capture, historial de asignaciones
 ═══════════════════════════════════════════════════ */
 
-const BASE = document.querySelector('meta[name="base-url"]')?.content || '/TURBOSAAS';
+const BASE = document.querySelector('meta[name="base-url"]')?.content || '';
 let allUsers = [];
 let currentUserId = null;
 let currentUserData = null;
