@@ -1,0 +1,326 @@
+/* Perfil CSS */
+.profile-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0;
+}
+
+.profile-header {
+    background: var(--card-bg);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+}
+
+.profile-cover {
+    height: 200px;
+    background: var(--bg-color);
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    cursor: pointer;
+    border-radius: 12px;
+    margin: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--text-color);
+    transition: all 0.2s;
+    overflow: hidden;
+}
+.profile-cover:not(.has-image) {
+    border: 2px dashed var(--border-color);
+}
+.profile-cover:not(.has-image):hover {
+    border-color: var(--primary-color);
+}
+.profile-cover.has-image {
+    margin: 0;
+    border-radius: 0;
+    border: none;
+}
+
+/* Hover overlay for cover - hidden by default, shows on hover */
+.cover-overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: rgba(0,0,0,0.5);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 500;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 1;
+    pointer-events: none;
+}
+.cover-overlay i {
+    font-size: 2rem;
+}
+.profile-cover:hover .cover-overlay {
+    opacity: 1;
+}
+
+.profile-info-container {
+    padding: 20px;
+    display: flex;
+    align-items: flex-end;
+    gap: 24px;
+    margin-top: -60px;
+    position: relative;
+    z-index: 2;
+}
+
+.profile-avatar-wrap {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    cursor: pointer;
+}
+
+.profile-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 4px solid var(--card-bg);
+    background: var(--bg-color);
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: var(--text-muted);
+    box-shadow: var(--shadow-md);
+    position: relative;
+    overflow: hidden;
+}
+
+.avatar-hover-overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.profile-avatar-wrap:hover .avatar-hover-overlay {
+    opacity: 1;
+}
+
+.profile-user-details {
+    padding-bottom: 10px;
+}
+
+.profile-user-details h1 {
+    margin: 0 0 4px 0;
+    font-size: 1.8rem;
+    color: var(--text-color);
+}
+.profile-user-details p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 1rem;
+}
+
+/* Tabs */
+.profile-tabs {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1px;
+}
+
+.prof-tab {
+    background: transparent;
+    border: none;
+    padding: 12px 24px;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: -1px;
+}
+
+.prof-tab:hover {
+    color: var(--primary-color);
+}
+
+.prof-tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+/* Panes */
+.prof-pane {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+.prof-pane.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Form Grid */
+.profile-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    background: var(--card-bg);
+    padding: 24px;
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+}
+.prof-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.prof-form-group label {
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+.prof-form-group input {
+    width: 100%;
+}
+
+/* Items Grid */
+.items-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.item-card {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.item-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.item-img {
+    width: 70px;
+    height: 70px;
+    border-radius: 12px;
+    background: var(--bg-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: var(--primary-color);
+    flex-shrink: 0;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+.item-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.item-info {
+    flex: 1;
+    min-width: 0;
+}
+.item-info h4 {
+    margin: 0 0 4px 0;
+    font-size: 1.1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-color);
+}
+.item-info p {
+    margin: 0 0 8px 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.item-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.status-disponible { background: #10b98122; color: #10b981; }
+.status-instalado { background: #3b82f622; color: #3b82f6; }
+.status-malogrado { background: #ef444422; color: #ef4444; }
+.status-reparado { background: #f59e0b22; color: #f59e0b; }
+.status-en_transito { background: #8b5cf622; color: #8b5cf6; }
+
+.item-qty {
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: var(--text-color);
+    background: var(--bg-color);
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+}
+
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+    background: var(--card-bg);
+    border-radius: 16px;
+    border: 1px dashed var(--border-color);
+}
+
+@media (max-width: 768px) {
+    .profile-info-container {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        margin-top: -70px;
+    }
+    .profile-form-grid {
+        grid-template-columns: 1fr;
+    }
+    .profile-tabs {
+        overflow-x: auto;
+        white-space: nowrap;
+        padding-bottom: 5px;
+    }
+}
