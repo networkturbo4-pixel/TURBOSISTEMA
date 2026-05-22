@@ -22,3 +22,5 @@ jobs:
           # Si tu FTP apunta directamente a la carpeta del proyecto, deja esto como "/".
           # Si tu FTP apunta a la raíz de tu cPanel, cambia esto a la carpeta web (ej: "/public_html/")
           server-dir: /public_html/
+          protocol: ftp
+          port: 21
