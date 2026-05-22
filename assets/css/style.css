@@ -250,6 +250,26 @@ body.dark-theme .badge-orange {
     margin: 0;
 }
 
+/* Sidebar Logout Link */
+.sidebar-logout-link {
+    margin-top: auto;
+    color: #ef4444 !important;
+    border-top: 1px solid var(--border-color);
+    padding-top: 12px;
+    margin-top: 12px;
+}
+
+.sidebar-logout-link:hover {
+    background-color: rgba(239, 68, 68, 0.1) !important;
+    color: #dc2626 !important;
+}
+
+/* Header Logout Button */
+.header-logout-btn:hover {
+    background: rgba(239, 68, 68, 0.2) !important;
+    transform: scale(1.05);
+}
+
 /* Theme Toggle Pill (Sidebar Bottom) */
 .sidebar-theme-switch {
     display: flex;

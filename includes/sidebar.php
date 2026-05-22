@@ -39,6 +39,14 @@ $appNameSidebar = $globalSettings['app_name'] ?? 'Turbo SaaS';
             endforeach; 
             ?>
         </nav>
+
+        <!-- Logout Button -->
+        <a href="<?php echo BASE_URL; ?>/login.php?action=logout" class="nav-link sidebar-logout-link" title="Cerrar Sesión">
+            <div class="nav-link-left">
+                <i class="ph ph-sign-out"></i>
+                <span>Cerrar Sesión</span>
+            </div>
+        </a>
         
         <!-- Theme Toggle Pill -->
         <div class="sidebar-theme-switch">
@@ -65,6 +73,9 @@ $appNameSidebar = $globalSettings['app_name'] ?? 'Turbo SaaS';
         </div>
         
         <div class="header-right">
+            <a href="<?php echo BASE_URL; ?>/login.php?action=logout" class="btn-icon header-logout-btn" title="Cerrar Sesión" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none; transition: all 0.2s; margin-right: 8px;">
+                <i class="ph ph-sign-out" style="font-size: 1.2rem;"></i>
+            </a>
             <div class="profile-menu">
                 <a href="<?php echo BASE_URL; ?>/modules/perfil" class="avatar" style="cursor: pointer; display:block; text-decoration:none; <?php echo !empty($_SESSION['profile_picture']) ? 'background-image: url(\''.BASE_URL.'/'.$_SESSION['profile_picture'].'\'); background-size: cover; background-position: center; color: transparent;' : ''; ?>" title="Mi Perfil">
                     <?php if (empty($_SESSION['profile_picture'])): ?>
