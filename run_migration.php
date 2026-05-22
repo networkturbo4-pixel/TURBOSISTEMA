@@ -32,6 +32,9 @@ try {
     die("<h2 style='color:red;'>Error de conexión: " . $e->getMessage() . "</h2>");
 }
 
+// Desactivar FK checks para evitar problemas de charset
+$pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
+
 $migrations = [
     // 0. users
     "ALTER TABLE `users` ADD COLUMN `username` VARCHAR(100) DEFAULT NULL",
@@ -51,7 +54,8 @@ $migrations = [
     // 3. inventory_user_stock
     "ALTER TABLE `inventory_user_stock` ADD COLUMN `is_epp` TINYINT(1) DEFAULT 0",
 
-    // 4. inventory_sku_photos
+
+    // 4. inventory_sku_photos (sin FK para evitar errno 150)
     "CREATE TABLE IF NOT EXISTS `inventory_sku_photos` (
         `id` INT(11) NOT NULL AUTO_INCREMENT,
         `sku_id` INT(11) NOT NULL,
@@ -60,11 +64,10 @@ $migrations = [
         `nota` TEXT DEFAULT NULL,
         `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (`id`),
-        KEY `sku_id` (`sku_id`),
-        CONSTRAINT `inventory_sku_photos_ibfk_1` FOREIGN KEY (`sku_id`) REFERENCES `inventory_skus` (`id`) ON DELETE CASCADE
+        KEY `sku_id` (`sku_id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci",
 
-    // 5. inventory_product_photos
+    // 5. inventory_product_photos (sin FK para evitar errno 150)
     "CREATE TABLE IF NOT EXISTS `inventory_product_photos` (
         `id` INT(11) NOT NULL AUTO_INCREMENT,
         `product_id` INT(11) NOT NULL,
@@ -72,10 +75,12 @@ $migrations = [
         `uploaded_by` INT(11) DEFAULT NULL,
         `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (`id`),
-        KEY `product_id` (`product_id`),
-        CONSTRAINT `inventory_product_photos_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `inventory_products` (`id`) ON DELETE CASCADE
+        KEY `product_id` (`product_id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci",
 ];
+
+// Reactivar FK checks
+$pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
 
 // Output HTML for browser
 $isBrowser = php_sapi_name() !== 'cli';
