@@ -4,6 +4,11 @@
 -- Fecha: 2026-05-22
 -- =====================================================
 
+-- ── 0. Columnas faltantes en users (para perfil) ──
+ALTER TABLE `users` 
+  ADD COLUMN IF NOT EXISTS `username` VARCHAR(100) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS `cover_picture` VARCHAR(255) DEFAULT NULL;
+
 -- ── 1. Columnas faltantes en inventory_products ──
 ALTER TABLE `inventory_products` 
   ADD COLUMN IF NOT EXISTS `requires_photos` TINYINT(1) DEFAULT 0 AFTER `unit_type`,
