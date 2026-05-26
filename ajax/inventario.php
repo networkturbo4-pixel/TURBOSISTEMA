@@ -807,7 +807,7 @@ try {
                                 FROM inventory_user_stock ius JOIN users u ON ius.user_id = u.id WHERE ius.product_id = p.id AND ius.quantity > 0) as bulk_assignments
                         FROM inventory_products p
                         LEFT JOIN inventory_categories c ON p.category_id = c.id
-                        WHERE p.is_bulk = 1
+                        WHERE (p.is_bulk = 1 OR p.product_type = 'agrupado')
                           AND (p.parent_product_id IS NULL OR p.parent_product_id = 0)";
             
             $paramsBulk = [];

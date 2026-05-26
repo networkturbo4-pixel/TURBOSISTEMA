@@ -1990,15 +1990,30 @@
             const instaladoA = s.acta_cliente ? `<i class="ph ph-user"></i> ${esc(s.acta_cliente)}` : '<span style="color:var(--text-muted);">\u2014</span>';
             const fechaReg = s.sku_created_at ? new Date(s.sku_created_at).toLocaleString('es-PE',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '\u2014';
 
-            let bulkAssignHtml = `<div class=\"assign-badge none\"><i class=\"ph ph-package\"></i> Almac\u00e9n (${s.stock_disponible} ${s.unit_type||''})</div>`;
-            if (s.is_bulk && s.bulk_assignments) {
-                bulkAssignHtml += `<div style=\"margin-top:6px;font-size:0.8rem;color:var(--text-muted);line-height:1.4;\">${s.bulk_assignments}</div>`;
+            let bulkAssignHtml = '';
+            if (s.product_type === 'agrupado') {
+                // Agrupado: show variant stock summary instead of generic warehouse badge
+                bulkAssignHtml = `<div class="assign-badge none" style="background:rgba(139,92,246,0.08);border-color:rgba(139,92,246,0.3);color:#8b5cf6;font-size:0.8rem;">
+                    <i class="ph ph-stack"></i> ${s.stock_disponible} unidades en variantes
+                </div>`;
+                if (s.bulk_assignments) {
+                    bulkAssignHtml += `<div style="margin-top:6px;font-size:0.8rem;color:var(--text-muted);line-height:1.4;">${s.bulk_assignments}</div>`;
+                }
+            } else {
+                bulkAssignHtml = `<div class="assign-badge none"><i class="ph ph-package"></i> Almac\u00e9n (${s.stock_disponible} ${s.unit_type||})</div>`;
+                if (s.is_bulk && s.bulk_assignments) {
+                    bulkAssignHtml += `<div style="margin-top:6px;font-size:0.8rem;color:var(--text-muted);line-height:1.4;">${s.bulk_assignments}</div>`;
+                }
             }
 
             let cellMap = {
                 '#': `<td>${i+1}</td>`,
                 'SKU': s.is_bulk ? `<td><code style=\"font-weight:700;\">${s.sku_code}</code></td>` : `<td><span class=\"inv-editable\" onclick=\"editSkuCode(${s.id}, this)\" title=\"Clic para editar\"><code style=\"font-weight:700;\">${s.sku_code}</code></span></td>`,
                 'Producto': `<td><div style="display:flex;align-items:center;gap:8px;">${
+                    s.product_type === 'agrupado'
+                        ? `<button class="accordion-toggle-btn" onclick="toggleSkuChildrenRows(${s.product_id}, this)" title="Expandir variantes" style="flex-shrink:0;"><i class="ph ph-caret-right"></i></button>`
+                        : ''
+                }${
                     s.sku_thumbnail
                         ? `<img src="${BASE}/${s.sku_thumbnail}" data-sku-img="${s.id}" class="lb-thumb" data-lb-src="${BASE}/${s.sku_thumbnail}" data-lb-caption="${esc(s.product_name)}" style="width:36px;height:36px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid var(--border-color);cursor:zoom-in;">`
                         : `<div data-sku-img="${s.id}" style="width:36px;height:36px;border-radius:8px;background:var(--bg-color);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid var(--border-color);"><i class="ph ph-image" style="color:var(--text-muted);font-size:1rem;opacity:0.4;"></i></div>`
@@ -2050,6 +2065,70 @@
     }
 
     // ── Column drag-and-drop ──
+    // ── Toggle variant rows inside SKU table (Control de Stock) ──
+    window.toggleSkuChildrenRows = async function(productId, btn) {
+        const parentRow = btn.closest('tr');
+        const icon = btn.querySelector('i');
+        const isExpanded = parentRow.dataset.skuExpanded === '1';
+
+        if (isExpanded) {
+            parentRow.dataset.skuExpanded = '0';
+            icon.className = 'ph ph-caret-right';
+            let next = parentRow.nextElementSibling;
+            while (next && next.classList.contains('variant-child-row')) {
+                const toRemove = next; next = next.nextElementSibling; toRemove.remove();
+            }
+            return;
+        }
+
+        icon.className = 'ph ph-spinner ph-spin';
+        try {
+            const fd = new FormData();
+            fd.append('action', 'get_children');
+            fd.append('product_id', productId);
+            const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+            if (res.success && res.data.length > 0) {
+                parentRow.dataset.skuExpanded = '1';
+                icon.className = 'ph ph-caret-down';
+                const colCount = document.querySelectorAll('#skuTable thead th').length;
+                const fragment = document.createDocumentFragment();
+                res.data.forEach((child, idx) => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'variant-child-row';
+                    tr.style.cssText = `animation:fadeIn 0.2s ease forwards;animation-delay:${idx*0.05}s;opacity:0;`;
+                    const attrs = child.variant_attributes || {};
+                    const attrBadges = Object.entries(attrs).map(([k,v]) => v ? `<span class="variant-attr-badge"><i class="ph ph-tag"></i> ${esc(k)}: ${esc(v)}</span>` : '').join('');
+                    const qtyTotal     = parseFloat(child.total_quantity || 0);
+                    const qtyDisp      = child.qty_disponible != null ? parseFloat(child.qty_disponible) : qtyTotal;
+                    const qtyInst      = child.qty_instalado  != null ? parseFloat(child.qty_instalado)  : 0;
+                    const qtyMalogrado = child.qty_malogrado  != null ? parseFloat(child.qty_malogrado)  : 0;
+                    // Fill empty cells for extra columns in the middle
+                    const emptyCells = Array(Math.max(0, colCount - 7)).fill('<td></td>').join('');
+                    tr.innerHTML = `
+                        <td></td>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:8px;padding-left:20px;">
+                                <span style="color:var(--text-muted);font-size:1rem;flex-shrink:0;">└</span>
+                                <div>
+                                    <div style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${esc(child.name)}</div>
+                                    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px;">${attrBadges}</div>
+                                </div>
+                            </div>
+                        </td>
+                        ${emptyCells}
+                        <td><span style="font-weight:700;color:#6366f1;">${qtyTotal}</span></td>
+                        <td><span style="font-weight:700;color:#10b981;">${qtyDisp}</span></td>
+                        <td><span style="font-weight:700;color:#3b82f6;">${qtyInst}</span></td>
+                        <td><span style="font-weight:700;color:#ef4444;">${qtyMalogrado}</span></td>
+                        <td></td>`;
+                    fragment.appendChild(tr);
+                });
+                parentRow.after(fragment);
+            }
+        } catch(e) { console.error(e); }
+        if (icon.className.includes('spinner')) icon.className = 'ph ph-caret-right';
+    };
+
     let dragColIdx = null;
     function setupColumnDragDrop() {
         const ths = document.querySelectorAll('#skuTable thead th.draggable-th');
