@@ -2874,8 +2874,16 @@
                     const arr = e.photos.split(',');
                     photosHtml = `<div class="inv-entry-photos">${arr.map(p => `<img src="${BASE}/${p}" onclick="window.open('${BASE}/${p}','_blank')">`).join('')}</div>`;
                 }
-                return `<div class="inv-entry-item">
-                    <div class="entry-header"><span class="entry-type">${tipoLabel[e.tipo] || e.tipo}</span><span class="entry-date">${e.created_at}</span></div>
+                const dateForInput = e.created_at ? e.created_at.replace(' ', 'T').substring(0, 16) : '';
+                return `<div class="inv-entry-item" style="position:relative;">
+                    <div class="entry-header" style="padding-right:64px;">
+                        <span class="entry-type">${tipoLabel[e.tipo] || e.tipo}</span>
+                        <span class="entry-date">${e.created_at}</span>
+                    </div>
+                    <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px;">
+                        <button onclick="openEditEntryModal(${e.id},'${esc(e.tipo)}','${esc(e.notas||'').replace(/'/g,"'")}','${dateForInput}')" title="Editar" style="background:rgba(99,102,241,0.12);border:none;border-radius:6px;padding:5px 8px;cursor:pointer;color:#6366f1;font-size:0.85rem;transition:background 0.2s;" onmouseover="this.style.background='rgba(99,102,241,0.22)'" onmouseout="this.style.background='rgba(99,102,241,0.12)'"><i class="ph ph-pencil"></i></button>
+                        <button onclick="deleteEntryItem(${e.id})" title="Eliminar" style="background:rgba(239,68,68,0.12);border:none;border-radius:6px;padding:5px 8px;cursor:pointer;color:#ef4444;font-size:0.85rem;transition:background 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.22)'" onmouseout="this.style.background='rgba(239,68,68,0.12)'"><i class="ph ph-trash"></i></button>
+                    </div>
                     <div class="entry-user"><i class="ph ph-user"></i> ${esc(e.user_name)}</div>
                     ${e.notas ? `<div class="entry-notes">${esc(e.notas)}</div>` : ''}
                     ${photosHtml}
@@ -2885,6 +2893,68 @@
             list.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:16px;font-size:0.85rem;">Sin registros aún.</p>';
         }
     }
+
+    // ── Edit Entry Modal (SKU detail panel) ──
+    window.openEditEntryModal = function(id, tipo, notas, dateStr) {
+        document.getElementById('editEntryId').value = id;
+        document.getElementById('editEntryType').value = tipo || 'entrada';
+        document.getElementById('editEntryNotas').value = notas || '';
+        document.getElementById('editEntryDate').value = dateStr || '';
+        const m = document.getElementById('editEntryModal');
+        if (m.parentElement !== document.body) document.body.appendChild(m);
+        m.classList.add('active');
+    };
+
+    window.closeEditEntryModal = function() {
+        document.getElementById('editEntryModal').classList.remove('active');
+    };
+
+    window.saveEditEntry = async function() {
+        const id = document.getElementById('editEntryId').value;
+        const tipo = document.getElementById('editEntryType').value;
+        const notas = document.getElementById('editEntryNotas').value;
+        const date = document.getElementById('editEntryDate').value;
+        if (!id) return;
+        const btn = document.querySelector('#editEntryModal .btn-primary');
+        const origText = btn.innerHTML;
+        btn.disabled = true; btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Guardando...';
+        const fd = new FormData();
+        fd.append('action', 'update_entry');
+        fd.append('entry_id', id);
+        fd.append('tipo', tipo);
+        fd.append('notas', notas);
+        if (date) fd.append('created_at', date.replace('T', ' ') + ':00');
+        try {
+            const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+            if (res.success) {
+                if (window.showToast) window.showToast('Movimiento actualizado', 'success');
+                closeEditEntryModal();
+                if (typeof currentSkuData !== 'undefined' && currentSkuData && currentSkuData.id) {
+                    loadEntryHistory(currentSkuData.id);
+                }
+            } else {
+                if (window.showToast) window.showToast(res.message || 'Error', 'error');
+            }
+        } catch(e) {
+            if (window.showToast) window.showToast('Error de conexión', 'error');
+        }
+        btn.disabled = false; btn.innerHTML = origText;
+    };
+
+    window.deleteEntryItem = async function(id) {
+        const ok = await invConfirm('¿Eliminar movimiento?', 'Se eliminará este registro del historial.');
+        if (!ok) return;
+        const fd = new FormData(); fd.append('action', 'delete_entry'); fd.append('entry_id', id);
+        const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+        if (res.success) {
+            if (window.showToast) window.showToast('Movimiento eliminado', 'success');
+            if (typeof currentSkuData !== 'undefined' && currentSkuData && currentSkuData.id) {
+                loadEntryHistory(currentSkuData.id);
+            }
+        } else {
+            if (window.showToast) window.showToast(res.message || 'Error', 'error');
+        }
+    };
 
     // ── Product Photo Functions (Multi-Photo) ──
     let createProductPhotos = []; // Files for new product
@@ -3548,7 +3618,7 @@
         if (date) fd.append('date_from', date);
 
         const body = document.getElementById('histAssignBody');
-        body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;">Cargando...</td></tr>';
+        body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;">Cargando...</td></tr>';
         
         try {
             const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
@@ -3556,6 +3626,8 @@
                 let html = '';
                 res.data.forEach(d => {
                     const isUnassign = d.action === 'unassign';
+                    const dateForInput = d.created_at ? d.created_at.replace(' ', 'T').substring(0, 16) : '';
+                    const notesEsc = (d.notes || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
                     html += `<tr>
                         <td>${esc(d.created_at)}</td>
                         <td><code>${esc(d.sku_code || '')}</code></td>
@@ -3567,14 +3639,75 @@
                             </span>
                         </td>
                         <td>${esc(d.assigned_by_name || 'Sistema')}</td>
+                        <td>
+                            <div style="display:flex;gap:4px;">
+                                <button onclick="openEditAssignLog(${d.id},'${dateForInput}','${notesEsc}')" title="Editar" class="btn btn-sm" style="background:rgba(99,102,241,0.12);color:#6366f1;border:none;padding:5px 8px;border-radius:6px;cursor:pointer;" onmouseover="this.style.background='rgba(99,102,241,0.25)'" onmouseout="this.style.background='rgba(99,102,241,0.12)'"><i class="ph ph-pencil"></i></button>
+                                <button onclick="deleteAssignLog(${d.id})" title="Eliminar" class="btn btn-sm" style="background:rgba(239,68,68,0.12);color:#ef4444;border:none;padding:5px 8px;border-radius:6px;cursor:pointer;" onmouseover="this.style.background='rgba(239,68,68,0.25)'" onmouseout="this.style.background='rgba(239,68,68,0.12)'"><i class="ph ph-trash"></i></button>
+                            </div>
+                        </td>
                     </tr>`;
                 });
                 body.innerHTML = html;
             } else {
-                body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted);">No se encontraron registros.</td></tr>';
+                body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted);">No se encontraron registros.</td></tr>';
             }
         } catch (e) {
-            body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:red;">Error de conexión.</td></tr>';
+            body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:red;">Error de conexión.</td></tr>';
+        }
+    };
+
+    // ── Edit/Delete Assignment Log ──
+    window.openEditAssignLog = function(id, dateStr, notes) {
+        document.getElementById('editAssignLogId').value = id;
+        document.getElementById('editAssignLogDate').value = dateStr || '';
+        document.getElementById('editAssignLogNotes').value = notes || '';
+        const m = document.getElementById('editAssignLogModal');
+        if (m.parentElement !== document.body) document.body.appendChild(m);
+        m.classList.add('active');
+    };
+
+    window.closeEditAssignLog = function() {
+        document.getElementById('editAssignLogModal').classList.remove('active');
+    };
+
+    window.saveEditAssignLog = async function() {
+        const id = document.getElementById('editAssignLogId').value;
+        const date = document.getElementById('editAssignLogDate').value;
+        const notes = document.getElementById('editAssignLogNotes').value;
+        if (!id) return;
+        const btn = document.querySelector('#editAssignLogModal .btn-primary');
+        const origText = btn.innerHTML;
+        btn.disabled = true; btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Guardando...';
+        const fd = new FormData();
+        fd.append('action', 'update_assignment_log');
+        fd.append('log_id', id);
+        fd.append('notes', notes);
+        if (date) fd.append('created_at', date.replace('T', ' ') + ':00');
+        try {
+            const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+            if (res.success) {
+                if (window.showToast) window.showToast('Registro actualizado', 'success');
+                closeEditAssignLog();
+                loadAssignmentHistory();
+            } else {
+                if (window.showToast) window.showToast(res.message || 'Error', 'error');
+            }
+        } catch(e) {
+            if (window.showToast) window.showToast('Error de conexión', 'error');
+        }
+        btn.disabled = false; btn.innerHTML = origText;
+    };
+
+    window.deleteAssignLog = async function(id) {
+        const ok = await invConfirm('¿Eliminar registro?', 'Se eliminará este registro del historial de asignaciones. No afecta las asignaciones actuales.');
+        if (!ok) return;
+        const fd = new FormData(); fd.append('action', 'delete_assignment_log'); fd.append('log_id', id);
+        const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+        if (res.success) {
+            if (window.showToast) window.showToast('Registro eliminado', 'success');
+            loadAssignmentHistory();
+        } else {
+            if (window.showToast) window.showToast(res.message || 'Error', 'error');
         }
     };
 
@@ -3597,6 +3730,7 @@
                 res.data.forEach(d => {
                     let skus = [];
                     try { skus = JSON.parse(d.sku_codes || '[]'); } catch(e){}
+                    const notesEsc = (d.notes || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
                     html += `<tr>
                         <td>${esc(d.created_at)}</td>
                         <td>${esc(d.product_name || '')}</td>
@@ -3605,7 +3739,10 @@
                         <td>${esc(d.user_name || '')}</td>
                         <td>${esc(d.notes || '—')}</td>
                         <td>
-                            <button class="btn btn-danger btn-sm" onclick="deleteStockLog(${d.id})" title="Eliminar"><i class="ph ph-trash"></i></button>
+                            <div style="display:flex;gap:4px;">
+                                <button onclick="openEditStockLog(${d.id},${d.quantity},'${notesEsc}')" title="Editar" style="background:rgba(139,92,246,0.12);color:#8b5cf6;border:none;padding:5px 8px;border-radius:6px;cursor:pointer;" onmouseover="this.style.background='rgba(139,92,246,0.25)'" onmouseout="this.style.background='rgba(139,92,246,0.12)'"><i class="ph ph-pencil"></i></button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteStockLog(${d.id})" title="Eliminar"><i class="ph ph-trash"></i></button>
+                            </div>
                         </td>
                     </tr>`;
                 });
@@ -3616,6 +3753,50 @@
         } catch (e) {
             body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:red;">Error de conexión.</td></tr>';
         }
+    };
+
+    // ── Edit Stock Log Modal ──
+    window.openEditStockLog = function(id, qty, notes) {
+        document.getElementById('editStockLogId').value = id;
+        document.getElementById('editStockLogQty').value = qty;
+        document.getElementById('editStockLogNotes').value = notes || '';
+        const m = document.getElementById('editStockLogModal');
+        if (m.parentElement !== document.body) document.body.appendChild(m);
+        m.classList.add('active');
+    };
+
+    window.closeEditStockLog = function() {
+        document.getElementById('editStockLogModal').classList.remove('active');
+    };
+
+    window.saveEditStockLog = async function() {
+        const id = document.getElementById('editStockLogId').value;
+        const qty = document.getElementById('editStockLogQty').value;
+        const notes = document.getElementById('editStockLogNotes').value;
+        if (!id) return;
+        const btn = document.querySelector('#editStockLogModal .btn-primary');
+        const origText = btn.innerHTML;
+        btn.disabled = true; btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Guardando...';
+        const fd = new FormData();
+        fd.append('action', 'update_stock_log');
+        fd.append('log_id', id);
+        fd.append('quantity', qty);
+        fd.append('notes', notes);
+        try {
+            const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+            if (res.success) {
+                if (window.showToast) window.showToast('Registro actualizado', 'success');
+                closeEditStockLog();
+                loadStockLog();
+                if (window.loadProducts) loadProducts();
+                if (window.loadMetrics) loadMetrics();
+            } else {
+                if (window.showToast) window.showToast(res.message || 'Error', 'error');
+            }
+        } catch(e) {
+            if (window.showToast) window.showToast('Error de conexión', 'error');
+        }
+        btn.disabled = false; btn.innerHTML = origText;
     };
 
     window.deleteStockLog = async function(id) {

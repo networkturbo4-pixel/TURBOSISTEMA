@@ -1011,6 +1011,53 @@ window.addEventListener('error', function(e) {
     </div>
 </div>
 
+<!-- Modal: Editar Registro de Stock -->
+<div class="modal-overlay" id="editStockLogModal" style="z-index: 19002;">
+    <div class="modal-content" style="max-width:420px;">
+        <div class="modal-header">
+            <h3><i class="ph ph-pencil-simple" style="color:#8b5cf6;"></i> Editar Registro de Stock</h3>
+            <button class="close-modal" onclick="closeEditStockLog()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editStockLogId">
+            <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:0.82rem;color:#b45309;">
+                <i class="ph ph-warning"></i> Cambiar la cantidad puede crear o eliminar SKUs del sistema.
+            </div>
+            <div class="inv-form-field" style="margin-bottom:12px;">
+                <label class="form-label">Cantidad</label>
+                <input type="number" class="form-control" id="editStockLogQty" min="1">
+            </div>
+            <div class="inv-form-field" style="margin-bottom:16px;">
+                <label class="form-label">Notas</label>
+                <textarea class="form-control" id="editStockLogNotes" rows="3"></textarea>
+            </div>
+            <button type="button" class="btn btn-primary w-100" onclick="saveEditStockLog()"><i class="ph ph-floppy-disk"></i> Guardar Cambios</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Editar Registro de Asignación -->
+<div class="modal-overlay" id="editAssignLogModal" style="z-index: 19002;">
+    <div class="modal-content" style="max-width:420px;">
+        <div class="modal-header">
+            <h3><i class="ph ph-pencil-simple" style="color:#6366f1;"></i> Editar Asignación</h3>
+            <button class="close-modal" onclick="closeEditAssignLog()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editAssignLogId">
+            <div class="inv-form-field" style="margin-bottom:12px;">
+                <label class="form-label">Fecha y Hora</label>
+                <input type="datetime-local" class="form-control" id="editAssignLogDate">
+            </div>
+            <div class="inv-form-field" style="margin-bottom:16px;">
+                <label class="form-label">Notas</label>
+                <textarea class="form-control" id="editAssignLogNotes" rows="3" placeholder="Notas adicionales sobre esta asignación..."></textarea>
+            </div>
+            <button type="button" class="btn btn-primary w-100" onclick="saveEditAssignLog()"><i class="ph ph-floppy-disk"></i> Guardar Cambios</button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal: Gestionar Categorías -->
 <div class="modal-overlay" id="manageCategoriesModal" style="z-index: 19000;">
     <div class="modal-content" style="max-width:500px;">
@@ -1304,10 +1351,11 @@ window.addEventListener('error', function(e) {
               <th>Usuario</th>
               <th>Acción</th>
               <th>Asignado por</th>
+              <th style="width:90px;">Acciones</th>
             </tr>
           </thead>
           <tbody id="histAssignBody">
-            <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);"><i class="ph ph-clock" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.3;"></i>Haz clic en Filtrar para cargar el historial</td></tr>
+            <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted);"><i class="ph ph-clock" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.3;"></i>Haz clic en Filtrar para cargar el historial</td></tr>
           </tbody>
         </table>
       </div>

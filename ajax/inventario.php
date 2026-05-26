@@ -29,8 +29,13 @@ try {
         quantity DECIMAL(10,2) DEFAULT 1,
         is_epp TINYINT(1) DEFAULT 0,
         action ENUM('assign','unassign') DEFAULT 'assign',
+        notes TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    // Add notes column to assignment_log if it doesn't exist yet
+    try {
+        $pdo->exec("ALTER TABLE inventory_assignment_log ADD COLUMN IF NOT EXISTS notes TEXT AFTER action");
+    } catch(Exception $e) {}
 } catch(Exception $e) {}
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
@@ -1138,6 +1143,29 @@ try {
             $stmt = $pdo->prepare($sql);
             $stmt->execute($params);
             echo json_encode(['success' => true, 'data' => $stmt->fetchAll()]);
+            break;
+
+        case 'update_assignment_log':
+            $log_id = intval($_POST['log_id'] ?? 0);
+            $notes = trim($_POST['notes'] ?? '');
+            $created_at = trim($_POST['created_at'] ?? '');
+            if (!$log_id) { echo json_encode(['success' => false, 'message' => 'ID inválido']); break; }
+            if ($created_at) {
+                $stmt = $pdo->prepare("UPDATE inventory_assignment_log SET notes = ?, created_at = ? WHERE id = ?");
+                $stmt->execute([$notes, $created_at, $log_id]);
+            } else {
+                $stmt = $pdo->prepare("UPDATE inventory_assignment_log SET notes = ? WHERE id = ?");
+                $stmt->execute([$notes, $log_id]);
+            }
+            echo json_encode(['success' => true, 'message' => 'Registro actualizado']);
+            break;
+
+        case 'delete_assignment_log':
+            $log_id = intval($_POST['log_id'] ?? 0);
+            if (!$log_id) { echo json_encode(['success' => false, 'message' => 'ID inválido']); break; }
+            $stmt = $pdo->prepare("DELETE FROM inventory_assignment_log WHERE id = ?");
+            $stmt->execute([$log_id]);
+            echo json_encode(['success' => true, 'message' => 'Registro eliminado']);
             break;
 
         case 'get_stock_log':
