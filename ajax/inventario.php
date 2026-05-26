@@ -164,13 +164,28 @@ try {
             $stmtParent->execute([$parent_id]);
             $parentCols = $stmtParent->fetchColumn() ?: '[]';
 
-            $stmt = $pdo->prepare("SELECT p.*, c.name as category_name FROM inventory_products p LEFT JOIN inventory_categories c ON p.category_id = c.id WHERE p.parent_product_id = ? ORDER BY p.name ASC");
+            $stmt = $pdo->prepare("
+                SELECT p.*,
+                       c.name as category_name,
+                       COALESCE((SELECT SUM(ius.quantity) FROM inventory_user_stock ius WHERE ius.product_id = p.id), 0) as qty_asignado,
+                       COALESCE((SELECT SUM(ius.quantity) FROM inventory_user_stock ius
+                                  JOIN users u ON ius.user_id = u.id
+                                  WHERE ius.product_id = p.id AND ius.quantity > 0), 0) as qty_instalado,
+                       0 as qty_malogrado
+                FROM inventory_products p
+                LEFT JOIN inventory_categories c ON p.category_id = c.id
+                WHERE p.parent_product_id = ?
+                ORDER BY p.name ASC");
             $stmt->execute([$parent_id]);
             $children = $stmt->fetchAll();
-            // Decode variant_attributes for each child
+            // Decode variant_attributes and compute qty_disponible for each child
             foreach ($children as &$ch) {
                 $ch['variant_attributes'] = json_decode($ch['variant_attributes'] ?? '{}', true) ?: new stdClass();
+                $ch['qty_disponible'] = max(0, floatval($ch['total_quantity']) - floatval($ch['qty_asignado']));
+                $ch['qty_instalado']  = floatval($ch['qty_instalado']);
+                $ch['qty_malogrado']  = floatval($ch['qty_malogrado']);
             }
+            unset($ch);
             echo json_encode(['success' => true, 'data' => $children, 'columns' => json_decode($parentCols, true) ?: []]);
             break;
 

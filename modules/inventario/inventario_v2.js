@@ -1184,22 +1184,31 @@
                     tr.style.animationDelay = `${idx * 0.05}s`;
                     tr.style.opacity = '0';
                     const attrs = child.variant_attributes || {};
+                    // Build inline variant label: "Azul / Micronics" from attribute values
+                    const attrValues = Object.values(attrs).filter(v => v);
                     const attrBadges = Object.entries(attrs).map(([k,v]) => v ? `<span class="variant-attr-badge"><i class="ph ph-tag"></i> ${esc(k)}: ${esc(v)}</span>` : '').join('');
+                    const variantSuffix = attrValues.length > 0 ? ` <span style="color:var(--text-muted);font-weight:400;">— ${attrValues.map(v => esc(v)).join(' / ')}</span>` : '';
+
+                    const qtyTotal     = parseFloat(child.total_quantity   || 0);
+                    const qtyDisp      = child.qty_disponible  != null ? parseFloat(child.qty_disponible)  : qtyTotal;
+                    const qtyInst      = child.qty_instalado   != null ? parseFloat(child.qty_instalado)   : 0;
+                    const qtyMalogrado = child.qty_malogrado   != null ? parseFloat(child.qty_malogrado)   : 0;
+
                     tr.innerHTML = `
                         <td data-label="Variante">
                             <div style="display:flex; align-items:center; gap:8px; padding-left:24px;">
                                 <span class="variant-tree-line">├</span>
                                 <div>
-                                    <div style="font-weight:600;color:var(--text-color);font-size:0.9rem;">${esc(child.name)}</div>
+                                    <div style="font-weight:600;color:var(--text-color);font-size:0.9rem;">${esc(child.name)}${variantSuffix}</div>
                                     <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px;">${attrBadges}</div>
                                 </div>
                             </div>
                         </td>
                         <td data-label="Categoría"></td>
-                        <td data-label="Total"><span style="font-weight:700;color:#6366f1;">${child.total_quantity}</span></td>
-                        <td data-label="Disponibles"><span style="font-weight:700;color:#10b981;">${child.total_quantity}</span></td>
-                        <td data-label="Instalados"><span style="font-weight:700;color:#3b82f6;">0</span></td>
-                        <td data-label="Malogrados"><span style="font-weight:700;color:#ef4444;">0</span></td>
+                        <td data-label="Total"><span style="font-weight:700;color:#6366f1;">${qtyTotal}</span></td>
+                        <td data-label="Disponibles"><span style="font-weight:700;color:#10b981;">${qtyDisp}</span></td>
+                        <td data-label="Instalados"><span style="font-weight:700;color:#3b82f6;">${qtyInst}</span></td>
+                        <td data-label="Malogrados"><span style="font-weight:700;color:#ef4444;">${qtyMalogrado}</span></td>
                         <td data-label="Acciones"></td>
                     `;
                     fragment.appendChild(tr);
