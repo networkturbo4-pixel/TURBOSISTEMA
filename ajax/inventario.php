@@ -275,7 +275,7 @@ try {
                         $customJson = json_encode((object)$preview_data[$idx]);
                     } else {
                         $emptyCustom = new stdClass();
-                        foreach ($cols as $col) { $emptyCustom->{$col} = ''; }
+                        foreach ($cols as $col) { $colName = is_array($col) ? ($col['name'] ?? '') : $col; if ($colName) $emptyCustom->{$colName} = ''; }
                         $customJson = json_encode($emptyCustom);
                     }
                     $insert->execute([$product_id, $sku, $customJson]);
@@ -371,7 +371,10 @@ try {
                     $customJson = json_encode((object)$preview_data[$idx]);
                 } else {
                     $emptyCustom = new stdClass();
-                    foreach ($cols as $col) { $emptyCustom->{$col} = ''; }
+                    foreach ($cols as $col) { 
+                        $colName = is_array($col) ? ($col['name'] ?? '') : $col;
+                        if ($colName) $emptyCustom->{$colName} = ''; 
+                    }
                     $customJson = json_encode($emptyCustom);
                 }
                 $insert->execute([$product_id, $sku, $customJson]);
@@ -384,6 +387,31 @@ try {
                 $logStmt->execute([$product_id, $quantity, json_encode($skus_generated ?? []), intval($_SESSION['user_id'] ?? 0), '']);
             } catch(Exception $e) {}
             echo json_encode(['success' => true, 'message' => "Agregados {$quantity} nuevos SKUs"]);
+            break;
+
+        case 'add_multiple_stock':
+            $updates = json_decode($_POST['updates'] ?? '[]', true);
+            if (!is_array($updates) || empty($updates)) {
+                echo json_encode(['success' => false, 'message' => 'Datos inválidos']);
+                break;
+            }
+            $pdo->beginTransaction();
+            $total_added = 0;
+            $stmt = $pdo->prepare("UPDATE inventory_products SET total_quantity = total_quantity + ? WHERE id = ?");
+            foreach ($updates as $upd) {
+                $q = intval($upd['qty'] ?? 0);
+                $id = intval($upd['id'] ?? 0);
+                if ($q > 0 && $id > 0) {
+                    $stmt->execute([$q, $id]);
+                    $total_added += $q;
+                    try {
+                        $logStmt = $pdo->prepare("INSERT INTO inventory_stock_log (product_id, quantity, sku_codes, user_id, notes) VALUES (?, ?, '[]', ?, 'Ingreso de lote agrupado')");
+                        $logStmt->execute([$id, $q, intval($_SESSION['user_id'] ?? 0)]);
+                    } catch(Exception $e) {}
+                }
+            }
+            $pdo->commit();
+            echo json_encode(['success' => true, 'message' => "Agregados {$total_added} productos en total a las variantes"]);
             break;
 
         case 'update_product':
@@ -596,14 +624,14 @@ try {
                 break;
             }
 
-            $stmt = $pdo->prepare("SELECT s.*, p.name as product_name, p.product_image,
+            $stmt = $pdo->prepare("SELECT s.*, p.name as product_name, p.product_type, p.product_image,
                                    COALESCE(
                                        (SELECT sp.ruta_archivo FROM inventory_sku_photos sp WHERE sp.sku_id = s.id ORDER BY sp.id ASC LIMIT 1),
                                        p.product_image
                                    ) as sku_thumbnail,
                                    c.name as category_name,
                                    u.name as assigned_user_name, p.description as product_description,
-                                   p.stock_minimo, p.stock_critico, p.custom_columns, p.is_bulk
+                                   p.stock_minimo, p.stock_critico, p.custom_columns, p.is_bulk, p.total_quantity as stock
                                    FROM inventory_skus s
                                    JOIN inventory_products p ON s.product_id = p.id
                                    LEFT JOIN inventory_categories c ON p.category_id = c.id
@@ -670,7 +698,7 @@ try {
             $product_filter = $_POST['product_id'] ?? $_GET['product_id'] ?? '';
             $search = trim($_POST['search'] ?? $_GET['search'] ?? '');
 
-            $sql = "SELECT s.*, s.created_at as sku_created_at, p.name as product_name, p.product_image,
+            $sql = "SELECT s.*, s.created_at as sku_created_at, p.name as product_name, p.product_type, p.product_image,
                            COALESCE(
                                (SELECT sp.ruta_archivo FROM inventory_sku_photos sp WHERE sp.sku_id = s.id ORDER BY sp.id ASC LIMIT 1),
                                p.product_image

@@ -1483,6 +1483,7 @@
     };
 
     window.closeProductModal = function() { document.getElementById('newProductModal').classList.remove('active'); };
+    window.closeEditProductModal = function() { document.getElementById('editProductModal').classList.remove('active'); };
 
     // â”€â”€ Editar Producto (Unified Modal) â”€â”€
     let allProductsCache = [];
@@ -1553,6 +1554,44 @@
             document.getElementById('addStockProductId').value = prod.id;
             document.getElementById('addStockProductName').value = prod.name;
             document.getElementById('addStockQuantity').value = 1;
+            
+            // Lógica para añadir lote en agrupados
+            if (prod.product_type === 'agrupado') {
+                document.getElementById('addStockNormalWrap').style.display = 'none';
+                document.getElementById('addStockAgrupadoWrap').style.display = 'block';
+                document.getElementById('addStockVariantsList').innerHTML = '<tr><td colspan="3" style="text-align:center;"><i class="ph ph-spinner ph-spin"></i> Cargando variantes...</td></tr>';
+                
+                const fdVar = new FormData();
+                fdVar.append('action', 'get_children');
+                fdVar.append('product_id', prod.id);
+                fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fdVar })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success && res.data.length > 0) {
+                        let html = '';
+                        res.data.forEach(v => {
+                            let attrs = [];
+                            if (v.variant_attributes) {
+                                for (let key in v.variant_attributes) attrs.push(`${key}: ${v.variant_attributes[key]}`);
+                            }
+                            let nameStr = v.name + (attrs.length ? ` <small style="color:var(--text-muted);">(${attrs.join(', ')})</small>` : '');
+                            html += `<tr>
+                                <td>${nameStr}</td>
+                                <td>${v.total_quantity || 0}</td>
+                                <td><input type="number" class="form-control var-qty-input" data-id="${v.id}" min="0" value="0" style="width:80px;padding:4px 8px;text-align:center;"></td>
+                            </tr>`;
+                        });
+                        document.getElementById('addStockVariantsList').innerHTML = html;
+                    } else {
+                        document.getElementById('addStockVariantsList').innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">No hay variantes asignadas</td></tr>';
+                    }
+                }).catch(e => {
+                    document.getElementById('addStockVariantsList').innerHTML = '<tr><td colspan="3" style="text-align:center;color:red;">Error al cargar</td></tr>';
+                });
+            } else {
+                document.getElementById('addStockNormalWrap').style.display = 'block';
+                document.getElementById('addStockAgrupadoWrap').style.display = 'none';
+            }
 
             switchEditProductTab('info');
 
@@ -1761,29 +1800,68 @@
 
     window.submitAddStock = async function() {
         const productId = document.getElementById('addStockProductId').value;
-        const qty = parseInt(document.getElementById('addStockQuantity').value) || 0;
-        if (qty < 1) { if (window.showToast) window.showToast('Cantidad inv\u00e1lida', 'error'); return; }
-        
         const btn = document.getElementById('btnSaveAddStock');
-        btn.disabled = true; btn.innerHTML = '<i class="ph ph-spinner"></i> Guardando...';
+        btn.disabled = true; btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Guardando...';
         
-        const fd = new FormData();
-        fd.append('action', 'add_product_stock');
-        fd.append('product_id', productId);
-        fd.append('quantity', qty);
+        const isAgrupado = document.getElementById('addStockAgrupadoWrap').style.display === 'block';
         
-        try {
-            const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
-            if (res.success) {
-                if (window.showToast) window.showToast(res.message, 'success');
-                closeEditProductModal();
-                loadProducts();
-                loadMetrics();
-            } else {
-                if (window.showToast) window.showToast(res.message, 'error');
+        if (isAgrupado) {
+            const inputs = document.querySelectorAll('.var-qty-input');
+            let updates = [];
+            inputs.forEach(inp => {
+                const q = parseInt(inp.value) || 0;
+                if (q > 0) updates.push({ id: inp.dataset.id, qty: q });
+            });
+            
+            if (updates.length === 0) {
+                if (window.showToast) window.showToast('Ingresa al menos una cantidad mayor a 0', 'error');
+                btn.disabled = false; btn.innerHTML = '<i class="ph ph-check"></i> A\u00f1adir Stock';
+                return;
             }
-        } catch (e) {
-            if (window.showToast) window.showToast('Error de conexi\u00f3n', 'error');
+            
+            const fd = new FormData();
+            fd.append('action', 'add_multiple_stock');
+            fd.append('updates', JSON.stringify(updates));
+            
+            try {
+                const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+                if (res.success) {
+                    if (window.showToast) window.showToast(res.message, 'success');
+                    closeEditProductModal();
+                    loadProducts();
+                    loadMetrics();
+                } else {
+                    if (window.showToast) window.showToast(res.message, 'error');
+                }
+            } catch (e) {
+                if (window.showToast) window.showToast('Error de conexi\u00f3n', 'error');
+            }
+        } else {
+            const qty = parseInt(document.getElementById('addStockQuantity').value) || 0;
+            if (qty < 1) { 
+                if (window.showToast) window.showToast('Cantidad inv\u00e1lida', 'error'); 
+                btn.disabled = false; btn.innerHTML = '<i class="ph ph-check"></i> A\u00f1adir Stock';
+                return; 
+            }
+            
+            const fd = new FormData();
+            fd.append('action', 'add_product_stock');
+            fd.append('product_id', productId);
+            fd.append('quantity', qty);
+            
+            try {
+                const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+                if (res.success) {
+                    if (window.showToast) window.showToast(res.message, 'success');
+                    closeEditProductModal();
+                    loadProducts();
+                    loadMetrics();
+                } else {
+                    if (window.showToast) window.showToast(res.message, 'error');
+                }
+            } catch (e) {
+                if (window.showToast) window.showToast('Error de conexi\u00f3n', 'error');
+            }
         }
         btn.disabled = false; btn.innerHTML = '<i class="ph ph-check"></i> A\u00f1adir Stock';
     };

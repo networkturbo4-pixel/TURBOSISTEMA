@@ -853,9 +853,26 @@ window.addEventListener('error', function(e) {
                     <label class="form-label">Producto</label>
                     <input type="text" class="form-control" id="addStockProductName" readonly style="background:var(--bg-color); color:var(--text-color);">
                 </div>
-                <div class="inv-form-field" style="margin-top:16px;">
-                    <label class="form-label">Cantidad a añadir (SKUs automáticos)</label>
-                    <input type="number" class="form-control" id="addStockQuantity" min="1" value="1">
+                <div id="addStockNormalWrap">
+                    <div class="inv-form-field" style="margin-top:16px;">
+                        <label class="form-label">Cantidad a añadir (SKUs automáticos)</label>
+                        <input type="number" class="form-control" id="addStockQuantity" min="1" value="1">
+                    </div>
+                </div>
+                <div id="addStockAgrupadoWrap" style="display:none; margin-top:16px;">
+                    <label class="form-label" style="margin-bottom:8px;"><i class="ph ph-stack" style="color:#8b5cf6;"></i> Variantes (Ingreso múltiple)</label>
+                    <div class="table-responsive" style="border:1px solid var(--border-color);border-radius:10px;max-height:300px;overflow-y:auto;">
+                        <table class="inv-table" style="margin:0;">
+                            <thead>
+                                <tr>
+                                    <th>Variante</th>
+                                    <th style="width:100px;">Actual</th>
+                                    <th style="width:120px;">Añadir</th>
+                                </tr>
+                            </thead>
+                            <tbody id="addStockVariantsList"></tbody>
+                        </table>
+                    </div>
                 </div>
                 <button class="btn btn-primary w-100" style="margin-top:16px;" id="btnSaveAddStock" onclick="submitAddStock()"><i class="ph ph-check"></i> Añadir Stock</button>
             </div>
