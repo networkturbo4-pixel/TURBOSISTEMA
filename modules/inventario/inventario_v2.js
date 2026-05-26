@@ -2631,33 +2631,179 @@
                             return;
                         }
 
-                        let html = '<div style="display:flex;flex-direction:column;gap:10px;">';
-
                         if (cols.length > 0) {
-                            cols.forEach(c => {
-                                const colName = c.name || c;
-                                const uniqueVals = [...new Set(
-                                    res2.data.map(child => {
-                                        const attrs = child.variant_attributes || {};
-                                        return attrs[colName];
-                                    }).filter(v => v !== undefined && v !== null && v !== '')
-                                )];
-                                html += `<div>
+                            // ── Cascading dropdowns ──
+                            // Render the container and let renderCascadeSelects fill it
+                            optionsEl.innerHTML = `
+                                <div id="cascadeSelectsWrap" style="display:flex;flex-direction:column;gap:10px;"></div>
+                                <div id="cascadeMatchPreview" style="margin-top:10px;display:none;"></div>`;
+
+                            window._agrupadoCols     = cols.map(c => c.name || c);
+                            window._agrupadoChildren = res2.data;
+
+                            // Function to re-render all selects from 'fromIdx' onward
+                            window.renderCascadeSelects = function(changedIdx) {
+                                const wrap = document.getElementById('cascadeSelectsWrap');
+                                if (!wrap) return;
+
+                                const colNames   = window._agrupadoCols;
+                                const allChildren= window._agrupadoChildren;
+
+                                // Collect current selections up to changedIdx
+                                const currentSelections = {};
+                                wrap.querySelectorAll('.agrupado-variant-select').forEach(sel => {
+                                    const col = sel.getAttribute('data-col');
+                                    if (sel.value) currentSelections[col] = sel.value;
+                                });
+
+                                // Re-build selects from changedIdx onwards — keep earlier ones intact
+                                // Get existing selects to know how many already exist
+                                const existingSelects = wrap.querySelectorAll('.agrupado-cascade-row');
+                                const existingCount   = existingSelects.length;
+
+                                if (existingCount < colNames.length) {
+                                    // First render — build all from scratch
+                                    wrap.innerHTML = '';
+                                    colNames.forEach((colName, idx) => renderOneCascadeRow(wrap, colName, idx, {}, allChildren));
+                                } else {
+                                    // Update from changedIdx+1 onward
+                                    for (let idx = changedIdx + 1; idx < colNames.length; idx++) {
+                                        // Build filter from selections before this col
+                                        const prevFilter = {};
+                                        for (let p = 0; p < idx; p++) {
+                                            const prevSel = wrap.querySelector(`.agrupado-variant-select[data-col="${CSS.escape(colNames[p])}"]`);
+                                            if (prevSel && prevSel.value) prevFilter[colNames[p]] = prevSel.value;
+                                        }
+                                        // Filter children by prevFilter
+                                        const filtered = allChildren.filter(ch => {
+                                            const attrs = ch.variant_attributes || {};
+                                            return Object.keys(prevFilter).every(k => String(attrs[k]) === String(prevFilter[k]));
+                                        });
+                                        // Update that row's select
+                                        const rowEl = existingSelects[idx];
+                                        if (!rowEl) continue;
+                                        const sel = rowEl.querySelector('.agrupado-variant-select');
+                                        const prevVal = currentSelections[colNames[idx]];
+                                        const uniqueVals = [...new Set(filtered.map(ch => (ch.variant_attributes||{})[colNames[idx]]).filter(v => v != null && v !== ''))];
+                                        sel.innerHTML = `<option value="">— Seleccionar ${esc(colNames[idx])} —</option>` +
+                                            uniqueVals.map(v => {
+                                                const stock = filtered.filter(ch => String((ch.variant_attributes||{})[colNames[idx]]) === String(v)).reduce((s,ch)=>s+parseFloat(ch.total_quantity||0),0);
+                                                const selected = prevVal === v ? 'selected' : '';
+                                                return `<option value="${esc(v)}" ${selected}>${esc(v)} (${stock} disp.)</option>`;
+                                            }).join('');
+                                        // Style: dim if no options available
+                                        sel.disabled = uniqueVals.length === 0;
+                                        sel.style.opacity = uniqueVals.length === 0 ? '0.4' : '1';
+                                    }
+                                }
+
+                                updateCascadePreview();
+                            };
+
+                            function renderOneCascadeRow(wrap, colName, idx, prevFilter, allChildren) {
+                                const filtered = allChildren.filter(ch => {
+                                    const attrs = ch.variant_attributes || {};
+                                    return Object.keys(prevFilter).every(k => String(attrs[k]) === String(prevFilter[k]));
+                                });
+                                const uniqueVals = [...new Set(filtered.map(ch => (ch.variant_attributes||{})[colName]).filter(v => v != null && v !== ''))];
+
+                                const row = document.createElement('div');
+                                row.className = 'agrupado-cascade-row';
+                                row.style.cssText = 'position:relative;';
+                                row.innerHTML = `
                                     <label style="font-size:0.82rem;font-weight:700;margin-bottom:5px;display:flex;align-items:center;gap:5px;color:var(--text-color);">
                                         <i class="ph ph-tag" style="color:#8b5cf6;"></i> ${esc(colName)}
                                     </label>
-                                    <select class="form-select form-select-sm agrupado-variant-select" data-col="${esc(colName)}" style="border-color:rgba(139,92,246,0.4);">
+                                    <select class="form-select form-select-sm agrupado-variant-select" data-col="${esc(colName)}" data-idx="${idx}" style="border-color:rgba(139,92,246,0.4);">
                                         <option value="">— Seleccionar ${esc(colName)} —</option>
                                         ${uniqueVals.map(v => {
-                                            const matchingChildren = res2.data.filter(ch => (ch.variant_attributes || {})[colName] == v);
-                                            const totalStock = matchingChildren.reduce((sum, ch) => sum + parseFloat(ch.total_quantity || 0), 0);
-                                            return `<option value="${esc(v)}">${esc(v)} (${totalStock} disp.)</option>`;
+                                            const stock = filtered.filter(ch => String((ch.variant_attributes||{})[colName]) === String(v)).reduce((s,ch)=>s+parseFloat(ch.total_quantity||0),0);
+                                            return `<option value="${esc(v)}">${esc(v)} (${stock} disp.)</option>`;
                                         }).join('')}
                                     </select>
-                                </div>`;
-                            });
+                                    <div class="cascade-match-hint" style="margin-top:4px;min-height:18px;font-size:0.75rem;color:var(--text-muted);"></div>`;
+                                wrap.appendChild(row);
+
+                                row.querySelector('select').addEventListener('change', function() {
+                                    window.renderCascadeSelects(idx);
+                                });
+                            }
+
+                            function updateCascadePreview() {
+                                const wrap    = document.getElementById('cascadeSelectsWrap');
+                                const preview = document.getElementById('cascadeMatchPreview');
+                                if (!wrap || !preview) return;
+
+                                const colNames    = window._agrupadoCols;
+                                const allChildren = window._agrupadoChildren;
+
+                                // Collect all selected values
+                                const selections = {};
+                                let allSelected = true;
+                                colNames.forEach(col => {
+                                    const sel = wrap.querySelector(`.agrupado-variant-select[data-col="${CSS.escape(col)}"]`);
+                                    if (sel && sel.value) selections[col] = sel.value;
+                                    else allSelected = false;
+                                });
+
+                                // Update hint on each row showing how many rows match so far
+                                const rows = wrap.querySelectorAll('.agrupado-cascade-row');
+                                rows.forEach((row, idx) => {
+                                    const hint = row.querySelector('.cascade-match-hint');
+                                    if (!hint) return;
+                                    // Filter by selections UP TO AND INCLUDING this col
+                                    const partialFilter = {};
+                                    for (let p = 0; p <= idx; p++) {
+                                        const colSel = wrap.querySelector(`.agrupado-variant-select[data-idx="${p}"]`);
+                                        if (colSel && colSel.value) partialFilter[colNames[p]] = colSel.value;
+                                    }
+                                    if (Object.keys(partialFilter).length === 0) { hint.textContent = ''; return; }
+                                    const matches = allChildren.filter(ch => {
+                                        const attrs = ch.variant_attributes || {};
+                                        return Object.keys(partialFilter).every(k => String(attrs[k]) === String(partialFilter[k]));
+                                    });
+                                    const totalStock = matches.reduce((s,ch)=>s+parseFloat(ch.total_quantity||0),0);
+                                    if (matches.length === 0) {
+                                        hint.innerHTML = '<span style="color:#ef4444;"><i class="ph ph-x-circle"></i> Sin coincidencias</span>';
+                                    } else {
+                                        hint.innerHTML = `<span style="color:#10b981;"><i class="ph ph-check-circle"></i> ${matches.length} variante${matches.length>1?'s':''} · <strong>${totalStock}</strong> en stock</span>`;
+                                    }
+                                });
+
+                                // Show bottom match card if all selected
+                                if (allSelected) {
+                                    const match = allChildren.find(ch => {
+                                        const attrs = ch.variant_attributes || {};
+                                        return Object.keys(selections).every(k => String(attrs[k]) === String(selections[k]));
+                                    });
+                                    if (match) {
+                                        preview.style.display = 'block';
+                                        preview.innerHTML = `
+                                            <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                                                <div>
+                                                    <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:2px;"><i class="ph ph-check-circle" style="color:#10b981;"></i> Variante encontrada</div>
+                                                    <div style="font-weight:700;color:var(--text-color);font-size:0.9rem;">${esc(match.name)}</div>
+                                                </div>
+                                                <div style="text-align:right;flex-shrink:0;">
+                                                    <div style="font-size:0.75rem;color:var(--text-muted);">Disponible</div>
+                                                    <div style="font-weight:800;font-size:1.1rem;color:#10b981;">${match.total_quantity}</div>
+                                                </div>
+                                            </div>`;
+                                    } else {
+                                        preview.style.display = 'block';
+                                        preview.innerHTML = `<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:10px 14px;font-size:0.85rem;color:#ef4444;"><i class="ph ph-x-circle"></i> No existe una variante con esta combinación</div>`;
+                                    }
+                                } else {
+                                    preview.style.display = 'none';
+                                }
+                            }
+
+                            // Initial render
+                            window.renderCascadeSelects(-1);
+
                         } else {
-                            html += `<div>
+                            // No column definitions — simple list select
+                            optionsEl.innerHTML = `<div>
                                 <label style="font-size:0.82rem;font-weight:700;margin-bottom:5px;display:block;">Variante</label>
                                 <select class="form-select form-select-sm agrupado-variant-select" data-col="__variant__">
                                     <option value="">— Seleccionar variante —</option>
@@ -2666,8 +2812,6 @@
                             </div>`;
                         }
 
-                        html += '</div>';
-                        optionsEl.innerHTML = html;
                     } else {
                         optionsEl.innerHTML = `<p style="color:#ef4444;font-size:0.85rem;margin:0;"><i class="ph ph-x-circle"></i> Error: ${esc(res2.message || 'No se pudieron cargar las variantes')}</p>`;
                     }
