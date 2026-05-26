@@ -2586,10 +2586,14 @@
             }
         };
         scanPickerDetected = [];
-        document.getElementById('scanPickerResults').style.display = 'none';
-        document.getElementById('scanPickerList').innerHTML = '';
-        document.getElementById('scanPickerManual').value = '';
-        document.getElementById('scanPickerStatus').innerHTML = '<i class="ph ph-camera"></i> Apunta la cámara al código...';
+        const spResults = document.getElementById('scanPickerResults');
+        const spList    = document.getElementById('scanPickerList');
+        const spManual  = document.getElementById('scanPickerManual');
+        const spStatus  = document.getElementById('scanPickerStatus');
+        if (spResults) spResults.style.display = 'none';
+        if (spList)    spList.innerHTML = '';
+        if (spManual)  spManual.value = '';
+        if (spStatus)  spStatus.innerHTML = '<i class="ph ph-camera"></i> Apunta la cámara al código...';
         const spm2 = document.getElementById('scanPickerModal');
         if (spm2.parentElement !== document.body) document.body.appendChild(spm2);
         spm2.classList.add('active');
