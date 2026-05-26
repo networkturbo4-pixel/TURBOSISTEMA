@@ -2561,45 +2561,13 @@
         setTimeout(() => document.addEventListener('mousedown', outsideHandler), 100);
     };
 
-    // ── Ensure scanPickerModal exists in DOM (created lazily if Escáner tab hasn't been opened) ──
-    function ensureScanPickerModal() {
-        if (document.getElementById('scanPickerModal')) return;
-        const modal = document.createElement('div');
-        modal.id = 'scanPickerModal';
-        modal.className = 'inv-modal';
-        modal.innerHTML = `
-            <div class="inv-modal-box" style="max-width:480px;">
-                <div class="inv-modal-header">
-                    <h3><i class="ph ph-scan"></i> Escanear Código</h3>
-                    <button class="inv-modal-close" onclick="document.getElementById('scanPickerModal').classList.remove('active'); try{stopScanPicker();}catch(e){}">
-                        <i class="ph ph-x"></i>
-                    </button>
-                </div>
-                <div class="inv-modal-body">
-                    <div id="scanPickerStatus" style="text-align:center;margin-bottom:12px;color:var(--text-muted);font-size:0.9rem;">
-                        <i class="ph ph-camera"></i> Apunta la cámara al código...
-                    </div>
-                    <video id="scanPickerVideo" style="width:100%;border-radius:10px;background:#000;max-height:240px;display:block;"></video>
-                    <div style="margin-top:12px;">
-                        <div style="display:flex;gap:8px;">
-                            <input id="scanPickerManual" type="text" class="form-control" placeholder="O escribe el código manualmente..." style="flex:1;">
-                            <button class="btn btn-primary" onclick="const v=document.getElementById('scanPickerManual').value.trim();if(v&&window._scanPickerCb){window._scanPickerCb(v);document.getElementById('scanPickerModal').classList.remove('active');}">OK</button>
-                        </div>
-                    </div>
-                    <div id="scanPickerResults" style="display:none;margin-top:12px;">
-                        <div style="font-size:0.85rem;font-weight:600;margin-bottom:6px;">Códigos detectados:</div>
-                        <div id="scanPickerList"></div>
-                    </div>
-                </div>
-            </div>`;
-        document.body.appendChild(modal);
-        // Wire manual OK via callback
-        window._scanPickerCb = null;
-    }
-
     // ── Scan button for BULK product custom columns ──
     window.scanForBulkField = function(productId, key, btnEl) {
-        scanPickerCallback = async (code) => {
+        if (typeof openSysBarcodeScanner !== 'function') {
+            if (window.showToast) window.showToast('Escáner no disponible', 'error');
+            return;
+        }
+        openSysBarcodeScanner(async function(code) {
             let cd = {};
             if (lastSkuData) {
                 const bulkItem = lastSkuData.find(s => s.is_bulk && s.product_id == productId);
@@ -2620,22 +2588,7 @@
             } else {
                 if (window.showToast) window.showToast('Error al guardar', 'error');
             }
-        };
-        ensureScanPickerModal();
-        scanPickerDetected = [];
-        const spResults = document.getElementById('scanPickerResults');
-        const spList    = document.getElementById('scanPickerList');
-        const spManual  = document.getElementById('scanPickerManual');
-        const spStatus  = document.getElementById('scanPickerStatus');
-        if (spResults) spResults.style.display = 'none';
-        if (spList)    spList.innerHTML = '';
-        if (spManual)  spManual.value = '';
-        if (spStatus)  spStatus.innerHTML = '<i class="ph ph-camera"></i> Apunta la cámara al código...';
-        const spm2 = document.getElementById('scanPickerModal');
-        if (!spm2) { if (window.showToast) window.showToast('Error: modal de escaneo no disponible', 'error'); return; }
-        if (spm2.parentElement !== document.body) document.body.appendChild(spm2);
-        spm2.classList.add('active');
-        if (typeof startScanPicker === 'function') startScanPicker();
+        });
     };
 
     // ── Labels Tab ──
