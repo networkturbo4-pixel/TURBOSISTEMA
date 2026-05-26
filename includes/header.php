@@ -59,4 +59,14 @@ $fontLink = "https://fonts.googleapis.com/css2?family=" . urlencode($typography)
     </script>
 </head>
 <body>
+    <script>
+        (function() {
+            try {
+                var theme = localStorage.getItem('theme');
+                if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.body.classList.add('dark-theme');
+                }
+            } catch (e) {}
+        })();
+    </script>
     <div class="app-container">

@@ -6,6 +6,15 @@ $logoCollapsedDark = $globalSettings['logo_collapsed_dark'] ?? '';
 $appNameSidebar = $globalSettings['app_name'] ?? 'Turbo SaaS';
 ?>
 <aside class="sidebar">
+    <script>
+        (function() {
+            try {
+                if (window.innerWidth > 768 && localStorage.getItem('sidebar_collapsed') === 'true') {
+                    document.currentScript.parentNode.classList.add('collapsed');
+                }
+            } catch (e) {}
+        })();
+    </script>
     <div class="sidebar-header" style="display: flex; align-items: center; justify-content: space-between; padding: 20px;">
         <div class="sidebar-logo-container" style="display: flex; align-items: center; flex: 1; overflow: hidden;">
             <?php if ($logoLight): ?>
