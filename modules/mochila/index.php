@@ -7,7 +7,7 @@ include '../../includes/header.php';
 include '../../includes/sidebar.php';
 ?>
 
-<link rel="stylesheet" href="mochila.css">
+<link rel="stylesheet" href="mochila.css?v=<?php echo time(); ?>">
 
 <!-- ══════════════════════════════════════════════
      PAGE HEADER
@@ -272,6 +272,6 @@ include '../../includes/sidebar.php';
     </div>
 </div>
 
-<script src="mochila.js"></script>
+<script src="mochila.js?v=<?php echo time(); ?>"></script>
 
 <?php include '../../includes/footer.php'; ?>
