@@ -1195,12 +1195,13 @@
                     const qtyMalogrado = child.qty_malogrado   != null ? parseFloat(child.qty_malogrado)   : 0;
 
                     tr.innerHTML = `
-                        <td data-label="Variante">
-                            <div style="display:flex; align-items:center; gap:8px; padding-left:24px;">
-                                <span class="variant-tree-line">├</span>
+                        <td></td>
+                        <td data-label="Producto">
+                            <div style="display:flex; align-items:center; gap:8px; padding-left:20px;">
+                                <span style="color:var(--text-muted);font-size:1rem;flex-shrink:0;">└</span>
                                 <div>
-                                    <div style="font-weight:600;color:var(--text-color);font-size:0.9rem;">${esc(child.name)}${variantSuffix}</div>
-                                    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px;">${attrBadges}</div>
+                                    <div style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${esc(child.name)}</div>
+                                    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px;">${attrBadges}</div>
                                 </div>
                             </div>
                         </td>
