@@ -11,102 +11,187 @@ include '../../includes/sidebar.php';
 
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>/modules/inventario/inventario.css?v=<?php echo time(); ?>">
 
-<!-- Scanner Header -->
-<div class="scanner-header">
-    <div class="scanner-header-left">
-        <div class="scanner-icon-box"><i class="ph ph-barcode"></i></div>
-        <div>
-            <h2 style="margin:0;font-size:1.15rem;font-weight:700;">Escáner de Inventario</h2>
-            <p style="margin:0;font-size:0.82rem;color:rgba(255,255,255,0.7);">Escanea o escribe un código SKU para buscar</p>
-        </div>
-    </div>
-    <div class="scanner-input-wrap">
-        <i class="ph ph-magnifying-glass"></i>
-        <input type="text" id="scannerInput" class="form-control" placeholder="Buscar por SKU o nombre..." autofocus>
-        <button type="button" class="btn-scan-camera" id="btnScanCamera" title="Escanear con cámara"><i class="ph ph-camera"></i></button>
-    </div>
-</div>
+<script>
+window.addEventListener('error', function(e) {
+    const div = document.createElement('div');
+    div.style.position = 'fixed';
+    div.style.top = '0';
+    div.style.left = '0';
+    div.style.width = '100%';
+    div.style.background = '#fee2e2';
+    div.style.color = '#991b1b';
+    div.style.padding = '15px';
+    div.style.borderBottom = '3px solid #ef4444';
+    div.style.zIndex = '999999';
+    div.style.fontFamily = 'monospace';
+    div.style.fontSize = '14px';
+    div.style.whiteSpace = 'pre-wrap';
+    div.innerHTML = '<strong>Error de JS detectado:</strong><br>' + e.message + ' en ' + e.filename + ':' + e.lineno + ':' + e.colno + '<br><br>Pila de ejecución:<br>' + (e.error ? e.error.stack : 'No disponible');
+    document.body.appendChild(div);
+});
+</script>
 
-<!-- Scanner Result -->
-<div id="scannerResult" class="scanner-result" style="display:none;"></div>
 
 
 <!-- Metric Cards -->
-<div class="row g-2 mb-4" id="metricCards">
-    <div class="col-md-3 col-6">
-        <div class="inv-metric-card">
-            <div class="inv-metric-icon" style="background:rgba(99,102,241,0.1);"><i class="ph ph-cube" style="color:#6366f1;"></i></div>
-            <div class="text-end"><p class="inv-metric-value" id="metricTotal" style="color:#6366f1;">0</p><h3 class="inv-metric-title">Total Unidades</h3></div>
-        </div>
+<div id="metricCards">
+    <div class="inv-metric-card">
+        <div class="inv-metric-icon" style="background:rgba(99,102,241,0.1);"><i class="ph ph-cube" style="color:#6366f1;"></i></div>
+        <div class="text-end"><p class="inv-metric-value" id="metricTotal" style="color:#6366f1;">0</p><h3 class="inv-metric-title">Total Unidades</h3></div>
     </div>
-    <div class="col-md-3 col-6">
-        <div class="inv-metric-card">
-            <div class="inv-metric-icon" style="background:rgba(16,185,129,0.1);"><i class="ph ph-check-circle" style="color:#10b981;"></i></div>
-            <div class="text-end"><p class="inv-metric-value" id="metricDisponible" style="color:#10b981;">0</p><h3 class="inv-metric-title">Disponibles</h3></div>
-        </div>
+    <div class="inv-metric-card">
+        <div class="inv-metric-icon" style="background:rgba(16,185,129,0.1);"><i class="ph ph-check-circle" style="color:#10b981;"></i></div>
+        <div class="text-end"><p class="inv-metric-value" id="metricDisponible" style="color:#10b981;">0</p><h3 class="inv-metric-title">Disponibles</h3></div>
     </div>
-    <div class="col-md-3 col-6">
-        <div class="inv-metric-card">
-            <div class="inv-metric-icon" style="background:rgba(59,130,246,0.1);"><i class="ph ph-arrow-circle-up" style="color:#3b82f6;"></i></div>
-            <div class="text-end"><p class="inv-metric-value" id="metricInstalado" style="color:#3b82f6;">0</p><h3 class="inv-metric-title">Instalados</h3></div>
-        </div>
+    <div class="inv-metric-card">
+        <div class="inv-metric-icon" style="background:rgba(59,130,246,0.1);"><i class="ph ph-arrow-circle-up" style="color:#3b82f6;"></i></div>
+        <div class="text-end"><p class="inv-metric-value" id="metricInstalado" style="color:#3b82f6;">0</p><h3 class="inv-metric-title">Instalados</h3></div>
     </div>
-    <div class="col-md-3 col-6">
-        <div class="inv-metric-card">
-            <div class="inv-metric-icon" style="background:rgba(245,158,11,0.1);"><i class="ph ph-warning" style="color:#f59e0b;"></i></div>
-            <div class="text-end"><p class="inv-metric-value" id="metricLowStock" style="color:#f59e0b;">0</p><h3 class="inv-metric-title">Por Agotarse</h3></div>
-        </div>
+    <div class="inv-metric-card">
+        <div class="inv-metric-icon" style="background:rgba(245,158,11,0.1);"><i class="ph ph-warning" style="color:#f59e0b;"></i></div>
+        <div class="text-end"><p class="inv-metric-value" id="metricLowStock" style="color:#f59e0b;">0</p><h3 class="inv-metric-title">Por Agotarse</h3></div>
     </div>
 </div>
 
-<!-- Tabs -->
-<div class="inv-tabs-bar" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-    <div style="display:flex; gap:4px;">
+<!-- Card contenedor unificado -->
+<div class="inv-content-card">
+
+<!-- Unified Toolbar: Tabs + Filters -->
+<div class="inv-toolbar">
+    <!-- Tabs (izquierda) -->
+    <div class="inv-toolbar-tabs">
         <button class="inv-tab active" data-tab="productos"><i class="ph ph-package"></i> Productos</button>
         <button class="inv-tab" data-tab="stock"><i class="ph ph-chart-bar"></i> Control de Stock</button>
         <button class="inv-tab" data-tab="etiquetas"><i class="ph ph-tag"></i> Etiquetas</button>
+        <button class="inv-tab" data-tab="escaner"><i class="ph ph-barcode"></i> Escáner</button>
     </div>
-    <button class="btn-sheets-sync" onclick="SheetsSync.openModal()" title="Sincronizar con Google Sheets" id="btnSheetsSync">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M14 2v6h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <line x1="8" y1="13" x2="16" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <line x1="8" y1="17" x2="16" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <polyline points="10 9 9 9 8 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        Google Sheets
-        <span class="sheets-status-dot" id="sheetsDot"></span>
+    <!-- History button -->
+    <button class="inv-tab" style="margin-left:8px; background:rgba(99,102,241,0.1); color:#6366f1; border:1px solid rgba(99,102,241,0.2);" onclick="openHistoryModal()" title="Historial de inventario">
+        <i class="ph ph-clock-counter-clockwise"></i> Historial
     </button>
-</div>
-
-<!-- Tab: Productos -->
-<div class="inv-tab-pane active" id="tab-productos">
-    <div class="inv-filter-row" style="display:flex; gap:10px; flex-wrap:wrap;">
-        <div class="inv-filter-search" style="flex:1; min-width:200px;">
+    <!-- Filtros + Sheets (derecha) -->
+    <div class="inv-toolbar-right">
+        <div class="inv-filter-search" id="toolbarSearch">
             <i class="ph ph-magnifying-glass"></i>
-            <input type="text" class="form-control" id="searchProducts" placeholder="Buscar producto...">
+            <input type="text" class="form-control" id="searchProducts" placeholder="Buscar producto..." autocomplete="off">
         </div>
-        <select class="form-select inv-filter-select" id="filterProductCategory" style="flex:1; min-width:180px;">
+        <!-- Hidden selects (mantienen IDs para JS existente) -->
+        <select class="form-select inv-filter-select" id="filterProductCategory" style="display:none;">
             <option value="">Todas las categorías</option>
         </select>
-        <select class="form-select inv-filter-select" id="filterProductStatus" style="flex:1; min-width:180px;">
+        <select class="form-select inv-filter-select" id="filterProductStatus" style="display:none;">
             <option value="">Todos los estados</option>
             <option value="con_stock">Con Stock Disponible</option>
             <option value="sin_stock">Sin Stock (Agotado)</option>
             <option value="stock_critico">Stock Crítico</option>
             <option value="con_malogrados">Con Malogrados</option>
         </select>
+        
+        <!-- Stock Filters (visible only in stock tab) -->
+        <div id="stockFiltersToolbar" style="display:none; gap:8px; align-items:center;">
+            <select class="form-select inv-filter-select" id="filterProduct" style="min-width:160px;"><option value="">Todos los productos</option></select>
+            <select class="form-select inv-filter-select" id="filterStatus" style="min-width:150px;">
+                <option value="">Todos los estados</option>
+                <option value="disponible">Disponible</option>
+                <option value="instalado">Instalado</option>
+                <option value="malogrado">Malogrado</option>
+                <option value="reparado">Reparado</option>
+                <option value="en_transito">En Tránsito</option>
+            </select>
+        </div>
+
+        <!-- Filter Button -->
+        <div class="inv-filter-popover-wrap" id="mainFilterPopoverWrap">
+            <button type="button" class="inv-filter-btn" id="btnFilterToggle" title="Filtros">
+                <i class="ph ph-funnel"></i>
+                <span class="inv-filter-btn-label">Filtros</span>
+                <span class="inv-filter-badge" id="filterBadge" style="display:none;">0</span>
+            </button>
+            <!-- Popover Panel -->
+            <div class="inv-filter-popover" id="filterPopover">
+                <div class="inv-fp-header">
+                    <span><i class="ph ph-funnel" style="margin-right:6px;"></i>Filtros</span>
+                    <button type="button" class="inv-fp-close" id="btnFilterClose"><i class="ph ph-x"></i></button>
+                </div>
+                <div class="inv-fp-body">
+                    <!-- Categoría -->
+                    <div class="inv-fp-section">
+                        <label class="inv-fp-label">Categoría</label>
+                        <div class="inv-fp-chips" id="fpCategoryChips">
+                            <button type="button" class="inv-fp-chip active" data-cat="">Todas</button>
+                        </div>
+                    </div>
+                    <!-- Estado (Product tab) -->
+                    <div class="inv-fp-section" id="fpStatusSection_products">
+                        <label class="inv-fp-label">Estado</label>
+                        <div class="inv-fp-chips" id="fpStatusChips">
+                            <button type="button" class="inv-fp-chip active" data-stat="">Todos</button>
+                            <button type="button" class="inv-fp-chip" data-stat="con_stock"><i class="ph ph-check-circle"></i> Con Stock</button>
+                            <button type="button" class="inv-fp-chip" data-stat="sin_stock"><i class="ph ph-x-circle"></i> Agotado</button>
+                            <button type="button" class="inv-fp-chip" data-stat="stock_critico"><i class="ph ph-warning"></i> Crítico</button>
+                            <button type="button" class="inv-fp-chip" data-stat="con_malogrados"><i class="ph ph-warning-diamond"></i> Malogrados</button>
+                        </div>
+                    </div>
+                    <!-- Estado (Stock tab) -->
+                    <div class="inv-fp-section" id="fpStatusSection_stock" style="display:none;">
+                        <label class="inv-fp-label">Estado del SKU</label>
+                        <div class="inv-fp-chips" id="fpStatusChipsStock">
+                            <button type="button" class="inv-fp-chip active" data-stat="">Todos</button>
+                            <button type="button" class="inv-fp-chip" data-stat="disponible"><i class="ph ph-check-circle"></i> Disponible</button>
+                            <button type="button" class="inv-fp-chip" data-stat="instalado"><i class="ph ph-arrow-circle-up"></i> Instalado</button>
+                            <button type="button" class="inv-fp-chip" data-stat="malogrado"><i class="ph ph-warning-diamond"></i> Malogrado</button>
+                            <button type="button" class="inv-fp-chip" data-stat="reparado"><i class="ph ph-wrench"></i> Reparado</button>
+                            <button type="button" class="inv-fp-chip" data-stat="en_transito"><i class="ph ph-truck"></i> En Tránsito</button>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="inv-fp-footer">
+                    <button type="button" class="inv-fp-clear" id="btnFilterClear"><i class="ph ph-arrow-counter-clockwise"></i> Limpiar</button>
+                    <button type="button" class="inv-fp-apply" id="btnFilterApply"><i class="ph ph-check"></i> Aplicar Filtros</button>
+                </div>
+            </div>
+        </div>
+        <button class="btn-sheets-sync" onclick="SheetsSync.openModal()" title="Sincronizar con Google Sheets" id="btnSheetsSync">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M14 2v6h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="8" y1="13" x2="16" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <line x1="8" y1="17" x2="16" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <polyline points="10 9 9 9 8 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            Google Sheets
+            <span class="sheets-status-dot" id="sheetsDot"></span>
+        </button>
     </div>
+</div>
+
+<!-- Tab: Productos -->
+<div class="inv-tab-pane active" id="tab-productos">
     <!-- Active filters bar -->
     <div id="cfActiveBar" style="display:none; gap:8px; flex-wrap:wrap; align-items:center; padding:8px 0; animation:fadeIn 0.2s ease;">
         <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600;"><i class="ph ph-funnel"></i> Filtros activos:</span>
         <div id="cfActiveTags" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
         <button onclick="ColFilter.clearAll()" style="margin-left:auto; background:transparent; border:1px solid var(--border-color); border-radius:8px; padding:4px 10px; font-size:0.78rem; color:var(--text-muted); cursor:pointer; display:flex; align-items:center; gap:4px;"><i class="ph ph-x"></i> Limpiar todo</button>
     </div>
-    <div class="table-responsive" id="productsTableWrap" style="display:none;">
+
+    <!-- Product bulk actions bar -->
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:var(--surface-color); border-bottom: 1px solid var(--border-color);">
+        <div style="display:flex; gap:10px; align-items:center;">
+            <div id="prodActiveActions" style="display:none; gap:6px;">
+                <button class="btn btn-danger btn-sm" onclick="bulkDeleteProducts()"><i class="ph ph-trash"></i> Eliminar</button>
+            </div>
+        </div>
+        <div style="font-size:0.8rem; color:var(--text-muted);">
+            <span id="prodSelectedCount">0</span> seleccionados
+        </div>
+    </div>
+
+    <div class="table-responsive" id="productsTableWrap" style="display:none; height: calc(100vh - 420px); overflow: auto; border-bottom: 1px solid var(--border-color);">
         <table class="inv-table">
             <thead>
                 <tr>
+                    <th style="width:40px;text-align:center;"><input type="checkbox" class="form-check-input" id="prodCheckAll" onchange="toggleAllProducts(this)"></th>
                     <th class="cf-th" data-col="nombre">
                         <span>Producto</span>
                         <button class="cf-btn" onclick="ColFilter.open('nombre', this)" title="Filtrar"><i class="ph ph-funnel-simple"></i></button>
@@ -137,31 +222,140 @@ include '../../includes/sidebar.php';
             <tbody id="productsGrid"></tbody>
         </table>
     </div>
+    <div id="productsPagination" style="display:none; justify-content:space-between; align-items:center; padding:12px 16px; background:var(--surface-color); border-bottom-left-radius:16px; border-bottom-right-radius:16px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:0.85rem; color:var(--text-muted);">Mostrar</span>
+            <select id="prodPerPage" class="form-select" style="padding:4px 28px 4px 8px; width:auto; font-size:0.85rem; height:32px;">
+                <option value="10">10</option>
+                <option value="25" selected>25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+            <span style="font-size:0.85rem; color:var(--text-muted);">registros</span>
+        </div>
+        <div style="font-size:0.85rem; color:var(--text-muted);" id="prodPageInfo">Mostrando 0 - 0 de 0</div>
+        <div style="display:flex; gap:4px;" id="prodPaginationControls">
+            <button class="btn btn-secondary btn-sm" id="btnProdPrev" style="padding:4px 8px;"><i class="ph ph-caret-left"></i></button>
+            <button class="btn btn-secondary btn-sm" id="btnProdNext" style="padding:4px 8px;"><i class="ph ph-caret-right"></i></button>
+        </div>
+    </div>
     <div id="productsEmpty" class="empty-state" style="display:none;"><i class="ph ph-package" style="font-size:3rem;display:block;margin-bottom:12px;"></i>No hay productos registrados.</div>
 </div>
 
+</div><!-- /.inv-content-card -->
+
 <!-- Tab: Control de Stock -->
 <div class="inv-tab-pane" id="tab-stock">
-    <div class="inv-filter-row">
-        <div class="inv-filter-search">
-            <i class="ph ph-magnifying-glass"></i>
-            <input type="text" class="form-control" id="searchSku" placeholder="Buscar SKU...">
+    <input type="hidden" id="searchSku" value="">
+    
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:var(--surface-color); border-bottom: 1px solid var(--border-color);">
+        <div style="display:flex; gap:10px; align-items:center;">
+            <div id="skuActiveActions" style="display:none; gap:6px;">
+                <button class="btn btn-secondary btn-sm" onclick="exportSkusToExcel()" title="Descargar en Excel"><i class="ph ph-file-xls" style="color:#10b981;"></i> Excel</button>
+                <button class="btn btn-secondary btn-sm" onclick="bulkChangeSkuStatus()"><i class="ph ph-tag"></i> Cambiar Estado</button>
+                <button class="btn btn-danger btn-sm" onclick="bulkDeleteSkus()"><i class="ph ph-trash"></i> Eliminar</button>
+            </div>
         </div>
-        <select class="form-select inv-filter-select" id="filterProduct"><option value="">Todos los productos</option></select>
-        <select class="form-select inv-filter-select" id="filterStatus">
-            <option value="">Todos los estados</option>
-            <option value="disponible">Disponible</option>
-            <option value="instalado">Instalado</option>
-            <option value="malogrado">Malogrado</option>
-            <option value="reparado">Reparado</option>
-            <option value="en_transito">En Tránsito</option>
-        </select>
+        <div style="font-size:0.8rem; color:var(--text-muted);">
+            <span id="skuSelectedCount">0</span> seleccionados
+        </div>
     </div>
-    <div class="table-responsive">
-        <table id="skuTable">
-            <thead><tr><th>#</th><th>SKU</th><th>Producto</th><th>Categoría</th><th>Estado</th><th>Historia</th><th>Última Actividad</th><th>Instalado a</th><th>Asignado</th><th>Acción</th></tr></thead>
+
+    <!-- Active filters bar for stock -->
+    <div id="skuActiveBar" style="display:none; gap:8px; flex-wrap:wrap; align-items:center; padding:8px 16px; background:var(--surface-color); border-bottom: 1px solid var(--border-color); animation:fadeIn 0.2s ease;">
+        <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600;"><i class="ph ph-funnel"></i> Filtros activos:</span>
+        <div id="skuActiveTags" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+        <button onclick="SkuColFilter.clearAll()" style="margin-left:auto; background:transparent; border:1px solid var(--border-color); border-radius:8px; padding:4px 10px; font-size:0.78rem; color:var(--text-muted); cursor:pointer; display:flex; align-items:center; gap:4px;"><i class="ph ph-x"></i> Limpiar todo</button>
+    </div>
+
+    <div class="table-responsive" style="height: calc(100vh - 430px); overflow: auto; border-bottom: 1px solid var(--border-color);">
+        <table id="skuTable" class="inv-table">
+            <thead>
+                <tr>
+                    <th class="sticky-col sticky-col-0 sticky-th" style="width:40px;text-align:center;vertical-align:middle;" data-colname="#">
+                        <input type="checkbox" id="skuCheckAll" class="form-check-input" onchange="toggleAllSkus(this)">
+                    </th>
+                    <th class="draggable-th sortable-th sticky-col sticky-col-1 sticky-th" onclick="toggleSort('sku_code')" draggable="true" data-colidx="1" data-colname="SKU">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span style="white-space:nowrap;">SKU <span class="sort-icon"><i class="ph ph-caret-up-down" style="opacity:0.3;"></i></span></span>
+                            <button class="cf-btn" onclick="event.stopPropagation(); SkuColFilter.open('SKU', this)" title="Filtrar"><i class="ph ph-funnel-simple"></i></button>
+                        </div>
+                    </th>
+                    <th class="draggable-th sortable-th sticky-col sticky-col-2 sticky-th" onclick="toggleSort('product_name')" draggable="true" data-colidx="2" data-colname="Producto">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span style="white-space:nowrap;">Producto <span class="sort-icon"><i class="ph ph-caret-up-down" style="opacity:0.3;"></i></span></span>
+                            <button class="cf-btn" onclick="event.stopPropagation(); SkuColFilter.open('Producto', this)" title="Filtrar"><i class="ph ph-funnel-simple"></i></button>
+                        </div>
+                    </th>
+                    <th class="draggable-th sortable-th" onclick="toggleSort('category_name')" draggable="true" data-colidx="3" data-colname="Categoría">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span style="white-space:nowrap;">Categoría <span class="sort-icon"><i class="ph ph-caret-up-down" style="opacity:0.3;"></i></span></span>
+                            <button class="cf-btn" onclick="event.stopPropagation(); SkuColFilter.open('Categoría', this)" title="Filtrar"><i class="ph ph-funnel-simple"></i></button>
+                        </div>
+                    </th>
+                    <th class="draggable-th sortable-th" onclick="toggleSort('status')" draggable="true" data-colidx="4" data-colname="Estado">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span style="white-space:nowrap;">Estado <span class="sort-icon"><i class="ph ph-caret-up-down" style="opacity:0.3;"></i></span></span>
+                            <button class="cf-btn" onclick="event.stopPropagation(); SkuColFilter.open('Estado', this)" title="Filtrar"><i class="ph ph-funnel-simple"></i></button>
+                        </div>
+                    </th>
+                    <th class="draggable-th" draggable="true" data-colidx="5" data-colname="Historia">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span style="white-space:nowrap;">Historia</span>
+                            <button class="cf-btn" onclick="event.stopPropagation(); SkuColFilter.open('Historia', this)" title="Filtrar"><i class="ph ph-funnel-simple"></i></button>
+                        </div>
+                    </th>
+                    <th class="draggable-th" draggable="true" data-colidx="6" data-colname="Últ. Actividad">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span style="white-space:nowrap;">Últ. Actividad</span>
+                            <button class="cf-btn" onclick="event.stopPropagation(); SkuColFilter.open('Últ. Actividad', this)" title="Filtrar"><i class="ph ph-funnel-simple"></i></button>
+                        </div>
+                    </th>
+                    <th class="draggable-th" draggable="true" data-colidx="7" data-colname="Instalado a">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span style="white-space:nowrap;">Instalado a</span>
+                            <button class="cf-btn" onclick="event.stopPropagation(); SkuColFilter.open('Instalado a', this)" title="Filtrar"><i class="ph ph-funnel-simple"></i></button>
+                        </div>
+                    </th>
+                    <th class="draggable-th" draggable="true" data-colidx="8" data-colname="Asignado">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span style="white-space:nowrap;">Asignado</span>
+                            <button class="cf-btn" onclick="event.stopPropagation(); SkuColFilter.open('Asignado', this)" title="Filtrar"><i class="ph ph-funnel-simple"></i></button>
+                        </div>
+                    </th>
+                    <th class="draggable-th" draggable="true" data-colidx="9" data-colname="Acción">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span style="white-space:nowrap;">Acción</span>
+                        </div>
+                    </th>
+                    <th class="draggable-th sortable-th" onclick="toggleSort('sku_created_at')" draggable="true" data-colidx="10" data-colname="Fecha Registro">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span style="white-space:nowrap;">Fecha Registro <span class="sort-icon"><i class="ph ph-caret-up-down" style="opacity:0.3;"></i></span></span>
+                            <button class="cf-btn" onclick="event.stopPropagation(); SkuColFilter.open('Fecha Registro', this)" title="Filtrar"><i class="ph ph-funnel-simple"></i></button>
+                        </div>
+                    </th>
+                </tr>
+            </thead>
             <tbody id="skuTableBody"></tbody>
         </table>
+    </div>
+    <div id="skuPagination" style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:var(--surface-color); border-bottom-left-radius:16px; border-bottom-right-radius:16px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:0.85rem; color:var(--text-muted);">Mostrar</span>
+            <select id="skuPerPage" class="form-select" style="padding:4px 28px 4px 8px; width:auto; font-size:0.85rem; height:32px;">
+                <option value="10">10</option>
+                <option value="25" selected>25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="500">500</option>
+            </select>
+            <span style="font-size:0.85rem; color:var(--text-muted);">registros</span>
+        </div>
+        <div style="font-size:0.85rem; color:var(--text-muted);" id="skuPageInfo">Mostrando 0 - 0 de 0</div>
+        <div style="display:flex; gap:4px;" id="skuPaginationControls">
+            <button class="btn btn-secondary btn-sm" id="btnSkuPrev" style="padding:4px 8px;"><i class="ph ph-caret-left"></i></button>
+            <button class="btn btn-secondary btn-sm" id="btnSkuNext" style="padding:4px 8px;"><i class="ph ph-caret-right"></i></button>
+        </div>
     </div>
     <div id="skuEmpty" class="empty-state" style="display:none;">No hay SKUs registrados.</div>
 </div>
@@ -178,6 +372,28 @@ include '../../includes/sidebar.php';
         <button class="btn btn-secondary" id="btnPrint" style="display:none;" onclick="window.print()"><i class="ph ph-printer"></i> Imprimir</button>
     </div>
     <div id="labelPreview" class="label-preview-container"></div>
+</div>
+
+<!-- Tab: Escáner -->
+<div class="inv-tab-pane" id="tab-escaner" style="padding: 20px;">
+    <!-- Scanner Header -->
+    <div class="scanner-header" style="margin-top: 0;">
+        <div class="scanner-header-left">
+            <div class="scanner-icon-box"><i class="ph ph-barcode"></i></div>
+            <div>
+                <h2 style="margin:0;font-size:1.15rem;font-weight:700;">Escáner de Inventario</h2>
+                <p style="margin:0;font-size:0.82rem;color:rgba(255,255,255,0.7);">Escanea o escribe un código SKU para buscar</p>
+            </div>
+        </div>
+        <div class="scanner-input-wrap">
+            <i class="ph ph-magnifying-glass"></i>
+            <input type="text" id="scannerInput" class="form-control" placeholder="Buscar por SKU o nombre..." autofocus>
+            <button type="button" class="btn-scan-camera" id="btnScanCamera" title="Escanear con cámara"><i class="ph ph-camera"></i></button>
+        </div>
+    </div>
+
+    <!-- Scanner Result -->
+    <div id="scannerResult" class="scanner-result" style="display:none;"></div>
 </div>
 
 <!-- FAB -->
@@ -223,7 +439,7 @@ include '../../includes/sidebar.php';
 
 <!-- Modal: New Product -->
 <div class="modal-overlay" id="newProductModal">
-    <div class="modal-content">
+    <div class="modal-content" style="max-width:900px; width:95%;">
         <div class="modal-header">
             <h3><i class="ph ph-package"></i> Nuevo Producto <span id="productTypeBadge" class="product-type-header-badge"></span></h3>
             <button class="close-modal" onclick="closeProductModal()">&times;</button>
@@ -486,7 +702,7 @@ include '../../includes/sidebar.php';
 
 <!-- Modal: Editar Producto (Unified: Edit + Añadir Lote) -->
 <div class="modal-overlay" id="editProductModal">
-    <div class="modal-content" style="max-width:550px;">
+    <div class="modal-content" style="max-width:900px; width:95%;">
         <div class="modal-header">
             <h3><i class="ph ph-pencil-simple"></i> <span id="editProductTitle">Editar Producto</span></h3>
             <button class="close-modal" onclick="closeEditProductModal()">&times;</button>
@@ -500,7 +716,11 @@ include '../../includes/sidebar.php';
             <!-- Tab: Info -->
             <div class="ep-pane active" id="eptab-info" style="padding:20px;">
                 <input type="hidden" id="editProductId" value="">
-                <div class="inv-form-field">
+                
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start;">
+                    <!-- Columna Izquierda -->
+                    <div>
+                        <div class="inv-form-field">
                     <label class="form-label">Nombre del Producto</label>
                     <input type="text" class="form-control" id="editProductName">
                     <div style="margin-top:6px; font-size:0.85rem;">
@@ -568,16 +788,28 @@ include '../../includes/sidebar.php';
                         </div>
                     </div>
                 </div>
-                <!-- SKU List with Photos (shown when requires_photos ON) -->
-                <div id="editSkuPhotoList" style="display:none; margin-top:16px;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-                        <label class="form-label" style="margin:0;font-size:0.88rem;"><i class="ph ph-camera" style="color:#8b5cf6;"></i> Fotos por SKU</label>
-                        <span id="editSkuPhotoListCount" style="font-size:0.75rem;color:var(--text-muted);"></span>
                     </div>
-                    <div id="editSkuPhotoListBody" style="max-height:260px;overflow-y:auto;border:1px solid var(--border-color);border-radius:10px;">
-                        <!-- populated by JS -->
+                    <!-- Columna Derecha -->
+                    <div style="background:var(--bg-color); padding:20px; border-radius:12px; border:1px solid var(--border-color);">
+                        <h4 style="font-size:0.95rem;font-weight:700;margin-top:0;margin-bottom:14px;"><i class="ph ph-info"></i> Opciones de Edición</h4>
+                        <div style="color:var(--text-muted); font-size:0.85rem; line-height:1.6; margin-bottom:16px;">
+                            <p>Estás editando la información base del producto. Los cambios se aplicarán a todos los SKUs existentes de este modelo.</p>
+                            <p>Para ingresar más stock o generar nuevos SKUs, ve a la pestaña <strong><i class="ph ph-plus-circle"></i> Añadir Lote</strong>.</p>
+                        </div>
+                        
+                        <!-- Mover SKU List with Photos aquí -->
+                        <div id="editSkuPhotoList" style="display:none; margin-top:16px;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                                <label class="form-label" style="margin:0;font-size:0.88rem;"><i class="ph ph-camera" style="color:#8b5cf6;"></i> Fotos por SKU</label>
+                                <span id="editSkuPhotoListCount" style="font-size:0.75rem;color:var(--text-muted);"></span>
+                            </div>
+                            <div id="editSkuPhotoListBody" style="max-height:260px;overflow-y:auto;border:1px solid var(--border-color);border-radius:10px;">
+                                <!-- populated by JS -->
+                            </div>
+                        </div>
                     </div>
                 </div>
+
                 <button class="btn btn-primary w-100" style="margin-top:16px;" onclick="submitEditProduct(this)"><i class="ph ph-floppy-disk"></i> Guardar Cambios</button>
             </div>
             <!-- Tab: Fotos -->
@@ -634,95 +866,128 @@ include '../../includes/sidebar.php';
 </style>
 
 
-<!-- Modal: SKU Detail (2 tabs) -->
+<!-- Modal: SKU Detail (Unified Layout) -->
 <div class="modal-overlay" id="skuDetailModal">
-    <div class="modal-content" style="max-width:700px;">
-        <div class="modal-header" style="gap:12px;align-items:center;">
+    <div class="modal-content" id="skuDetailContentWrap" style="max-width:1100px; padding:0; background:var(--bg-color);">
+        <div class="modal-header" style="gap:12px;align-items:center;background:var(--surface-color);padding:20px;border-bottom:1px solid var(--border-color);">
             <div id="skuDetailHeaderImg" style="width:52px;height:52px;border-radius:12px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(99,102,241,0.1);border:1px solid var(--border-color);">
                 <i class="ph ph-package" style="font-size:1.6rem;color:#6366f1;"></i>
             </div>
             <div style="flex:1;min-width:0;">
-                <h3 style="margin:0;font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                <h3 style="margin:0;font-size:1.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text-color);">
                     <span id="skuDetailTitle">Detalle SKU</span>
                 </h3>
             </div>
             <button class="close-modal" onclick="closeSkuDetail()">&times;</button>
         </div>
-        <div class="modal-body" style="padding:0;">
-            <!-- Tabs -->
-            <div class="inv-tabs-bar" style="margin-bottom:0;border-radius:0;border:none;border-bottom:1px solid var(--border-color);">
-                <button class="inv-tab active" data-dtab="edit" onclick="switchDetailTab('edit')"><i class="ph ph-pencil-simple"></i> Editar</button>
-                <button class="inv-tab" data-dtab="assign" onclick="switchDetailTab('assign')"><i class="ph ph-user"></i> Asignar</button>
-            </div>
+        <div class="modal-body" style="padding:20px;">
+            <!-- Green Box: Cards -->
+            <div id="skuEditInfo" class="info-cards-grid" style="margin-bottom:20px;"></div>
 
-            <!-- Tab: Editar -->
-            <div class="sdt-pane active" id="dtab-edit" style="padding:20px;">
-                <div class="sku-detail-info" id="skuEditInfo"></div>
-                <div style="margin-top:16px;">
-                    <label class="form-label">Cambiar Estado</label>
-                    <select class="form-select" id="skuDetailStatus" onchange="updateSkuDetailStatus()">
-                        <option value="disponible">Disponible</option>
-                        <option value="instalado">Instalado</option>
-                        <option value="malogrado">Malogrado</option>
-                        <option value="reparado">Reparado</option>
-                        <option value="en_transito">En Tránsito</option>
+            <!-- Orange Boxes: Columns -->
+            <div class="modal-body-split">
+                <!-- Left Column -->
+                <div class="modal-col-left" style="background:var(--surface-color); padding:20px; border-radius:12px; border:1px solid var(--border-color);">
+                    <!-- Assign -->
+                    <h4 style="font-size:0.9rem;font-weight:700;margin-bottom:10px;"><i class="ph ph-user"></i> Asignar a usuario</h4>
+                    <div id="skuAssignCurrent" style="margin-bottom:12px;"></div>
+                    <select class="form-select" id="skuAssignUser">
+                        <option value="">Seleccionar usuario...</option>
                     </select>
-                </div>
-            </div>
-
-            <!-- Tab: Asignar + Movimiento -->
-            <div class="sdt-pane" id="dtab-assign" style="padding:20px;">
-                <div id="skuAssignCurrent" style="margin-bottom:16px;"></div>
-                <label class="form-label">Asignar a usuario</label>
-                <select class="form-select" id="skuAssignUser">
-                    <option value="">Seleccionar usuario...</option>
-                </select>
-                <div class="form-check" style="margin-top:12px;">
-                    <input class="form-check-input" type="checkbox" id="skuAssignIsEpp" style="border-color:#8b5cf6;">
-                    <label class="form-check-label" for="skuAssignIsEpp" style="font-weight:600;"><i class="ph ph-shield-check" style="color:#8b5cf6;"></i> Asignar como EPP (Equipo de Protección Personal)</label>
-                </div>
-                <div style="display:flex;gap:8px;margin-top:12px;margin-bottom:20px;">
-                    <button class="btn btn-primary" onclick="assignSkuToUser()" style="flex:1;"><i class="ph ph-user-plus"></i> Asignar</button>
-                    <button class="btn btn-secondary" onclick="unassignSku()" style="flex:1;"><i class="ph ph-user-minus"></i> Desasignar</button>
-                </div>
-
-                <hr style="border-color:var(--border-color);margin:16px 0;">
-
-                <!-- Movimiento -->
-                <h4 style="font-size:0.9rem;font-weight:700;margin-bottom:10px;"><i class="ph ph-swap"></i> Registrar Movimiento</h4>
-                <div style="margin-bottom:12px;">
-                    <label class="form-label">Tipo de Movimiento</label>
-                    <select class="form-select" id="entryType">
-                        <option value="entrada">📥 Entrada</option>
-                        <option value="salida">📤 Salida</option>
-                        <option value="devolucion">🔄 Devolución</option>
-                        <option value="reparacion">🔧 Reparación</option>
-                    </select>
-                </div>
-                <div style="margin-bottom:12px;">
-                    <label class="form-label">Notas</label>
-                    <textarea class="form-control" id="entryNotas" rows="2" placeholder="Descripción del movimiento..."></textarea>
-                </div>
-                <div style="margin-bottom:12px;">
-                    <label class="form-label"><i class="ph ph-camera"></i> Fotos de Evidencia</label>
-                    <div class="inv-photo-buttons">
-                        <button type="button" class="btn btn-secondary" onclick="takeEntryPhoto()" style="flex:1;"><i class="ph ph-camera"></i> Tomar Foto</button>
-                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('entryPhotosGallery').click()" style="flex:1;"><i class="ph ph-images"></i> Galería</button>
+                    <div class="form-check" style="margin-top:12px;">
+                        <input class="form-check-input" type="checkbox" id="skuAssignIsEpp" style="border-color:#8b5cf6;">
+                        <label class="form-check-label" for="skuAssignIsEpp" style="font-weight:600;"><i class="ph ph-shield-check" style="color:#8b5cf6;"></i> Asignar como EPP (Equipo de Protección Personal)</label>
                     </div>
-                    <div id="photoPreviewList" class="inv-photo-previews"></div>
-                </div>
-                <!-- Hidden file inputs -->
-                <input type="file" id="entryPhotosGallery" class="no-dropzone" multiple accept="image/*" onchange="previewEntryPhotos(this)" style="position:absolute;width:0;height:0;overflow:hidden;opacity:0;pointer-events:none;">
+                    <div style="display:flex;gap:8px;margin-top:12px;margin-bottom:20px;">
+                        <button class="btn btn-primary" onclick="assignSkuToUser()" style="flex:1;"><i class="ph ph-user-plus"></i> Asignar</button>
+                        <button class="btn btn-secondary" onclick="unassignSku()" style="flex:1;"><i class="ph ph-user-minus"></i> Desasignar</button>
+                    </div>
+                    <hr style="border-color:var(--border-color);margin:16px 0;">
+                    
+                    <!-- Status -->
+                    <div id="statusWrapper" style="margin-bottom:20px;">
+                        <h4 style="font-size:0.9rem;font-weight:700;margin-bottom:10px;"><i class="ph ph-tag"></i> Cambiar Estado</h4>
+                        <select class="form-select" id="skuDetailStatus" onchange="updateSkuDetailStatus()">
+                            <option value="disponible">Disponible</option>
+                            <option value="instalado">Instalado</option>
+                            <option value="malogrado">Malogrado</option>
+                            <option value="reparado">Reparado</option>
+                            <option value="en_transito">En Tránsito</option>
+                        </select>
+                    </div>
+                    <hr style="border-color:var(--border-color);margin:16px 0;">
 
-                <div style="margin-top:20px;">
-                    <h4 style="font-size:0.9rem;font-weight:700;margin-bottom:10px;"><i class="ph ph-clock-counter-clockwise"></i> Historial</h4>
-                    <div id="entryHistoryList" class="inv-entry-history" style="max-height:150px; overflow-y:auto; margin-bottom: 20px;"></div>
+                    <!-- Movement -->
+                    <h4 style="font-size:0.9rem;font-weight:700;margin-bottom:10px;"><i class="ph ph-swap"></i> Registrar Movimiento</h4>
+                    <div style="margin-bottom:12px;">
+                        <label class="form-label">Tipo de Movimiento</label>
+                        <select class="form-select" id="entryType">
+                            <option value="entrada">📥 Entrada</option>
+                            <option value="salida">📤 Salida</option>
+                            <option value="devolucion">🔄 Devolución</option>
+                            <option value="reparacion">🔧 Reparación</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <label class="form-label">Notas</label>
+                        <textarea class="form-control" id="entryNotas" rows="4" placeholder="Descripción del movimiento..."></textarea>
+                    </div>
                 </div>
 
-                <div style="position:sticky; bottom:-20px; background:var(--bg-color); padding-top:10px; margin-left:-20px; margin-right:-20px; padding-left:20px; padding-right:20px; border-top:1px solid var(--border-color); z-index:10;">
-                    <button class="btn btn-primary" onclick="submitEntry()" style="width:100%;"><i class="ph ph-floppy-disk"></i> Guardar Movimiento</button>
+                <!-- Right Column -->
+                <div class="modal-col-right" style="background:var(--surface-color); border-radius:12px; border:1px solid var(--border-color); display:flex; flex-direction:column; overflow:hidden;">
+                    <div style="padding:20px; overflow-y:auto; flex:1;">
+                        <div style="margin-bottom:20px;">
+                            <h4 style="font-size:0.9rem;font-weight:700;margin-bottom:10px;"><i class="ph ph-camera"></i> Fotos de Evidencia</h4>
+                            <div class="inv-photo-buttons">
+                                <button type="button" class="btn btn-secondary" onclick="takeEntryPhoto()" style="flex:1;"><i class="ph ph-camera"></i> Tomar Foto</button>
+                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('entryPhotosGallery').click()" style="flex:1;"><i class="ph ph-images"></i> Galería</button>
+                            </div>
+                            <div id="photoPreviewList" class="inv-photo-previews"></div>
+                            <input type="file" id="entryPhotosGallery" class="no-dropzone" multiple accept="image/*" onchange="previewEntryPhotos(this)" style="position:absolute;width:0;height:0;overflow:hidden;opacity:0;pointer-events:none;">
+                        </div>
+                        <div>
+                            <h4 style="font-size:0.9rem;font-weight:700;margin-bottom:10px;"><i class="ph ph-clock-counter-clockwise"></i> Historial</h4>
+                            <div id="entryHistoryList" class="inv-entry-history"></div>
+                        </div>
+                    </div>
+                    <!-- Sticky footer within the flex container -->
+                    <div style="background:var(--surface-color); padding:16px 20px; border-top:1px solid var(--border-color); z-index:10; flex-shrink:0;">
+                        <button class="btn btn-primary" onclick="submitEntry()" style="width:100%;"><i class="ph ph-floppy-disk"></i> Guardar Movimiento</button>
+                    </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Editar Movimiento -->
+<div class="modal-overlay" id="editEntryModal" style="z-index: 19001;">
+    <div class="modal-content" style="max-width:400px;">
+        <div class="modal-header">
+            <h3><i class="ph ph-pencil-simple"></i> Editar Movimiento</h3>
+            <button class="close-modal" onclick="closeEditEntryModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editEntryId">
+            <div class="inv-form-field" style="margin-bottom:12px;">
+                <label class="form-label">Fecha y Hora</label>
+                <input type="datetime-local" class="form-control" id="editEntryDate">
+            </div>
+            <div class="inv-form-field" style="margin-bottom:12px;">
+                <label class="form-label">Tipo de Movimiento</label>
+                <select class="form-select" id="editEntryType">
+                    <option value="entrada">📥 Entrada</option>
+                    <option value="salida">📤 Salida</option>
+                    <option value="devolucion">🔄 Devolución</option>
+                    <option value="reparacion">🔧 Reparación</option>
+                </select>
+            </div>
+            <div class="inv-form-field" style="margin-bottom:16px;">
+                <label class="form-label">Notas</label>
+                <textarea class="form-control" id="editEntryNotas" rows="3"></textarea>
+            </div>
+            <button type="button" class="btn btn-primary w-100" onclick="saveEditEntry()"><i class="ph ph-floppy-disk"></i> Guardar Cambios</button>
         </div>
     </div>
 </div>
@@ -962,6 +1227,110 @@ include '../../includes/sidebar.php';
       <button class="btn btn-secondary" onclick="document.getElementById('assignGroupedModal').classList.remove('active')">Cancelar</button>
       <button class="btn btn-primary" id="btnSubmitGroupedAssign" onclick="submitGroupedAssignment()"><i class="ph ph-check-circle"></i> Asignar Selección</button>
     </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- History Modal -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="inv-modal" id="historyModal">
+  <div class="inv-modal-content" style="max-width:900px; width:95%;">
+    <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border-color);">
+      <h3 style="margin:0;font-size:1.1rem;font-weight:700;display:flex;align-items:center;gap:8px;color:var(--text-color);">
+        <i class="ph ph-clock-counter-clockwise" style="color:#6366f1;"></i> Historial de Inventario
+      </h3>
+      <button class="modal-close-btn" onclick="document.getElementById('historyModal').classList.remove('active')">
+        <i class="ph ph-x"></i>
+      </button>
+    </div>
+    
+    <!-- Tabs -->
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--border-color);padding:0 20px;">
+      <button class="inv-history-tab active" data-htab="assignments" onclick="switchHistoryTab('assignments')">
+        <i class="ph ph-users"></i> Historial de Asignaciones
+      </button>
+      <button class="inv-history-tab" data-htab="stock" onclick="switchHistoryTab('stock')">
+        <i class="ph ph-package"></i> Historial de Stock
+      </button>
+    </div>
+    
+    <!-- Tab: Assignments -->
+    <div class="inv-history-pane active" id="htab-assignments">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;padding:16px 20px;background:var(--bg-color);border-bottom:1px solid var(--border-color);align-items:flex-end;">
+        <div style="flex:1;min-width:160px;">
+          <label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px;">SKU / Producto</label>
+          <input type="text" class="form-control" id="histFilterSku" placeholder="Buscar por SKU o producto..." style="height:34px;font-size:0.85rem;">
+        </div>
+        <div style="flex:1.5;min-width:200px;">
+          <label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px;">Usuario Asignado</label>
+          <select class="form-select" id="histFilterUser" style="height:34px;font-size:0.85rem;text-overflow:ellipsis;">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <div style="flex:1;min-width:140px;">
+          <label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px;">Desde</label>
+          <input type="date" class="form-control" id="histFilterDateFrom" style="height:34px;font-size:0.85rem;">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="loadAssignmentHistory()" style="height:34px;padding:0 16px;">
+          <i class="ph ph-magnifying-glass"></i> Filtrar
+        </button>
+      </div>
+      <div style="max-height:400px;overflow-y:auto;padding:0;">
+        <table class="inv-table" style="margin:0;">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>SKU</th>
+              <th>Producto</th>
+              <th>Usuario</th>
+              <th>Acción</th>
+              <th>Asignado por</th>
+            </tr>
+          </thead>
+          <tbody id="histAssignBody">
+            <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);"><i class="ph ph-clock" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.3;"></i>Haz clic en Filtrar para cargar el historial</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- Tab: Stock -->
+    <div class="inv-history-pane" id="htab-stock">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;padding:16px 20px;background:var(--bg-color);border-bottom:1px solid var(--border-color);align-items:flex-end;">
+        <div style="flex:1;min-width:160px;">
+          <label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px;">Producto</label>
+          <select class="form-select" id="histStockProduct" style="height:34px;font-size:0.85rem;">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <div style="flex:1;min-width:140px;">
+          <label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px;">Desde</label>
+          <input type="date" class="form-control" id="histStockDateFrom" style="height:34px;font-size:0.85rem;">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="loadStockLog()" style="height:34px;padding:0 16px;">
+          <i class="ph ph-magnifying-glass"></i> Filtrar
+        </button>
+      </div>
+      <div style="max-height:400px;overflow-y:auto;padding:0;">
+        <table class="inv-table" style="margin:0;">
+          <thead>
+            <tr>
+              <th>Fecha / Hora</th>
+              <th>Producto</th>
+              <th>Cantidad</th>
+              <th>SKUs Generados</th>
+              <th>Usuario</th>
+              <th>Notas</th>
+              <th style="width:80px;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="histStockBody">
+            <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted);"><i class="ph ph-clock" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.3;"></i>Haz clic en Filtrar para cargar el historial</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
   </div>
 </div>
 

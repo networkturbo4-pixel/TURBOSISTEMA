@@ -11,7 +11,7 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 if ($action === 'list') {
     try {
-        $stmt = $pdo->query("SELECT a.*, u.name as tecnico_nombre FROM actas a LEFT JOIN users u ON a.tecnico_id = u.id ORDER BY a.id DESC");
+        $stmt = $pdo->query("SELECT a.*, u.name as tecnico_nombre, s.nombre as servicio_nombre, s.velocidad as servicio_velocidad FROM actas a LEFT JOIN users u ON a.tecnico_id = u.id LEFT JOIN servicios s ON a.servicio_id = s.id ORDER BY a.id DESC");
         $actas = $stmt->fetchAll();
         echo json_encode(['success' => true, 'data' => $actas]);
     } catch (Exception $e) {
@@ -65,7 +65,7 @@ if ($action === 'create') {
             cliente_nombre, cliente_dni_ruc, cliente_rotulado, cliente_direccion, cliente_distrito, cliente_referencia,
             cliente_whatsapp, cliente_celular_alt, cliente_gps_lat, cliente_gps_lng,
             pe_nodo, pe_nap, pe_puerto, pe_potencia, pe_atenuacion,
-            srv_fecha, srv_hora_inicio, srv_hora_fin, srv_tipo, srv_estado, tecnico_id,
+            srv_fecha, srv_hora_inicio, srv_hora_fin, srv_tipo, srv_estado, servicio_id, tecnico_id,
             red_ssid, red_password, red_speed_dl, red_speed_ul, red_n_tvs, red_splitters, red_senal_low, red_senal_high,
             observaciones, mantenimiento_6_meses, calificacion_servicio,
             firma_cliente, firma_tecnico
@@ -74,7 +74,7 @@ if ($action === 'create') {
             ?, ?, ?, ?, ?, ?,
             ?, ?, ?, ?,
             ?, ?, ?, ?, ?,
-            ?, ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?, ?, ?,
             ?, ?, ?, ?, ?, ?, ?, ?,
             ?, ?, ?,
             ?, ?
@@ -86,7 +86,7 @@ if ($action === 'create') {
             $_POST['cliente_nombre'] ?? '', $_POST['cliente_dni_ruc'] ?? '', $_POST['cliente_rotulado'] ?? '', $_POST['cliente_direccion'] ?? '', $_POST['cliente_distrito'] ?? '', $_POST['cliente_referencia'] ?? '',
             $_POST['cliente_whatsapp'] ?? '', $_POST['cliente_celular_alt'] ?? '', $_POST['cliente_gps_lat'] ?? '', $_POST['cliente_gps_lng'] ?? '',
             $_POST['pe_nodo'] ?? '', $_POST['pe_nap'] ?? '', $_POST['pe_puerto'] ?? '', $_POST['pe_potencia'] ?? '', $_POST['pe_atenuacion'] ?? '',
-            $_POST['srv_fecha'] ?? date('Y-m-d'), $_POST['srv_hora_inicio'] ?? '', $_POST['srv_hora_fin'] ?? '', $_POST['srv_tipo'] ?? '', $_POST['srv_estado'] ?? '', (int)($_POST['tecnico_id'] ?? 0),
+            $_POST['srv_fecha'] ?? date('Y-m-d'), $_POST['srv_hora_inicio'] ?? '', $_POST['srv_hora_fin'] ?? '', $_POST['srv_tipo'] ?? '', $_POST['srv_estado'] ?? '', !empty($_POST['servicio_id']) ? (int)$_POST['servicio_id'] : null, (int)($_POST['tecnico_id'] ?? 0),
             $_POST['red_ssid'] ?? '', $_POST['red_password'] ?? '', $_POST['red_speed_dl'] ?? '', $_POST['red_speed_ul'] ?? '', (int)($_POST['red_n_tvs'] ?? 0), $_POST['red_splitters'] ?? '', $_POST['red_senal_low'] ?? '', $_POST['red_senal_high'] ?? '',
             $_POST['observaciones'] ?? '', isset($_POST['mantenimiento_6_meses']) ? 1 : 0, (int)($_POST['calificacion'] ?? 0),
             $_POST['firma_cliente_base64'] ?? '', $_POST['firma_tecnico_base64'] ?? ''
@@ -100,7 +100,7 @@ if ($action === 'create') {
                 cliente_nombre=?, cliente_dni_ruc=?, cliente_rotulado=?, cliente_direccion=?, cliente_distrito=?, cliente_referencia=?,
                 cliente_whatsapp=?, cliente_celular_alt=?, cliente_gps_lat=?, cliente_gps_lng=?,
                 pe_nodo=?, pe_nap=?, pe_puerto=?, pe_potencia=?, pe_atenuacion=?,
-                srv_fecha=?, srv_hora_inicio=?, srv_hora_fin=?, srv_tipo=?, srv_estado=?, tecnico_id=?,
+                srv_fecha=?, srv_hora_inicio=?, srv_hora_fin=?, srv_tipo=?, srv_estado=?, servicio_id=?, tecnico_id=?,
                 red_ssid=?, red_password=?, red_speed_dl=?, red_speed_ul=?, red_n_tvs=?, red_splitters=?, red_senal_low=?, red_senal_high=?,
                 observaciones=?, mantenimiento_6_meses=?, calificacion_servicio=?";
             
@@ -108,7 +108,7 @@ if ($action === 'create') {
                 $_POST['cliente_nombre'] ?? '', $_POST['cliente_dni_ruc'] ?? '', $_POST['cliente_rotulado'] ?? '', $_POST['cliente_direccion'] ?? '', $_POST['cliente_distrito'] ?? '', $_POST['cliente_referencia'] ?? '',
                 $_POST['cliente_whatsapp'] ?? '', $_POST['cliente_celular_alt'] ?? '', $_POST['cliente_gps_lat'] ?? '', $_POST['cliente_gps_lng'] ?? '',
                 $_POST['pe_nodo'] ?? '', $_POST['pe_nap'] ?? '', $_POST['pe_puerto'] ?? '', $_POST['pe_potencia'] ?? '', $_POST['pe_atenuacion'] ?? '',
-                $_POST['srv_fecha'] ?? date('Y-m-d'), $_POST['srv_hora_inicio'] ?? '', $_POST['srv_hora_fin'] ?? '', $_POST['srv_tipo'] ?? '', $_POST['srv_estado'] ?? '', (int)($_POST['tecnico_id'] ?? 0),
+                $_POST['srv_fecha'] ?? date('Y-m-d'), $_POST['srv_hora_inicio'] ?? '', $_POST['srv_hora_fin'] ?? '', $_POST['srv_tipo'] ?? '', $_POST['srv_estado'] ?? '', !empty($_POST['servicio_id']) ? (int)$_POST['servicio_id'] : null, (int)($_POST['tecnico_id'] ?? 0),
                 $_POST['red_ssid'] ?? '', $_POST['red_password'] ?? '', $_POST['red_speed_dl'] ?? '', $_POST['red_speed_ul'] ?? '', (int)($_POST['red_n_tvs'] ?? 0), $_POST['red_splitters'] ?? '', $_POST['red_senal_low'] ?? '', $_POST['red_senal_high'] ?? '',
                 $_POST['observaciones'] ?? '', isset($_POST['mantenimiento_6_meses']) ? 1 : 0, (int)($_POST['calificacion'] ?? 0)
             ];
@@ -267,6 +267,9 @@ if ($action === 'create') {
                     celular = ?, 
                     direccion = ?, 
                     referencia = ?, 
+                    servicio_id = ?,
+                    latitud = ?,
+                    longitud = ?,
                     fecha_servicio_contratado = ?, 
                     inicio_servicio = ?
                     WHERE id = ?")
@@ -275,6 +278,9 @@ if ($action === 'create') {
                     $c_celular,
                     $c_direccion,
                     $c_referencia,
+                    !empty($_POST['servicio_id']) ? (int)$_POST['servicio_id'] : null,
+                    $_POST['cliente_gps_lat'] ?? null,
+                    $_POST['cliente_gps_lng'] ?? null,
                     $datetime_srv,
                     $datetime_srv,
                     $clientExists
@@ -297,8 +303,8 @@ if ($action === 'create') {
 
                 // Insertar
                 $pdo->prepare("INSERT INTO clientes (
-                    user_id, nombre_completo, dni, celular, direccion, referencia, detalles_plan, fecha_servicio_contratado, inicio_servicio
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                    user_id, nombre_completo, dni, celular, direccion, referencia, detalles_plan, servicio_id, latitud, longitud, fecha_servicio_contratado, inicio_servicio
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
                 ->execute([
                     $user_id,
                     $c_nombre,
@@ -307,6 +313,9 @@ if ($action === 'create') {
                     $c_direccion,
                     $c_referencia,
                     trim($plan_details),
+                    !empty($_POST['servicio_id']) ? (int)$_POST['servicio_id'] : null,
+                    $_POST['cliente_gps_lat'] ?? null,
+                    $_POST['cliente_gps_lng'] ?? null,
                     $datetime_srv,
                     $datetime_srv
                 ]);

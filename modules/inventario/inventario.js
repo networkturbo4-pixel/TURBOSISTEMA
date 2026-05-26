@@ -53,9 +53,9 @@
     // ── Tabs ──
     function initTabs() {
         // Seleccionar tabs principales (cualquier nivel dentro de inv-tabs-bar)
-        document.querySelectorAll('.inv-tabs-bar .inv-tab[data-tab]').forEach(btn => {
+        document.querySelectorAll('.inv-toolbar-tabs .inv-tab[data-tab]').forEach(btn => {
             btn.addEventListener('click', () => {
-                document.querySelectorAll('.inv-tabs-bar .inv-tab[data-tab]').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.inv-toolbar-tabs .inv-tab[data-tab]').forEach(t => t.classList.remove('active'));
                 document.querySelectorAll('.inv-tab-pane').forEach(p => p.classList.remove('active'));
                 btn.classList.add('active');
                 document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
@@ -209,9 +209,17 @@
             const wrap = document.getElementById('productsTableWrap');
             const empty = document.getElementById('productsEmpty');
             if (res.success && res.data.length > 0) {
+                if (!window.selectedProducts) window.selectedProducts = new Set();
+                window.lastProductsData = res.data;
                 wrap.style.display = 'block'; empty.style.display = 'none';
                 grid.innerHTML = res.data.map((p, i) => `
-                    <tr class="product-row" data-product-id="${p.id}" data-product-type="${p.product_type||'normal'}" data-name="${(p.name||'').toLowerCase()} ${(p.description||'').toLowerCase()} ${(p.searchable_children||'').toLowerCase()}" data-cat="${p.category_id||''}" data-disp="${p.qty_disponible||0}" data-crit="${p.stock_critico||0}" data-malo="${p.qty_malogrado||0}" data-total="${p.total_quantity||0}" data-inst="${p.qty_instalado||0}" style="animation: fadeIn 0.3s ease forwards; animation-delay: ${i*0.05}s; opacity: 0;">
+                    <tr class="product-row ${window.selectedProducts && window.selectedProducts.has(p.id) ? 'row-selected' : ''}" data-product-id="${p.id}" data-product-type="${p.product_type||'normal'}" data-name="${(p.name||'').toLowerCase()} ${(p.description||'').toLowerCase()} ${(p.searchable_children||'').toLowerCase()}" data-cat="${p.category_id||''}" data-disp="${p.qty_disponible||0}" data-crit="${p.stock_critico||0}" data-malo="${p.qty_malogrado||0}" data-total="${p.total_quantity||0}" data-inst="${p.qty_instalado||0}" style="animation: fadeIn 0.3s ease forwards; animation-delay: ${i*0.05}s; opacity: 0;">
+                        <td style="text-align:center;width:40px;vertical-align:middle;">
+                            <input type="checkbox" class="prod-row-check form-check-input" value="${p.id}" ${window.selectedProducts && window.selectedProducts.has(p.id) ? 'checked' : ''} onchange="toggleProductSelection(this, ${p.id})">
+                        </td>
+                        <td style="text-align:center;width:40px;vertical-align:middle;">
+                            <input type="checkbox" class="prod-row-check form-check-input" value="${p.id}" ${window.selectedProducts && window.selectedProducts.has(p.id) ? 'checked' : ''} onchange="toggleProductSelection(this, ${p.id})">
+                        </td>
                         <td data-label="Producto">
                             <div style="display:flex; align-items:center; gap:10px;">
                                 ${p.product_type === 'agrupado' ? `<button class="accordion-toggle-btn" onclick="toggleProductChildren(${p.id}, this)" title="Expandir variantes"><i class="ph ph-caret-right"></i></button>` : ''}
@@ -280,7 +288,7 @@
     });
 
     window.viewProductSkus = async function(id) {
-        document.querySelectorAll('.inv-tabs-bar .inv-tab[data-tab]').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.inv-toolbar-tabs .inv-tab[data-tab]').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.inv-tab-pane').forEach(p => p.classList.remove('active'));
         document.querySelector('[data-tab="stock"]').classList.add('active');
         document.getElementById('tab-stock').classList.add('active');
@@ -1594,9 +1602,19 @@
 
     // ── Stock Control Tab ──
     function initStockTab() {
-        document.getElementById('filterStatus').addEventListener('change', loadAllSkus);
-        document.getElementById('filterProduct').addEventListener('change', loadAllSkus);
-        let st; document.getElementById('searchSku').addEventListener('input', () => { clearTimeout(st); st = setTimeout(loadAllSkus, 400); });
+        const fs = document.getElementById('filterStatus');
+        if (fs) fs.onchange = loadAllSkus;
+        const fp = document.getElementById('filterProduct');
+        if (fp) fp.onchange = loadAllSkus;
+        const ss = document.getElementById('searchSku');
+        if (ss) { let st; ss.oninput = () => { clearTimeout(st); st = setTimeout(loadAllSkus, 400); }; }
+        
+        const btnPrev = document.getElementById('btnSkuPrev');
+        if (btnPrev) btnPrev.onclick = () => { currentSkuPage--; renderSkuPagination(); };
+        const btnNext = document.getElementById('btnSkuNext');
+        if (btnNext) btnNext.onclick = () => { currentSkuPage++; renderSkuPagination(); };
+        const selPage = document.getElementById('skuPerPage');
+        if (selPage) selPage.onchange = () => { currentSkuPage = 1; renderSkuPagination(); };
     }
 
     // ── Sortable columns ──
@@ -1620,6 +1638,41 @@
     }
 
     let lastSkuData = [];
+    let currentSkuPage = 1;
+    let filteredSkuData = [];
+
+    window.filterSkuCol = function(col, val) {
+        if (!window._colFilters) window._colFilters = {};
+        window._colFilters[col] = val;
+        clearTimeout(window._skuFilterTimeout);
+        window._skuFilterTimeout = setTimeout(() => {
+            const si = document.getElementById('searchSku');
+            if (si) si.dispatchEvent(new Event('input'));
+        }, 400);
+    };
+
+    window.renderSkuPagination = function() {
+        const perPageSel = document.getElementById('skuPerPage');
+        const perPage = perPageSel ? (parseInt(perPageSel.value) || 25) : 25;
+        const total = filteredSkuData.length;
+        const totalPages = Math.ceil(total / perPage) || 1;
+        if (currentSkuPage > totalPages) currentSkuPage = totalPages;
+        if (currentSkuPage < 1) currentSkuPage = 1;
+        
+        const start = (currentSkuPage - 1) * perPage;
+        const end = Math.min(start + perPage, total);
+        
+        const info = document.getElementById('skuPageInfo');
+        if (info) info.textContent = `Mostrando ${total === 0 ? 0 : start + 1} - ${end} de ${total}`;
+        
+        const pagedData = filteredSkuData.slice(start, end);
+        renderSkuTable(pagedData);
+        
+        const prev = document.getElementById('btnSkuPrev');
+        const next = document.getElementById('btnSkuNext');
+        if (prev) prev.disabled = (currentSkuPage === 1);
+        if (next) next.disabled = (currentSkuPage === totalPages);
+    };
 
     async function loadAllSkus() {
         const fd = new FormData();
@@ -1635,10 +1688,29 @@
             if (res.success && res.data.length > 0) {
                 lastSkuData = res.data;
                 let displayData = sortColumn ? sortSkus(res.data, sortColumn, sortDirection) : res.data;
+                
+                if (window._colFilters) {
+                    displayData = displayData.filter(s => {
+                        for (let c in window._colFilters) {
+                            if (!window._colFilters[c]) continue;
+                            const term = window._colFilters[c].toLowerCase();
+                            let val = '';
+                            if (c==='SKU' || c==='sku') val = s.sku_code || '';
+                            else if (c==='Producto' || c==='producto') val = s.product_name || '';
+                            else if (c==='Categor\u00eda' || c==='categoria') val = s.category_name || '';
+                            else if (c==='Instalado a' || c==='instalado') val = s.acta_cliente || '';
+                            else if (c==='Asignado' || c==='asignado') val = s.assigned_user_name || '';
+                            if (!String(val).toLowerCase().includes(term)) return false;
+                        }
+                        return true;
+                    });
+                }
+                filteredSkuData = displayData;
+                
                 document.getElementById('skuTable').style.display = '';
                 empty.style.display = 'none';
-                renderSkuTable(displayData);
-            } else { document.getElementById('skuTable').style.display = 'none'; empty.style.display = 'block'; lastSkuData = []; }
+                renderSkuPagination();
+            } else { document.getElementById('skuTable').style.display = 'none'; empty.style.display = 'block'; lastSkuData = []; filteredSkuData = []; }
         } catch (e) { console.error(e); }
         populateProductFilter();
     }
@@ -1707,7 +1779,7 @@
             }
 
             let cellMap = {
-                '#': `<td>${i+1}</td>`,
+                '#': `<td style="width:40px;text-align:center;padding-left:4px;padding-right:4px;"><input type="checkbox" class="sku-row-check form-check-input" value="${s.id}" onchange="updateSkuSelection()"></td>`,
                 'SKU': s.is_bulk ? `<td><code style=\"font-weight:700;\">${s.sku_code}</code></td>` : `<td><span class=\"inv-editable\" onclick=\"editSkuCode(${s.id}, this)\" title=\"Clic para editar\"><code style=\"font-weight:700;\">${s.sku_code}</code></span></td>`,
                 'Producto': `<td><div style="display:flex;align-items:center;gap:8px;">${
                     s.sku_thumbnail
@@ -1747,13 +1819,32 @@
         const sortableColumns = {'SKU':'sku_code','Producto':'product_name','Categor\u00eda':'category_name','Estado':'status','Fecha Registro':'sku_created_at'};
         const thead = document.querySelector('#skuTable thead tr');
         thead.innerHTML = columnOrder.map((col, ci) => {
+            if (col === '#') {
+                return `<th class="sticky-col sticky-col-0 sticky-th" style="width:40px;text-align:center;vertical-align:middle;" data-colname="#">
+                            <input type="checkbox" id="skuCheckAll" class="form-check-input" onchange="toggleAllSkus(this)">
+                        </th>`;
+            }
             const sortKey = sortableColumns[col];
-            const sortHtml = sortKey ? ` ${si(sortKey)}` : '';
+            const sortHtml = sortKey ? ` <span class="sort-icon">${si(sortKey)}</span>` : '';
             const sortClass = sortKey ? ' sortable-th' : '';
             const sortClick = sortKey ? ` onclick="toggleSort('${sortKey}')"` : '';
             const stickyClass = ci < STICKY_COUNT ? ` sticky-col sticky-col-${ci} sticky-th` : '';
             const dragAttr = `draggable="true" data-colidx="${ci}"`;
-            return `<th class="draggable-th${sortClass}${stickyClass}"${sortClick} ${dragAttr}>${col}${sortHtml}</th>`;
+            
+            const hasFilter = ['SKU', 'Producto', 'Categor\u00eda', 'Instalado a', 'Asignado'].includes(col);
+            const isFiltered = window._colFilters && window._colFilters[col];
+            const filterBtnHtml = hasFilter ? `<button class="cf-btn" onclick="event.stopPropagation(); var d = this.parentElement.nextElementSibling; d.style.display = d.style.display === 'none' ? 'block' : 'none';" title="Filtrar" style="display:inline-block; margin-left:4px; ${isFiltered ? 'color:var(--primary-color);' : ''}"><i class="ph ph-funnel-simple"></i></button>` : '';
+            const filterInputHtml = hasFilter ? `<div style="display:${isFiltered ? 'block' : 'none'};margin-top:4px;"><input type="text" class="form-control sku-col-filter" data-col="${col}" style="font-size:0.75rem;padding:4px;height:24px;font-weight:normal;width:100%;" placeholder="Buscar..." onclick="event.stopPropagation()" oninput="filterSkuCol('${col}', this.value)" value="${isFiltered ? esc(window._colFilters[col]) : ''}"></div>` : '';
+
+            return `<th class="draggable-th${sortClass}${stickyClass}"${sortClick} ${dragAttr} data-colname="${col}">
+                        <div style="display:flex;flex-direction:column;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <span style="white-space:nowrap;">${col}${sortHtml}</span>
+                                ${filterBtnHtml}
+                            </div>
+                            ${filterInputHtml}
+                        </div>
+                    </th>`;
         }).join('');
 
         // Setup drag-and-drop on headers
@@ -3026,3 +3117,115 @@ window.SheetsSync = (function() {
         checkConfig
     };
 })();
+
+// Bulk Selection & Export (Products)
+
+window.toggleProductSelection = function(cb, prodId) {
+    if (!window.selectedProducts) window.selectedProducts = new Set();
+    if (cb.checked) {
+        window.selectedProducts.add(prodId);
+    } else {
+        window.selectedProducts.delete(prodId);
+        const checkAll = document.getElementById('prodCheckAll');
+        if (checkAll) checkAll.checked = false;
+    }
+    const tr = cb.closest('tr');
+    if (tr) {
+        if (cb.checked) tr.classList.add('row-selected');
+        else tr.classList.remove('row-selected');
+    }
+    updateProdActionBar();
+};
+
+window.toggleAllProducts = function(cb) {
+    if (!window.selectedProducts) window.selectedProducts = new Set();
+    const checkboxes = document.querySelectorAll('.prod-row-check');
+    checkboxes.forEach(c => {
+        const tr = c.closest('tr');
+        if (tr && tr.style.display !== 'none') {
+            c.checked = cb.checked;
+            const prodId = parseInt(c.value);
+            if (cb.checked) {
+                window.selectedProducts.add(prodId);
+                tr.classList.add('row-selected');
+            } else {
+                window.selectedProducts.delete(prodId);
+                tr.classList.remove('row-selected');
+            }
+        }
+    });
+    updateProdActionBar();
+};
+
+window.updateProdActionBar = function() {
+    if (!window.selectedProducts) window.selectedProducts = new Set();
+    let bar = document.getElementById('prodActionBar');
+    if (!bar) {
+        bar = document.createElement('div');
+        bar.id = 'prodActionBar';
+        bar.className = 'sku-action-bar';
+        bar.style.display = 'none';
+        bar.innerHTML = `
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span class="prod-action-count" style="font-weight:600;font-size:0.9rem;">0 seleccionados</span>
+                <button class="btn btn-primary btn-sm" onclick="exportSelectedProductsToExcel()">
+                    <i class="ph ph-file-csv"></i> Descargar Excel
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="clearProductSelection()">
+                    <i class="ph ph-x"></i> Cancelar
+                </button>
+            </div>
+        `;
+        const tableContainer = document.querySelector('#tab-productos .table-responsive');
+        if (tableContainer) tableContainer.parentNode.insertBefore(bar, tableContainer);
+    }
+    if (window.selectedProducts.size > 0) {
+        bar.style.display = 'flex';
+        bar.style.padding = '8px 16px';
+        bar.style.background = 'rgba(99, 102, 241, 0.1)';
+        bar.style.border = '1px solid var(--primary-color)';
+        bar.style.borderRadius = '8px';
+        bar.style.marginBottom = '12px';
+        bar.style.alignItems = 'center';
+        bar.querySelector('.prod-action-count').textContent = `${window.selectedProducts.size} seleccionado${window.selectedProducts.size > 1 ? 's' : ''}`;
+    } else {
+        bar.style.display = 'none';
+        const checkAll = document.getElementById('prodCheckAll');
+        if (checkAll) checkAll.checked = false;
+    }
+};
+
+window.clearProductSelection = function() {
+    if (!window.selectedProducts) window.selectedProducts = new Set();
+    window.selectedProducts.clear();
+    const checkboxes = document.querySelectorAll('.prod-row-check');
+    checkboxes.forEach(c => {
+        c.checked = false;
+        c.closest('tr')?.classList.remove('row-selected');
+    });
+    const checkAll = document.getElementById('prodCheckAll');
+    if (checkAll) checkAll.checked = false;
+    updateProdActionBar();
+};
+
+window.exportSelectedProductsToExcel = function() {
+    if (!window.selectedProducts || window.selectedProducts.size === 0) return;
+    const colsToExport = ['Producto', 'Categoría', 'Total', 'Disponibles', 'Instalados', 'Malogrados'];
+    let csvContent = "\uFEFF";
+    csvContent += colsToExport.map(c => `"${c.replace(/"/g, '""')}"`).join(',') + '\n';
+    const exportData = (window.lastProductsData || []).filter(p => window.selectedProducts.has(p.id));
+    exportData.forEach(p => {
+        const row = [p.name || '', p.category_name || 'Sin cat.', p.total_quantity || 0, p.qty_disponible || 0, p.qty_instalado || 0, p.qty_malogrado || 0];
+        csvContent += row.map(val => `"${val.toString().replace(/"/g, '""')}"`).join(',') + '\n';
+    });
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `productos_seleccion_${new Date().getTime()}.csv`;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    if (window.showToast) window.showToast('Descarga completada.', 'success');
+};

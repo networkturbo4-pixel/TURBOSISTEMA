@@ -342,6 +342,20 @@ include '../../includes/sidebar.php';
                 </select>
             </div>
             <div class="col-md-3 mb-3">
+                <label class="form-label">Servicio Contratado</label>
+                <select class="form-select" name="servicio_id">
+                    <option value="">Sin plan</option>
+                    <?php
+                    $stmtSrv = $pdo->query("SELECT * FROM servicios ORDER BY nombre ASC");
+                    while($srv = $stmtSrv->fetch()) {
+                        $sel = ($isEdit && $editActa['servicio_id'] == $srv['id']) ? 'selected' : '';
+                        $velText = $srv['velocidad'] ? " (" . htmlspecialchars($srv['velocidad']) . ")" : "";
+                        echo '<option value="'.$srv['id'].'" '.$sel.'>'.htmlspecialchars($srv['nombre']) . $velText.'</option>';
+                    }
+                    ?>
+                </select>
+            </div>
+            <div class="col-md-3 mb-3">
                 <label class="form-label">Técnico Responsable</label>
                 <input type="text" class="form-control" value="<?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Técnico'); ?>" readonly style="background-color: var(--bg-color); cursor: not-allowed; color: var(--text-muted); font-weight: 600;">
                 <input type="hidden" name="tecnico_id" value="<?php echo htmlspecialchars($_SESSION['user_id'] ?? 0); ?>">

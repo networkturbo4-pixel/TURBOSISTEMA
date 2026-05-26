@@ -222,6 +222,16 @@ include '../../includes/sidebar.php';
                     <input type="hidden" name="delete_logo_dark" id="delete_logo_dark" value="0">
                 </div>
                 <div class="col-md-4 mb-3">
+                    <label class="form-label">Logo Colapsado Claro</label>
+                    <input type="file" class="form-control" name="logo_collapsed_light" id="logo_collapsed_light" accept="image/*" data-current="">
+                    <input type="hidden" name="delete_logo_collapsed_light" id="delete_logo_collapsed_light" value="0">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Logo Colapsado Oscuro</label>
+                    <input type="file" class="form-control" name="logo_collapsed_dark" id="logo_collapsed_dark" accept="image/*" data-current="">
+                    <input type="hidden" name="delete_logo_collapsed_dark" id="delete_logo_collapsed_dark" value="0">
+                </div>
+                <div class="col-md-4 mb-3">
                     <label class="form-label">Logo PWA</label>
                     <input type="file" class="form-control" name="logo_pwa" id="logo_pwa" accept="image/*" data-current="">
                     <input type="hidden" name="delete_logo_pwa" id="delete_logo_pwa" value="0">
@@ -492,7 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (key === 'primary_color_light') document.getElementById('primary_color_light_text').value = value;
                     if (key === 'primary_color_dark') document.getElementById('primary_color_dark_text').value = value;
                     
-                    if (['logo_light', 'logo_dark', 'logo_pwa', 'favicon'].includes(key) && value) {
+                    if (['logo_light', 'logo_dark', 'logo_collapsed_light', 'logo_collapsed_dark', 'logo_pwa', 'favicon'].includes(key) && value) {
                         const input = document.getElementById(key);
                         if(input) {
                             input.setAttribute('data-current', '<?php echo BASE_URL; ?>/' + value);

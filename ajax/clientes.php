@@ -11,7 +11,7 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 if ($action === 'list') {
     try {
-        $stmt = $pdo->query("SELECT c.*, u.pin as user_pin FROM clientes c LEFT JOIN users u ON c.user_id = u.id ORDER BY c.id DESC");
+        $stmt = $pdo->query("SELECT c.*, u.pin as user_pin, s.nombre as servicio_nombre, s.velocidad as servicio_velocidad FROM clientes c LEFT JOIN users u ON c.user_id = u.id LEFT JOIN servicios s ON c.servicio_id = s.id ORDER BY c.id DESC");
         $clientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode(['success' => true, 'data' => $clientes]);
     } catch (PDOException $e) {
@@ -50,6 +50,9 @@ if ($action === 'save') {
     $direccion = $_POST['direccion'] ?? null;
     $referencia = $_POST['referencia'] ?? null;
     $detalles_plan = $_POST['detalles_plan'] ?? null;
+    $servicio_id = !empty($_POST['servicio_id']) ? $_POST['servicio_id'] : null;
+    $latitud = $_POST['latitud'] ?? null;
+    $longitud = $_POST['longitud'] ?? null;
     
     // Si viene vacío desde el formulario, se inserta como nulo
     $fecha_servicio_contratado = !empty($_POST['fecha_servicio_contratado']) ? $_POST['fecha_servicio_contratado'] : null;
@@ -71,12 +74,15 @@ if ($action === 'save') {
                 direccion = ?, 
                 referencia = ?, 
                 detalles_plan = ?, 
+                servicio_id = ?,
+                latitud = ?,
+                longitud = ?,
                 fecha_servicio_contratado = ?, 
                 inicio_servicio = ?
                 WHERE id = ?");
             $stmt->execute([
                 $nombre_completo, $dni, $celular, $correo, $direccion, 
-                $referencia, $detalles_plan, $fecha_servicio_contratado, 
+                $referencia, $detalles_plan, $servicio_id, $latitud, $longitud, $fecha_servicio_contratado, 
                 $inicio_servicio, $id
             ]);
             
@@ -130,11 +136,11 @@ if ($action === 'save') {
 
             // Insert Cliente
             $stmt = $pdo->prepare("INSERT INTO clientes (
-                user_id, nombre_completo, dni, celular, correo, direccion, referencia, detalles_plan, fecha_servicio_contratado, inicio_servicio
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                user_id, nombre_completo, dni, celular, correo, direccion, referencia, detalles_plan, servicio_id, latitud, longitud, fecha_servicio_contratado, inicio_servicio
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $user_id, $nombre_completo, $dni, $celular, $correo, $direccion, 
-                $referencia, $detalles_plan, $fecha_servicio_contratado, 
+                $referencia, $detalles_plan, $servicio_id, $latitud, $longitud, $fecha_servicio_contratado, 
                 $inicio_servicio
             ]);
             echo json_encode(['success' => true, 'message' => 'Cliente creado correctamente.', 'pin' => $pin]);

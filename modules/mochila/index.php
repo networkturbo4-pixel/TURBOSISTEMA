@@ -133,18 +133,8 @@ include '../../includes/sidebar.php';
         </button>
     </div>
 
-    <!-- Tabs -->
-    <div class="offcanvas-tabs">
-        <button class="offcanvas-tab active" data-tab="productos" onclick="switchTab('productos')">
-            <i class="ph ph-backpack"></i> Mochila
-        </button>
-        <button class="offcanvas-tab" data-tab="registrar" onclick="switchTab('registrar')">
-            <i class="ph ph-camera-plus"></i> Registrar Foto
-        </button>
-    </div>
-
-    <!-- Tab: Productos -->
-    <div class="offcanvas-tab-content active" id="tab-productos">
+    <!-- Tab: Productos (ahora es el único contenido) -->
+    <div class="offcanvas-tab-content active" id="tab-productos" style="display:block;">
         <div class="offcanvas-body" id="offcanvasProductos">
             <div class="oc-loading">
                 <i class="ph ph-spinner ph-spin"></i>
@@ -153,10 +143,21 @@ include '../../includes/sidebar.php';
         </div>
     </div>
 
-    <!-- Tab: Registrar Foto con Cámara -->
-    <div class="offcanvas-tab-content" id="tab-registrar">
-        <div class="offcanvas-body">
+</div>
 
+<!-- ══════════════════════════════════════════════
+     MODAL REGISTRAR FOTO
+═══════════════════════════════════════════════ -->
+<div class="upload-modal-overlay" id="registrarFotoModal" onclick="closeRegistrarFotoModal()">
+    <div class="upload-modal" onclick="event.stopPropagation()" style="max-width: 500px; padding: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h4><i class="ph ph-camera-plus" style="color: var(--primary-color);"></i> Registrar Foto</h4>
+            <button class="offcanvas-close" onclick="closeRegistrarFotoModal()" style="position: relative; top: 0; right: 0;">
+                <i class="ph ph-x"></i>
+            </button>
+        </div>
+
+        <div class="offcanvas-body" style="padding: 0; overflow: visible;">
             <!-- Selector de SKU -->
             <div class="register-step">
                 <div class="register-step-label">
@@ -241,10 +242,8 @@ include '../../includes/sidebar.php';
             </button>
 
             <div class="register-feedback" id="registerFeedback"></div>
-
         </div>
     </div>
-
 </div>
 
 <!-- ══════════════════════════════════════════════

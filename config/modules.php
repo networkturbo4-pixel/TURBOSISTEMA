@@ -28,25 +28,11 @@ $system_modules = [
         'description' => 'Registro y visualización de clientes',
         'default_access' => false
     ],
-    'inventario' => [
-        'name' => 'Inventario',
-        'icon' => 'ph-package',
-        'url' => '/modules/inventario',
-        'description' => 'Gestión de productos, control de stock y etiquetas',
-        'default_access' => false
-    ],
     'mochila' => [
         'name' => 'Mochila',
         'icon' => 'ph-backpack',
         'url' => '/modules/mochila',
         'description' => 'Vista de mochilas de usuarios y control fotográfico de equipos',
-        'default_access' => false
-    ],
-    'settings' => [
-        'name' => 'Configuración',
-        'icon' => 'ph-gear',
-        'url' => '/modules/settings',
-        'description' => 'Ajustes globales, roles, usuarios y apariencia',
         'default_access' => false
     ],
     'soporte' => [
@@ -56,12 +42,26 @@ $system_modules = [
         'description' => 'Gestión de tickets y chat de soporte',
         'default_access' => false
     ],
+    'inventario' => [
+        'name' => 'Inventario',
+        'icon' => 'ph-package',
+        'url' => '/modules/inventario',
+        'description' => 'Gestión de productos, control de stock y etiquetas',
+        'default_access' => false
+    ],
     'perfil' => [
         'name' => 'Mi Perfil',
         'icon' => 'ph-user-circle',
         'url' => '/modules/perfil',
         'description' => 'Gestión de perfil, EPP y mochila',
         'default_access' => true // Everyone should access their own profile
+    ],
+    'settings' => [
+        'name' => 'Configuración',
+        'icon' => 'ph-gear',
+        'url' => '/modules/settings',
+        'description' => 'Ajustes globales, roles, usuarios y apariencia',
+        'default_access' => false
     ]
 ];
 

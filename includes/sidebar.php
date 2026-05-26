@@ -1,15 +1,23 @@
 <?php
 $logoLight = $globalSettings['logo_light'] ?? '';
 $logoDark = $globalSettings['logo_dark'] ?? '';
+$logoCollapsedLight = $globalSettings['logo_collapsed_light'] ?? '';
+$logoCollapsedDark = $globalSettings['logo_collapsed_dark'] ?? '';
 $appNameSidebar = $globalSettings['app_name'] ?? 'Turbo SaaS';
 ?>
 <aside class="sidebar">
-    <div class="sidebar-header" style="text-align:center; padding: 20px;">
-        <?php if ($logoLight): ?>
-            <img src="<?php echo BASE_URL . '/' . $logoLight; ?>" alt="Logo" class="img-fluid logo-light" style="max-height: 40px; max-width: 100%;">
-            <img src="<?php echo BASE_URL . '/' . ($logoDark ?: $logoLight); ?>" alt="Logo" class="img-fluid logo-dark" style="max-height: 40px; max-width: 100%; display: none;">
-        <?php else: ?>
-            <span><?php echo htmlspecialchars($appNameSidebar); ?></span>
+    <div class="sidebar-header" style="display: flex; align-items: center; justify-content: space-between; padding: 20px;">
+        <div class="sidebar-logo-container" style="display: flex; align-items: center; flex: 1; overflow: hidden;">
+            <?php if ($logoLight): ?>
+                <img src="<?php echo BASE_URL . '/' . $logoLight; ?>" alt="Logo" class="img-fluid logo-light" style="max-height: 40px; max-width: 100%;">
+                <img src="<?php echo BASE_URL . '/' . ($logoDark ?: $logoLight); ?>" alt="Logo" class="img-fluid logo-dark" style="max-height: 40px; max-width: 100%; display: none;">
+            <?php else: ?>
+                <span class="nav-text" style="font-size: 1.2rem; font-weight: bold; white-space: nowrap;"><?php echo htmlspecialchars($appNameSidebar); ?></span>
+            <?php endif; ?>
+        </div>
+        <?php if ($logoCollapsedLight): ?>
+            <img src="<?php echo BASE_URL . '/' . $logoCollapsedLight; ?>" alt="Logo Icon" class="img-fluid logo-collapsed-icon logo-light" style="max-height: 35px; max-width: 100%; display: none; margin: 0 auto;">
+            <img src="<?php echo BASE_URL . '/' . ($logoCollapsedDark ?: $logoCollapsedLight); ?>" alt="Logo Icon" class="img-fluid logo-collapsed-icon logo-dark" style="max-height: 35px; max-width: 100%; display: none; margin: 0 auto;">
         <?php endif; ?>
     </div>
     <div class="sidebar-menu-wrapper">
@@ -28,10 +36,10 @@ $appNameSidebar = $globalSettings['app_name'] ?? 'Turbo SaaS';
                         $isActive = true;
                     }
             ?>
-                <a href="<?php echo BASE_URL . $module['url']; ?>" class="nav-link <?php echo $isActive ? 'active' : ''; ?>">
+                <a href="<?php echo BASE_URL . $module['url']; ?>" class="nav-link <?php echo $isActive ? 'active' : ''; ?>" title="<?php echo htmlspecialchars($module['name']); ?>">
                     <div class="nav-link-left">
                         <i class="ph <?php echo htmlspecialchars($module['icon']); ?>"></i>
-                        <span><?php echo htmlspecialchars($module['name']); ?></span>
+                        <span class="nav-text"><?php echo htmlspecialchars($module['name']); ?></span>
                     </div>
                 </a>
             <?php 
@@ -40,29 +48,39 @@ $appNameSidebar = $globalSettings['app_name'] ?? 'Turbo SaaS';
             ?>
         </nav>
 
+        <!-- Collapse Toggle Button (Moved to bottom) -->
+        <button id="sidebarInternalToggle" class="nav-link d-none d-md-flex" style="background: transparent; border: none; width: 100%; text-align: left; cursor: pointer; margin-top: auto;" title="Colapsar menú">
+            <div class="nav-link-left">
+                <i class="ph ph-caret-left" style="margin: 0;"></i>
+                <span class="nav-text">Colapsar menú</span>
+            </div>
+        </button>
+
         <!-- Logout Button -->
         <a href="<?php echo BASE_URL; ?>/login.php?action=logout" class="nav-link sidebar-logout-link" title="Cerrar Sesión">
             <div class="nav-link-left">
-                <i class="ph ph-sign-out"></i>
-                <span>Cerrar Sesión</span>
+                <i class="ph ph-sign-out" style="margin: 0;"></i>
+                <span class="nav-text">Cerrar Sesión</span>
             </div>
         </a>
         
         <!-- Theme Toggle Pill -->
-        <div class="sidebar-theme-switch">
-            <button type="button" class="theme-btn light active" id="btnThemeLight">
-                <i class="ph-fill ph-sun"></i> Light
-            </button>
-            <button type="button" class="theme-btn dark" id="btnThemeDark">
-                <i class="ph ph-moon"></i> Dark
-            </button>
+        <div class="sidebar-theme-switch-wrapper" style="padding: 0 16px;">
+            <div class="sidebar-theme-switch">
+                <button type="button" class="theme-btn light active" id="btnThemeLight" title="Light Theme">
+                    <i class="ph-fill ph-sun"></i> <span class="nav-text">Light</span>
+                </button>
+                <button type="button" class="theme-btn dark" id="btnThemeDark" title="Dark Theme">
+                    <i class="ph ph-moon"></i> <span class="nav-text">Dark</span>
+                </button>
+            </div>
         </div>
     </div>
 </aside>
 <main class="main-content">
     <header class="header">
         <div class="header-left">
-            <button id="sidebarToggle" class="btn-icon mobile-only"><i class="ph ph-list"></i></button>
+            <button id="sidebarToggle" class="btn-icon"><i class="ph ph-list"></i></button>
             <div class="mobile-logo mobile-only">
                 <?php if ($logoLight): ?>
                     <img src="<?php echo BASE_URL . '/' . $logoLight; ?>" alt="Logo" style="max-height: 30px;">

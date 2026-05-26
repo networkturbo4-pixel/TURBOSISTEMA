@@ -19,7 +19,7 @@ try {
         // ── Lista de usuarios con conteo de mochila (excluye clientes) ──
         case 'list_users':
             $stmt = $pdo->query("
-                SELECT u.id, u.name, u.email, u.role, u.profile_picture,
+                SELECT u.id, u.name, u.email, u.whatsapp, u.role, u.profile_picture,
                     (SELECT COUNT(*) FROM inventory_skus WHERE assigned_to = u.id AND status != 'instalado') as normal_items,
                     (SELECT COALESCE(SUM(quantity), 0) FROM inventory_user_stock WHERE user_id = u.id) as bulk_items,
                     (SELECT COUNT(*) FROM inventory_skus s 
@@ -73,25 +73,40 @@ try {
             $stmtNormal->execute([$target_user_id]);
             $normalItems = $stmtNormal->fetchAll();
 
-            // Productos a granel asignados
+            // Productos a granel asignados (product_type = 'granel' or is_bulk = 1)
             $stmtBulk = $pdo->prepare("
                 SELECT us.id as stock_id, us.quantity, 
-                       p.id as product_id, p.name as product_name, p.master_sku, p.unit_type, p.product_image,
+                       p.id as product_id, p.name as product_name, p.master_sku, p.unit_type, p.product_image, p.created_at,
                        c.name as category_name
                 FROM inventory_user_stock us
                 JOIN inventory_products p ON us.product_id = p.id
                 LEFT JOIN inventory_categories c ON p.category_id = c.id
-                WHERE us.user_id = ? AND us.quantity > 0
+                WHERE us.user_id = ? AND us.quantity > 0 AND (p.product_type = 'granel' OR p.is_bulk = 1)
                 ORDER BY p.name ASC
             ");
             $stmtBulk->execute([$target_user_id]);
             $bulkItems = $stmtBulk->fetchAll();
 
+            // Productos agrupados asignados (product_type = 'agrupado')
+            $stmtGrouped = $pdo->prepare("
+                SELECT us.id as stock_id, us.quantity, 
+                       p.id as product_id, p.name as product_name, p.master_sku, p.unit_type, p.product_image, p.created_at,
+                       c.name as category_name
+                FROM inventory_user_stock us
+                JOIN inventory_products p ON us.product_id = p.id
+                LEFT JOIN inventory_categories c ON p.category_id = c.id
+                WHERE us.user_id = ? AND us.quantity > 0 AND p.product_type = 'agrupado'
+                ORDER BY p.name ASC
+            ");
+            $stmtGrouped->execute([$target_user_id]);
+            $groupedItems = $stmtGrouped->fetchAll();
+
             echo json_encode([
                 'success' => true,
                 'user' => $userData,
                 'normal_items' => $normalItems,
-                'bulk_items' => $bulkItems
+                'bulk_items' => $bulkItems,
+                'grouped_items' => $groupedItems
             ]);
             break;
 
@@ -133,6 +148,19 @@ try {
                 break;
             }
 
+            $status = $_POST['status'] ?? '';
+            $isStatusUpdate = ($status && in_array($status, ['disponible', 'instalado', 'malogrado', 'reparado', 'en_transito']));
+            $entry_id = null;
+
+            if ($isStatusUpdate) {
+                // Actualizar status e historia
+                $pdo->prepare("UPDATE inventory_skus SET status = ?, historia = ? WHERE id = ?")->execute([$status, $status, $sku_id]);
+                // Crear entrada en historial de asignaciones
+                $stmt = $pdo->prepare("INSERT INTO inventory_entries (sku_id, user_id, tipo, notas) VALUES (?, ?, ?, ?)");
+                $stmt->execute([$sku_id, $uploaded_by, $status, $nota ?: null]);
+                $entry_id = $pdo->lastInsertId();
+            }
+
             $uploadDir = '../uploads/sku_photos/';
             if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
 
@@ -155,8 +183,17 @@ try {
                         $filename = 'sku_' . $sku_id . '_' . uniqid() . '.' . $ext;
                         if (move_uploaded_file($tmpName, $uploadDir . $filename)) {
                             $ruta = 'uploads/sku_photos/' . $filename;
-                            $stmt = $pdo->prepare("INSERT INTO inventory_sku_photos (sku_id, ruta_archivo, uploaded_by, nota) VALUES (?, ?, ?, ?)");
-                            $stmt->execute([$sku_id, $ruta, $uploaded_by, $nota ?: null]);
+                            
+                            if ($isStatusUpdate && $entry_id) {
+                                // Guardar como foto del historial de asignaciones
+                                $stmt = $pdo->prepare("INSERT INTO inventory_entry_photos (entry_id, ruta_archivo) VALUES (?, ?)");
+                                $stmt->execute([$entry_id, $ruta]);
+                            } else {
+                                // Guardar como foto normal del SKU
+                                $stmt = $pdo->prepare("INSERT INTO inventory_sku_photos (sku_id, ruta_archivo, uploaded_by, nota) VALUES (?, ?, ?, ?)");
+                                $stmt->execute([$sku_id, $ruta, $uploaded_by, $nota ?: null]);
+                            }
+                            
                             $lastUploadedPath = $ruta;
                             $uploaded++;
                         }
@@ -171,8 +208,8 @@ try {
                 $skuData = $skuRow->fetch();
                 $product_image = null;
 
-                if ($skuData) {
-                    // Tomar la primera foto del SKU como thumbnail del producto
+                if ($skuData && !$isStatusUpdate) {
+                    // Tomar la primera foto normal del SKU como thumbnail del producto
                     $firstSkuPhoto = $pdo->prepare("SELECT ruta_archivo FROM inventory_sku_photos WHERE sku_id = ? ORDER BY id ASC LIMIT 1");
                     $firstSkuPhoto->execute([$sku_id]);
                     $firstPhotoRow = $firstSkuPhoto->fetch();
@@ -187,11 +224,6 @@ try {
                                ->execute([$product_image, $skuData['product_id']]);
                         }
                     }
-                }
-
-                $status = $_POST['status'] ?? '';
-                if ($status && in_array($status, ['disponible', 'instalado', 'malogrado', 'reparado', 'en_transito'])) {
-                    $pdo->prepare("UPDATE inventory_skus SET status = ? WHERE id = ?")->execute([$status, $sku_id]);
                 }
 
                 echo json_encode([

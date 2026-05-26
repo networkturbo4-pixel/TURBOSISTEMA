@@ -237,13 +237,31 @@ window.showGlobalDeleteModal = (callback) => {
 
 function initSidebar() {
     const toggleBtn = document.getElementById('sidebarToggle');
+    const internalBtn = document.getElementById('sidebarInternalToggle');
     const sidebar = document.querySelector('.sidebar');
     
-    if (toggleBtn && sidebar) {
-        toggleBtn.addEventListener('click', (e) => {
+    if (sidebar) {
+        // Initialize collapsed state on desktop
+        try {
+            if (window.innerWidth > 768 && localStorage.getItem('sidebar_collapsed') === 'true') {
+                sidebar.classList.add('collapsed');
+            }
+        } catch (e) { console.warn('localStorage not available'); }
+
+        const toggleAction = (e) => {
             e.stopPropagation();
-            sidebar.classList.toggle('active');
-        });
+            if (window.innerWidth <= 768) {
+                sidebar.classList.toggle('active');
+            } else {
+                sidebar.classList.toggle('collapsed');
+                try {
+                    localStorage.setItem('sidebar_collapsed', sidebar.classList.contains('collapsed'));
+                } catch (err) {}
+            }
+        };
+
+        if (toggleBtn) toggleBtn.addEventListener('click', toggleAction);
+        if (internalBtn) internalBtn.addEventListener('click', toggleAction);
     }
 
     // Cerrar sidebar al hacer clic fuera (móvil)

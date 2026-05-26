@@ -37,7 +37,7 @@ if ($action === 'save_settings') {
         mkdir($upload_dir, 0777, true);
     }
 
-    $files_to_upload = ['logo_light', 'logo_dark', 'logo_pwa', 'favicon'];
+    $files_to_upload = ['logo_light', 'logo_dark', 'logo_collapsed_light', 'logo_collapsed_dark', 'logo_pwa', 'favicon'];
     foreach ($files_to_upload as $file_key) {
         if (isset($_POST["delete_$file_key"]) && $_POST["delete_$file_key"] === '1') {
             $settings[$file_key] = '';

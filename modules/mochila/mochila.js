@@ -53,7 +53,7 @@ async function loadUsers() {
         const res  = await fetch(`${BASE}/ajax/mochila.php?action=list_users`);
         const data = await res.json();
         if (data.success) {
-            allUsers = data.data.filter(u => Number(u.total_items) > 0);
+            allUsers = data.data; // Show all users (excluding clients, which is handled by backend)
             
             const roles = [...new Set(allUsers.map(u => u.role))].sort();
             const roleSelect = document.getElementById('roleFilter');
@@ -90,22 +90,30 @@ function renderUserGrid(users) {
         const itemsCount   = Number(u.total_items) || 0;
 
         return `
-            <div class="user-grid-card" id="ugc-${u.id}">
-                <div class="ugc-avatar">${avatarInner}</div>
-                <div class="ugc-info">
-                    <div class="ugc-name" title="${escapeHtml(u.name)}">${escapeHtml(u.name)}</div>
-                    <div style="margin:6px 0 4px;">
+            <div class="user-grid-card app-style-card" id="ugc-${u.id}">
+                <div class="ugc-card-header">
+                    <div class="ugc-avatar">${avatarInner}</div>
+                    <div class="ugc-name-role">
+                        <div class="ugc-name" title="${escapeHtml(u.name)}">${escapeHtml(u.name)}</div>
                         <span class="ugc-role-badge"><i class="${roleIcon}"></i>${escapeHtml(u.role)}</span>
                     </div>
+                </div>
+
+                <div class="ugc-contact-info">
+                    ${u.whatsapp ? `<div class="ugc-contact-row"><i class="ph ph-whatsapp" style="color:#25D366;"></i> <span>${escapeHtml(u.whatsapp)}</span></div>` : ''}
+                    ${u.email ? `<div class="ugc-contact-row"><i class="ph ph-envelope-simple" style="color:#8b5cf6;"></i> <span>${escapeHtml(u.email)}</span></div>` : ''}
+                </div>
+
+                <div class="ugc-card-footer">
                     <div class="ugc-items-row">
                         <i class="ph ph-backpack"></i>
                         <span class="items-badge">${itemsCount}</span>
                         <span>${itemsCount === 1 ? 'item' : 'items'} en mochila</span>
                     </div>
+                    <button class="ugc-btn-app" onclick="openOffCanvas(${u.id})">
+                        <i class="ph ph-backpack"></i> Ver Mochila
+                    </button>
                 </div>
-                <button class="ugc-btn" onclick="openOffCanvas(${u.id})">
-                    <i class="ph ph-backpack"></i> Ver Mochila
-                </button>
             </div>
         `;
     }).join('');
@@ -160,9 +168,6 @@ async function openOffCanvas(userId) {
     document.getElementById('mochilaOffCanvas').classList.add('active');
     document.body.style.overflow = 'hidden';
 
-    // Switch to productos tab
-    switchTab('productos');
-
     // Load products
     await loadOffCanvasBackpack(userId);
 }
@@ -172,16 +177,6 @@ function closeOffCanvas() {
     document.getElementById('mochilaOffCanvas').classList.remove('active');
     document.body.style.overflow = '';
     stopCamera();
-}
-
-function switchTab(tabName) {
-    document.querySelectorAll('.offcanvas-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.offcanvas-tab-content').forEach(t => t.classList.remove('active'));
-
-    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-    document.getElementById(`tab-${tabName}`).classList.add('active');
-
-    if (tabName !== 'registrar') stopCamera();
 }
 
 // ── Cargar mochila en off-canvas ──────────────────
@@ -209,11 +204,12 @@ async function loadOffCanvasBackpack(userId) {
 }
 
 function renderOffCanvasContent(data) {
-    const container   = document.getElementById('offcanvasProductos');
-    const normalItems = data.normal_items || [];
-    const bulkItems   = data.bulk_items  || [];
+    const container = document.getElementById('offcanvasProductos');
+    const normalItems  = data.normal_items  || [];
+    const bulkItems    = data.bulk_items    || [];
+    const groupedItems = data.grouped_items || [];
 
-    if (normalItems.length === 0 && bulkItems.length === 0) {
+    if (normalItems.length === 0 && bulkItems.length === 0 && groupedItems.length === 0) {
         container.innerHTML = `
             <div class="oc-empty">
                 <i class="ph ph-backpack"></i>
@@ -224,94 +220,250 @@ function renderOffCanvasContent(data) {
         return;
     }
 
-    let html = '';
+    // Calcular stats
+    const totalNormal = normalItems.length;
+    let totalBulk = 0;
+    bulkItems.forEach(b => totalBulk += parseFloat(b.quantity));
+    let totalGrouped = 0;
+    groupedItems.forEach(g => totalGrouped += parseFloat(g.quantity));
 
-    // ─ SKU Normal Items ─
-    if (normalItems.length > 0) {
-        html += `<div class="oc-section-title"><i class="ph ph-barcode"></i> Equipos Individuales <span class="section-count">${normalItems.length}</span></div>`;
-
-        normalItems.forEach(item => {
-            const imgHtml = item.product_image
-                ? `<img class="oc-sku-product-img" src="${BASE}/${item.product_image}" alt="">`
-                : `<div class="oc-sku-product-img-placeholder"><i class="ph ph-cube"></i></div>`;
-
-            const historia = buildHistoryHtml(item);
-
-            const photoCountBadge = item.photo_count > 0
-                ? `<span class="oc-foto-badge purple">${item.photo_count}</span>`
-                : `<span class="oc-foto-badge red">0</span>`;
-
-            html += `
-                <div class="oc-sku-card" id="oc-sku-${item.id}">
-
-                    <div class="oc-sku-card-top">
-                        ${imgHtml}
-                        <div class="oc-sku-meta">
-                            <div class="oc-sku-code">${escapeHtml(item.sku_code)}</div>
-                            <div class="oc-sku-name">${escapeHtml(item.product_name)}</div>
-                            <div class="oc-sku-cat">${escapeHtml(item.category_name || 'Sin categor\u00eda')}</div>
-                        </div>
-                        <div class="oc-sku-card-right">
-                            <select class="oc-sku-status-select ${item.status}" onchange="updateSkuStatusFromMochila(${item.id}, this.value, this)" style="background:var(--bg-color); border:1px solid var(--border-color); color:var(--text-color); border-radius:12px; padding:3px 6px; font-size:0.75rem; font-weight:700; cursor:pointer;">
-                                <option value="disponible" ${item.status === 'disponible' ? 'selected' : ''}>Disponible</option>
-                                <option value="instalado" ${item.status === 'instalado' ? 'selected' : ''}>Instalado</option>
-                                <option value="malogrado" ${item.status === 'malogrado' ? 'selected' : ''}>Malogrado</option>
-                                <option value="reparado" ${item.status === 'reparado' ? 'selected' : ''}>Reparado</option>
-                                <option value="en_transito" ${item.status === 'en_transito' ? 'selected' : ''}>En Tránsito</option>
-                            </select>
-                            <div class="oc-sku-actions-inline">
-                                <button class="oc-action-btn cam icon-only" onclick="quickPhotoFromTab(${item.id}, '${escapeHtml(item.sku_code)}', '${item.product_image || ''}')" title="Registrar foto">
-                                    <i class="ph ph-camera-plus"></i>
-                                </button>
-                                <button class="oc-action-btn danger icon-only" onclick="returnToWarehouse(${item.id}, '${escapeHtml(item.sku_code)}')" title="Devolver al almac\u00e9n">
-                                    <i class="ph ph-arrow-u-up-left"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="oc-sku-toggles">
-                        ${historia}
-                        <button class="oc-photos-toggle" id="toggle-photos-${item.id}" onclick="togglePhotos(${item.id}, '${escapeHtml(item.sku_code)}')">
-                            <i class="ph ph-camera"></i>
-                            Fotos ${photoCountBadge}
-                            <i class="ph ph-caret-down toggle-chevron"></i>
-                        </button>
-                        <div class="oc-photos-area" id="photos-area-${item.id}" style="display:none;"></div>
-                    </div>
-
+    // Stats HTML
+    const statsHtml = `
+        <div class="oc-stats-grid">
+            <div class="oc-stat-card">
+                <div class="oc-stat-icon oc-stat-purple"><i class="ph ph-barcode"></i></div>
+                <div class="oc-stat-info">
+                    <div class="oc-stat-val" id="statNormalVal">${totalNormal}</div>
+                    <div class="oc-stat-label">Equipos Indiv.</div>
                 </div>
-            `;
-        });
+            </div>
+            <div class="oc-stat-card">
+                <div class="oc-stat-icon oc-stat-emerald"><i class="ph ph-package"></i></div>
+                <div class="oc-stat-info">
+                    <div class="oc-stat-val" id="statBulkVal">${totalBulk}</div>
+                    <div class="oc-stat-label">A Granel</div>
+                </div>
+            </div>
+            <div class="oc-stat-card">
+                <div class="oc-stat-icon oc-stat-orange"><i class="ph ph-intersect"></i></div>
+                <div class="oc-stat-info">
+                    <div class="oc-stat-val" id="statGroupedVal">${totalGrouped}</div>
+                    <div class="oc-stat-label">Agrupados</div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // 3 Column Layout HTML
+    const columnsHtml = `
+        <div class="oc-3col-layout">
+            <!-- COL 1: Equipos Individuales -->
+            <div class="oc-col">
+                <div class="oc-col-header">
+                    <div class="oc-col-title">
+                        <div class="col-icon-label"><i class="ph ph-barcode"></i> Equipos Individuales</div>
+                        <span class="section-count" id="countColNormal">${normalItems.length}</span>
+                    </div>
+                    <div class="oc-col-filters">
+                        <div class="oc-col-search">
+                            <i class="ph ph-magnifying-glass"></i>
+                            <input type="text" id="searchNormal" placeholder="Buscar por código, nombre..." oninput="filterOffcanvasItems()">
+                        </div>
+                        <div class="oc-col-date">
+                            <i class="ph ph-calendar"></i>
+                            <input type="date" id="dateNormal" title="Filtrar por fecha de asignación" onchange="filterOffcanvasItems()">
+                        </div>
+                    </div>
+                </div>
+                <div class="oc-col-body" id="bodyColNormal"></div>
+            </div>
+
+            <!-- COL 2: Productos A Granel -->
+            <div class="oc-col">
+                <div class="oc-col-header">
+                    <div class="oc-col-title">
+                        <div class="col-icon-label"><i class="ph ph-package"></i> A Granel</div>
+                        <span class="section-count" id="countColBulk">${bulkItems.length}</span>
+                    </div>
+                    <div class="oc-col-filters">
+                        <div class="oc-col-search">
+                            <i class="ph ph-magnifying-glass"></i>
+                            <input type="text" id="searchBulk" placeholder="Buscar a granel..." oninput="filterOffcanvasItems()">
+                        </div>
+                        <div class="oc-col-date">
+                            <i class="ph ph-calendar"></i>
+                            <input type="date" id="dateBulk" title="Filtrar por fecha de creación" onchange="filterOffcanvasItems()">
+                        </div>
+                    </div>
+                </div>
+                <div class="oc-col-body" id="bodyColBulk"></div>
+            </div>
+
+            <!-- COL 3: Productos Agrupados -->
+            <div class="oc-col">
+                <div class="oc-col-header">
+                    <div class="oc-col-title">
+                        <div class="col-icon-label"><i class="ph ph-intersect"></i> Agrupados</div>
+                        <span class="section-count" id="countColGrouped">${groupedItems.length}</span>
+                    </div>
+                    <div class="oc-col-filters">
+                        <div class="oc-col-search">
+                            <i class="ph ph-magnifying-glass"></i>
+                            <input type="text" id="searchGrouped" placeholder="Buscar agrupados..." oninput="filterOffcanvasItems()">
+                        </div>
+                        <div class="oc-col-date">
+                            <i class="ph ph-calendar"></i>
+                            <input type="date" id="dateGrouped" title="Filtrar por fecha de creación" onchange="filterOffcanvasItems()">
+                        </div>
+                    </div>
+                </div>
+                <div class="oc-col-body" id="bodyColGrouped"></div>
+            </div>
+        </div>
+    `;
+
+    container.innerHTML = statsHtml + columnsHtml;
+
+    // Render lists initially
+    renderColumnNormal(normalItems);
+    renderColumnBulk(bulkItems, 'bodyColBulk');
+    renderColumnBulk(groupedItems, 'bodyColGrouped');
+}
+
+function filterOffcanvasItems() {
+    if (!currentUserData) return;
+
+    // 1. Normal
+    const qNormal = (document.getElementById('searchNormal')?.value || '').toLowerCase().trim();
+    const dNormal = document.getElementById('dateNormal')?.value;
+    const normalFiltered = (currentUserData.normal_items || []).filter(item => {
+        let matchText = item.sku_code.toLowerCase().includes(qNormal) || item.product_name.toLowerCase().includes(qNormal);
+        let matchDate = true;
+        if (dNormal && item.created_at) {
+            matchDate = item.created_at.substring(0, 10) === dNormal;
+        }
+        return matchText && matchDate;
+    });
+    renderColumnNormal(normalFiltered);
+    document.getElementById('countColNormal').textContent = normalFiltered.length;
+
+    // 2. Bulk
+    const qBulk = (document.getElementById('searchBulk')?.value || '').toLowerCase().trim();
+    const dBulk = document.getElementById('dateBulk')?.value;
+    const bulkFiltered = (currentUserData.bulk_items || []).filter(item => {
+        let matchText = item.product_name.toLowerCase().includes(qBulk);
+        let matchDate = true;
+        if (dBulk && item.created_at) {
+            matchDate = item.created_at.substring(0, 10) === dBulk;
+        }
+        return matchText && matchDate;
+    });
+    renderColumnBulk(bulkFiltered, 'bodyColBulk');
+    document.getElementById('countColBulk').textContent = bulkFiltered.length;
+
+    // 3. Grouped
+    const qGrouped = (document.getElementById('searchGrouped')?.value || '').toLowerCase().trim();
+    const dGrouped = document.getElementById('dateGrouped')?.value;
+    const groupedFiltered = (currentUserData.grouped_items || []).filter(item => {
+        let matchText = item.product_name.toLowerCase().includes(qGrouped);
+        let matchDate = true;
+        if (dGrouped && item.created_at) {
+            matchDate = item.created_at.substring(0, 10) === dGrouped;
+        }
+        return matchText && matchDate;
+    });
+    renderColumnBulk(groupedFiltered, 'bodyColGrouped');
+    document.getElementById('countColGrouped').textContent = groupedFiltered.length;
+}
+
+function renderColumnNormal(items) {
+    const container = document.getElementById('bodyColNormal');
+    if (!container) return;
+
+    if (items.length === 0) {
+        container.innerHTML = '<div class="oc-empty-col"><i class="ph ph-barcode"></i><p>Sin equipos</p></div>';
+        return;
     }
 
-    // ─ Bulk Items ─
-    if (bulkItems.length > 0) {
-        html += `<div class="oc-section-title" style="margin-top:20px;"><i class="ph ph-package"></i> Productos a Granel <span class="section-count">${bulkItems.length}</span></div>`;
-        bulkItems.forEach(item => {
-            html += `
-                <div class="oc-bulk-card">
-                    <div class="oc-bulk-info">
-                        <div class="oc-bulk-name">${escapeHtml(item.product_name)}</div>
-                        <div class="oc-bulk-cat">${escapeHtml(item.category_name || 'Sin categoría')}</div>
+    let html = '';
+    items.forEach(item => {
+        const imgHtml = item.product_image
+            ? `<img class="oc-sku-product-img" src="${BASE}/${item.product_image}" alt="">`
+            : `<div class="oc-sku-product-img-placeholder"><i class="ph ph-cube"></i></div>`;
+
+        const historia = buildHistoryHtml(item);
+        const photoCountBadge = item.photo_count > 0
+            ? `<span class="oc-foto-badge purple">${item.photo_count}</span>`
+            : `<span class="oc-foto-badge red">0</span>`;
+
+        html += `
+            <div class="oc-sku-card" id="oc-sku-${item.id}">
+                <div class="oc-sku-card-top">
+                    ${imgHtml}
+                    <div class="oc-sku-meta">
+                        <div class="oc-sku-code">${escapeHtml(item.sku_code)}</div>
+                        <div class="oc-sku-name" style="font-size:0.85rem;line-height:1.2;margin:4px 0;">${escapeHtml(item.product_name)}</div>
+                        ${item.created_at ? `<div style="font-size:0.7rem;color:var(--text-muted);"><i class="ph ph-clock"></i> ${item.created_at.substring(0,10)}</div>` : ''}
                     </div>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; gap:8px;">
+                    <select class="oc-sku-status-select ${item.status}" onchange="updateSkuStatusFromMochila(${item.id}, this.value, this)" style="background:var(--bg-color); border:1px solid var(--border-color); color:var(--text-color); border-radius:8px; padding:4px 8px; font-size:0.75rem; font-weight:700; cursor:pointer; flex:1; max-width: 120px;">
+                        <option value="disponible" ${item.status === 'disponible' ? 'selected' : ''}>Disponible</option>
+                        <option value="instalado" ${item.status === 'instalado' ? 'selected' : ''}>Instalado</option>
+                        <option value="malogrado" ${item.status === 'malogrado' ? 'selected' : ''}>Malogrado</option>
+                        <option value="reparado" ${item.status === 'reparado' ? 'selected' : ''}>Reparado</option>
+                        <option value="en_transito" ${item.status === 'en_transito' ? 'selected' : ''}>En Tránsito</option>
+                    </select>
+                    <div class="oc-sku-actions-inline" style="margin-top:0;">
+                        <button class="oc-action-btn cam icon-only" onclick="quickPhotoFromTab(${item.id}, '${escapeHtml(item.sku_code)}', '${item.product_image || ''}')" title="Registrar foto"><i class="ph ph-camera-plus"></i></button>
+                        <button class="oc-action-btn danger icon-only" onclick="returnToWarehouse(${item.id}, '${escapeHtml(item.sku_code)}')" title="Devolver al almacén"><i class="ph ph-arrow-u-up-left"></i></button>
+                    </div>
+                </div>
+                <div class="oc-sku-toggles">
+                    ${historia}
+                    <button class="oc-photos-toggle" id="toggle-photos-${item.id}" onclick="togglePhotos(${item.id}, '${escapeHtml(item.sku_code)}')">
+                        <i class="ph ph-camera"></i>
+                        Fotos ${photoCountBadge}
+                        <i class="ph ph-caret-down toggle-chevron"></i>
+                    </button>
+                    <div class="oc-photos-area" id="photos-area-${item.id}" style="display:none;"></div>
+                </div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+function renderColumnBulk(items, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    if (items.length === 0) {
+        container.innerHTML = '<div class="oc-empty-col"><i class="ph ph-package"></i><p>Sin productos</p></div>';
+        return;
+    }
+
+    let html = '';
+    items.forEach(item => {
+        html += `
+            <div class="oc-bulk-card" style="flex-direction:column; align-items:stretch; gap:12px;">
+                <div class="oc-bulk-info">
+                    <div class="oc-bulk-name" style="font-size:0.9rem;">${escapeHtml(item.product_name)}</div>
+                    ${item.created_at ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;"><i class="ph ph-clock"></i> ${item.created_at.substring(0,10)}</div>` : ''}
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
                     <div class="oc-bulk-qty-block">
                         <div class="oc-bulk-qty">${parseFloat(item.quantity)}</div>
-                        <div class="oc-bulk-unit">${escapeHtml(item.unit_type || 'Unidades')}</div>
+                        <div class="oc-bulk-unit" style="font-size:0.7rem;">${escapeHtml(item.unit_type || 'Unidades')}</div>
                     </div>
                     <div class="oc-bulk-actions">
-                        <button class="oc-action-btn cam icon-only" onclick="quickPhotoBulk(${item.product_id}, '${escapeHtml(item.product_name)}', '${escapeHtml(item.product_image || '')}')" title="Registrar foto del producto">
-                            <i class="ph ph-camera-plus"></i>
-                        </button>
-                        <button class="oc-action-btn danger icon-only" onclick="returnBulk(${item.stock_id}, '${escapeHtml(item.product_name)}', ${parseFloat(item.quantity)})" title="Devolver al almacen">
-                            <i class="ph ph-arrow-u-up-left"></i>
-                        </button>
+                        <button class="oc-action-btn cam icon-only" onclick="quickPhotoBulk(${item.product_id}, '${escapeHtml(item.product_name)}', '${escapeHtml(item.product_image || '')}')" title="Registrar foto"><i class="ph ph-camera-plus"></i></button>
+                        <button class="oc-action-btn danger icon-only" onclick="returnBulk(${item.stock_id}, '${escapeHtml(item.product_name)}', ${parseFloat(item.quantity)})" title="Devolver al almacén"><i class="ph ph-arrow-u-up-left"></i></button>
                     </div>
                 </div>
-            `;
-        });
-    }
-
+            </div>
+        `;
+    });
     container.innerHTML = html;
 }
 
@@ -444,12 +596,14 @@ async function togglePhotos(skuId, skuCode) {
 
 // ── Quick photo: ir a tab registrar con sku presel. ──
 function quickPhotoFromTab(skuId, skuCode, productImage) {
-    switchTab('registrar');
+    document.getElementById('registrarFotoModal').classList.add('active');
+    document.body.style.overflow = 'hidden';
+
     const sel = document.getElementById('registerSkuSelect');
     if (!sel) return;
 
     if (skuId) {
-        // Find option by value (always string compare in DOM)
+        // Find option by value
         const targetVal = String(skuId);
         let found = false;
         for (const opt of sel.options) {
@@ -460,7 +614,6 @@ function quickPhotoFromTab(skuId, skuCode, productImage) {
             }
         }
         if (found) {
-            // Get image from map or from passed parameter
             const entry = window._registerSkuMap && window._registerSkuMap[targetVal];
             const img = productImage || (entry ? entry.image : '') || '';
             updateRegisterProductPreview(img);
@@ -473,9 +626,18 @@ function quickPhotoFromTab(skuId, skuCode, productImage) {
         updateRegisterProductPreview('');
     }
 
-    // Dispatch change to update any other listeners
     sel.dispatchEvent(new Event('change'));
     checkRegisterReady();
+}
+
+function openRegistrarFotoModal() {
+    document.getElementById('registrarFotoModal').classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeRegistrarFotoModal() {
+    document.getElementById('registrarFotoModal').classList.remove('active');
+    document.body.style.overflow = '';
 }
 
 // ── Populate register select (normal SKUs + bulk products) ──
@@ -526,7 +688,7 @@ function populateRegisterSkuSelect(normalItems, bulkItems = []) {
 
 // ── Ir a registrar foto desde item a granel ──
 function quickPhotoBulk(productId, productName, productImage) {
-    switchTab('registrar');
+    openRegistrarFotoModal();
     const sel = document.getElementById('registerSkuSelect');
     if (!sel) return;
     const targetVal = `bulk_${productId}`;
@@ -714,6 +876,13 @@ async function submitRegisterPhoto() {
             document.getElementById('btnRetake').style.display        = 'none';
             document.getElementById('registerNota').value = '';
             document.getElementById('registerSkuSelect').value = '';
+            document.getElementById('registerStatusSelect').value = '';
+            
+            // Cerrar el modal automáticamente al éxito
+            setTimeout(() => {
+                closeRegistrarFotoModal();
+            }, 600);
+
             loadStats();
             // Reload backpack to update photo counts
             setTimeout(() => loadOffCanvasBackpack(currentUserId), 600);
