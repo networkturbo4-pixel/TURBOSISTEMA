@@ -648,42 +648,56 @@ try {
             if ($result) {
                 echo json_encode(['success' => true, 'data' => $result]);
             } else {
-                // Check if it's a bulk product's master_sku
-                $stmtBulk = $pdo->prepare("SELECT p.id as product_id, COALESCE(p.master_sku, CONCAT('BLK-', p.id)) as sku_code, p.name as product_name,
-                                           c.name as category_name, p.description as product_description,
-                                           p.stock_minimo, p.stock_critico, p.is_bulk, p.total_quantity as stock,
-                                           'disponible' as status, p.unit_type, p.product_type, p.custom_columns
-                                           FROM inventory_products p
-                                           LEFT JOIN inventory_categories c ON p.category_id = c.id
-                                           WHERE p.is_bulk = 1 AND (p.master_sku = ? OR p.name LIKE ?) LIMIT 1");
-                $stmtBulk->execute([$code, "%$code%"]);
-                $resultBulk = $stmtBulk->fetch();
+                // ── Step 1: Check if it's an agrupado parent product ──
+                // (agrupado parents have product_type='agrupado' and no parent_product_id)
+                // We check this FIRST because agrupado children also have is_bulk=1
+                // and would otherwise be found by the bulk query below
+                $stmtAgrupado = $pdo->prepare("
+                    SELECT p.id as product_id, p.id as id,
+                           COALESCE(p.master_sku, CONCAT('BLK-', p.id)) as sku_code,
+                           p.name as product_name,
+                           c.name as category_name, p.description as product_description,
+                           p.stock_minimo, p.stock_critico, p.is_bulk,
+                           COALESCE((SELECT SUM(ch.total_quantity) FROM inventory_products ch WHERE ch.parent_product_id = p.id), 0) as stock,
+                           'disponible' as status, p.unit_type, p.product_type, p.custom_columns
+                    FROM inventory_products p
+                    LEFT JOIN inventory_categories c ON p.category_id = c.id
+                    WHERE p.product_type = 'agrupado'
+                      AND (p.parent_product_id IS NULL OR p.parent_product_id = 0)
+                      AND (p.master_sku = ? OR p.name LIKE ?)
+                    LIMIT 1");
+                $stmtAgrupado->execute([$code, "%$code%"]);
+                $resultAgrupado = $stmtAgrupado->fetch();
 
-                if ($resultBulk) {
-                    // It's a bulk product. We use product_id as id with a flag.
-                    $resultBulk['id'] = 'bulk_' . $resultBulk['product_id'];
-                    echo json_encode(['success' => true, 'data' => $resultBulk]);
+                if ($resultAgrupado) {
+                    // Agrupado parent found — expose product_id explicitly for get_children
+                    $resultAgrupado['id'] = 'bulk_' . $resultAgrupado['product_id'];
+                    echo json_encode(['success' => true, 'data' => $resultAgrupado]);
                 } else {
-                    // Check if it's an agrupado product (parent may have is_bulk=0)
-                    $stmtAgrupado = $pdo->prepare("SELECT p.id as product_id, p.id as id,
-                                               COALESCE(p.master_sku, CONCAT('AGR-', p.id)) as sku_code,
-                                               p.name as product_name,
-                                               c.name as category_name, p.description as product_description,
-                                               p.stock_minimo, p.stock_critico, p.is_bulk,
-                                               COALESCE((SELECT SUM(ch.total_quantity) FROM inventory_products ch WHERE ch.parent_product_id = p.id), 0) as stock,
-                                               'disponible' as status, p.unit_type, p.product_type, p.custom_columns
-                                               FROM inventory_products p
-                                               LEFT JOIN inventory_categories c ON p.category_id = c.id
-                                               WHERE p.product_type = 'agrupado'
-                                                 AND p.parent_product_id IS NULL
-                                                 AND (p.master_sku = ? OR p.name LIKE ?) LIMIT 1");
-                    $stmtAgrupado->execute([$code, "%$code%"]);
-                    $resultAgrupado = $stmtAgrupado->fetch();
+                    // ── Step 2: Check if it's a regular bulk product ──
+                    // Exclude children of agrupado (parent_product_id IS NOT NULL)
+                    // and exclude agrupado parents (already handled above)
+                    $stmtBulk = $pdo->prepare("
+                        SELECT p.id as product_id,
+                               COALESCE(p.master_sku, CONCAT('BLK-', p.id)) as sku_code,
+                               p.name as product_name,
+                               c.name as category_name, p.description as product_description,
+                               p.stock_minimo, p.stock_critico, p.is_bulk, p.total_quantity as stock,
+                               'disponible' as status, p.unit_type, p.product_type, p.custom_columns
+                        FROM inventory_products p
+                        LEFT JOIN inventory_categories c ON p.category_id = c.id
+                        WHERE p.is_bulk = 1
+                          AND p.product_type != 'agrupado'
+                          AND (p.parent_product_id IS NULL OR p.parent_product_id = 0)
+                          AND (p.master_sku = ? OR p.name LIKE ?)
+                        LIMIT 1");
+                    $stmtBulk->execute([$code, "%$code%"]);
+                    $resultBulk = $stmtBulk->fetch();
 
-                    if ($resultAgrupado) {
-                        // Agrupado parent found — keep product_id for get_children lookup
-                        $resultAgrupado['id'] = 'bulk_' . $resultAgrupado['product_id'];
-                        echo json_encode(['success' => true, 'data' => $resultAgrupado]);
+                    if ($resultBulk) {
+                        // Regular bulk product
+                        $resultBulk['id'] = 'bulk_' . $resultBulk['product_id'];
+                        echo json_encode(['success' => true, 'data' => $resultBulk]);
                     } else {
                         echo json_encode(['success' => false, 'message' => 'SKU no encontrado']);
                     }
@@ -766,7 +780,9 @@ try {
                                NULL as last_history_date,
                                'disponible' as status,
                                'ninguno' as historia,
-                               p.total_quantity as stock_disponible,
+                               CASE WHEN p.product_type = 'agrupado'
+                                    THEN COALESCE((SELECT SUM(ch.total_quantity) FROM inventory_products ch WHERE ch.parent_product_id = p.id), 0)
+                                    ELSE p.total_quantity END as stock_disponible,
                                p.unit_type,
                                COALESCE(p.bulk_custom_data, '{}') as custom_data,
                                1 as is_bulk,
@@ -776,7 +792,8 @@ try {
                                 FROM inventory_user_stock ius JOIN users u ON ius.user_id = u.id WHERE ius.product_id = p.id AND ius.quantity > 0) as bulk_assignments
                         FROM inventory_products p
                         LEFT JOIN inventory_categories c ON p.category_id = c.id
-                        WHERE p.is_bulk = 1";
+                        WHERE p.is_bulk = 1
+                          AND (p.parent_product_id IS NULL OR p.parent_product_id = 0)";
             
             $paramsBulk = [];
             if ($product_filter) {
