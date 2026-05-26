@@ -1003,17 +1003,17 @@ body.dark-theme .inv-cell-editing {
 
 /* Inline Edit Popover */
 .inline-edit-popover {
-    position: absolute;
-    z-index: 1000;
+    position: fixed;
+    z-index: 99999;
     background: var(--surface-color);
-    border: 1px solid var(--primary-color);
-    border-radius: 8px;
-    padding: 6px 8px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    border: 1.5px solid var(--primary-color);
+    border-radius: 10px;
+    padding: 8px 10px;
+    box-shadow: 0 12px 35px rgba(0,0,0,0.35), 0 0 0 1px rgba(99,102,241,0.1);
     display: flex;
     align-items: center;
-    gap: 8px;
-    min-width: 280px;
+    gap: 6px;
+    min-width: 300px;
     animation: popInEdit 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 @keyframes popInEdit {
@@ -1616,7 +1616,9 @@ body.dark-theme .sku-photo-source-btn:hover { background: rgba(255,255,255,0.07)
 /* Image Viewer / Lightbox                        */
 /* ══════════════════════════════════════════════ */
 #invLightbox {
-    display: none;
+    display: none !important;
+    visibility: hidden;
+    opacity: 0;
     position: fixed;
     inset: 0;
     z-index: 99999;
@@ -1627,9 +1629,13 @@ body.dark-theme .sku-photo-source-btn:hover { background: rgba(255,255,255,0.07)
     justify-content: center;
     flex-direction: column;
     gap: 16px;
-    animation: lbFadeIn 0.22s ease;
+    transition: opacity 0.22s ease;
 }
-#invLightbox.lb-open { display: flex; }
+#invLightbox.lb-open {
+    display: flex !important;
+    visibility: visible;
+    opacity: 1;
+}
 @keyframes lbFadeIn {
     from { opacity: 0; }
     to   { opacity: 1; }
@@ -1716,11 +1722,13 @@ body.dark-theme .sku-photo-source-btn:hover { background: rgba(255,255,255,0.07)
 /* Clickable thumbnails */
 .lb-thumb {
     cursor: zoom-in !important;
-    transition: transform 0.18s, box-shadow 0.18s !important;
+    transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s, filter 0.22s !important;
+    position: relative;
 }
 .lb-thumb:hover {
-    transform: scale(1.08) !important;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.22) !important;
+    transform: scale(1.12) !important;
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.4), 0 6px 20px rgba(0,0,0,0.25) !important;
+    filter: brightness(1.08);
 }
 
 /* ══════════════════════════════════════════════ */

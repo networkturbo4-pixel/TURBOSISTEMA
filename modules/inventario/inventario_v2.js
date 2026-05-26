@@ -28,9 +28,18 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        loadMetrics(); loadProducts(); loadCategories();
-        initTabs(); initScanner(); initProductModal(); initStockTab(); initLabelsTab();
-        initLightbox();
+        // Lightbox FIRST — must always register its click handler
+        try { initLightbox(); } catch(e) { console.error('initLightbox error:', e); }
+        // Data loading
+        try { loadMetrics(); } catch(e) { console.error('loadMetrics error:', e); }
+        try { loadProducts(); } catch(e) { console.error('loadProducts error:', e); }
+        try { loadCategories(); } catch(e) { console.error('loadCategories error:', e); }
+        // UI init
+        try { initTabs(); } catch(e) { console.error('initTabs error:', e); }
+        try { initScanner(); } catch(e) { console.error('initScanner error:', e); }
+        try { initProductModal(); } catch(e) { console.error('initProductModal error:', e); }
+        try { initStockTab(); } catch(e) { console.error('initStockTab error:', e); }
+        try { initLabelsTab(); } catch(e) { console.error('initLabelsTab error:', e); }
     });
 
     // ── Helper: Random Code ──
@@ -52,10 +61,10 @@
 
     // ── Tabs ──
     function initTabs() {
-        // Seleccionar tabs principales (cualquier nivel dentro de inv-tabs-bar)
-        document.querySelectorAll('.inv-tabs-bar .inv-tab[data-tab]').forEach(btn => {
+        // Seleccionar tabs principales (cualquier nivel dentro de inv-toolbar-tabs)
+        document.querySelectorAll('.inv-toolbar-tabs .inv-tab[data-tab]').forEach(btn => {
             btn.addEventListener('click', () => {
-                document.querySelectorAll('.inv-tabs-bar .inv-tab[data-tab]').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.inv-toolbar-tabs .inv-tab[data-tab]').forEach(t => t.classList.remove('active'));
                 document.querySelectorAll('.inv-tab-pane').forEach(p => p.classList.remove('active'));
                 btn.classList.add('active');
                 document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
@@ -105,19 +114,29 @@
         const img  = document.getElementById('invLbImg');
         const cap  = document.getElementById('invLbCaption');
         const dl   = document.getElementById('invLbDownload');
+        if (!lb || !img) { console.error('Lightbox elements not found'); return; }
         lbResetZoom();
         img.src = src;
-        cap.textContent = caption || '';
-        dl.href = src;
-        dl.download = src.split('/').pop();
+        if (cap) cap.textContent = caption || '';
+        if (dl) { dl.href = src; dl.download = src.split('/').pop(); }
         lb.classList.add('lb-open');
+        lb.style.display = 'flex';
+        lb.style.visibility = 'visible';
+        lb.style.opacity = '1';
         document.body.style.overflow = 'hidden';
     };
 
     window.closeLightbox = function() {
-        document.getElementById('invLightbox').classList.remove('lb-open');
+        const lb = document.getElementById('invLightbox');
+        if (lb) {
+            lb.classList.remove('lb-open');
+            lb.style.display = 'none';
+            lb.style.visibility = 'hidden';
+            lb.style.opacity = '0';
+        }
         document.body.style.overflow = '';
-        document.getElementById('invLbImg').src = '';
+        const img = document.getElementById('invLbImg');
+        if (img) img.src = '';
     };
 
     window.lbZoom = function(delta) {
@@ -187,66 +206,228 @@
             const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(x => x.json());
             if (res.success) {
                 const d = res.data;
-                const c = { disponible:'#10b981', instalado:'#3b82f6', malogrado:'#ef4444', reparado:'#f59e0b' };
-                const ic = { disponible:'ph-check-circle', instalado:'ph-arrow-circle-up', malogrado:'ph-x-circle', reparado:'ph-wrench' };
-                r.innerHTML = `<div class="sr-icon" style="background:${c[d.status]}20;color:${c[d.status]};"><i class="ph ${ic[d.status]}"></i></div><div class="sr-info"><h4>${d.sku_code} — ${d.product_name}</h4><p>Categoría: ${d.category_name||'Sin categoría'} · <span class="status-badge status-${d.status}">${d.status.toUpperCase()}</span></p></div>`;
+                const status = d.status || 'disponible';
+                const c = { disponible:'#10b981', instalado:'#3b82f6', malogrado:'#ef4444', reparado:'#f59e0b', en_transito:'#8b5cf6' };
+                const ic = { disponible:'ph-check-circle', instalado:'ph-arrow-circle-up', malogrado:'ph-x-circle', reparado:'ph-wrench', en_transito:'ph-truck' };
+                const color = c[status] || '#6366f1';
+                const icon = ic[status] || 'ph-package';
+                r.innerHTML = `<div class="sr-icon" style="background:${color}20;color:${color};"><i class="ph ${icon}"></i></div><div class="sr-info"><h4>${esc(d.sku_code)} — ${esc(d.product_name)}</h4><p>Categoría: ${esc(d.category_name||'Sin categoría')} · <span class="status-badge status-${esc(status)}">${esc(status).toUpperCase()}</span></p></div>`;
                 r.style.display = 'none';
                 openSkuDetailModal(d);
             } else {
                 r.innerHTML = `<div class="sr-icon" style="background:#fef2f2;color:#ef4444;"><i class="ph ph-x-circle"></i></div><div class="sr-info"><h4>No encontrado</h4><p>El código "${esc(code)}" no existe.</p></div>`;
                 r.style.display = 'flex';
             }
-        } catch (e) { r.style.display = 'none'; }
+        } catch (e) { 
+            console.error(e);
+            r.innerHTML = `<div style="color:red; padding:10px; font-size:12px;">Error: ${e.message}</div>`;
+            r.style.display = 'flex';
+        }
     }
 
 
     // ── Products ──
+    let prodCurrentPage = 1;
+    window.selectedProducts = new Set();
+    
+    function updateProdActionBar() {
+        let bar = document.getElementById('prodActiveActions');
+        let count = document.getElementById('prodSelectedCount');
+        let checkAll = document.getElementById('prodCheckAll');
+        if (window.selectedProducts.size > 0) {
+            if(bar) bar.style.display = 'flex';
+            if(count) count.textContent = window.selectedProducts.size;
+        } else {
+            if(bar) bar.style.display = 'none';
+            if(count) count.textContent = '0';
+            if(checkAll) checkAll.checked = false;
+        }
+    }
+
+    window.toggleProductSelection = function(cb, id) {
+        if (cb.checked) {
+            window.selectedProducts.add(id);
+            cb.closest('tr').classList.add('row-selected');
+        } else {
+            window.selectedProducts.delete(id);
+            cb.closest('tr').classList.remove('row-selected');
+        }
+        updateProdActionBar();
+    };
+
+    window.toggleAllProducts = function(cb) {
+        document.querySelectorAll('.prod-row-check').forEach(c => {
+            const tr = c.closest('tr');
+            if (tr && tr.style.display !== 'none') {
+                c.checked = cb.checked;
+                const pid = parseInt(c.value);
+                if (cb.checked) {
+                    window.selectedProducts.add(pid);
+                    tr.classList.add('row-selected');
+                } else {
+                    window.selectedProducts.delete(pid);
+                    tr.classList.remove('row-selected');
+                }
+            }
+        });
+        updateProdActionBar();
+    };
+
+    window.bulkDeleteProducts = async function() {
+        if (window.selectedProducts.size === 0) return;
+        const ok = await invConfirm('¿Eliminar productos?', 'Se eliminarán los productos seleccionados y sus SKUs asociados. Esta acción no se puede deshacer.');
+        if (!ok) return;
+        const ids = Array.from(window.selectedProducts);
+        for (let id of ids) {
+             const f = new FormData(); f.append('action', 'delete_product'); f.append('id', id);
+             await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: f });
+        }
+        window.selectedProducts.clear();
+        updateProdActionBar();
+        if (window.showToast) window.showToast('Productos eliminados', 'success');
+        loadProducts(); loadMetrics();
+    };
+
+    window.exportSelectedProductsToExcel = function() {
+        if (!window.selectedProducts || window.selectedProducts.size === 0) {
+            if (window.showToast) window.showToast('No hay productos seleccionados', 'error');
+            return;
+        }
+        const colsToExport = ['Producto', 'Categoría', 'Total', 'Disponibles', 'Instalados', 'Malogrados'];
+        let csvContent = "\uFEFF";
+        csvContent += colsToExport.map(c => `"${c.replace(/"/g, '""')}"`).join(',') + '\n';
+        const exportData = (window.lastProductsData || []).filter(p => window.selectedProducts.has(p.id));
+        exportData.forEach(p => {
+            const row = [p.name || '', p.category_name || 'Sin cat.', p.total_quantity || 0, p.qty_disponible || 0, p.qty_instalado || 0, p.qty_malogrado || 0];
+            csvContent += row.map(val => `"${val.toString().replace(/"/g, '""')}"`).join(',') + '\n';
+        });
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `productos_seleccion_${new Date().getTime()}.csv`;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        if (window.showToast) window.showToast('Descarga completada.', 'success');
+    };
+
+    window.clearProductSelection = function() {
+        if (!window.selectedProducts) window.selectedProducts = new Set();
+        window.selectedProducts.clear();
+        const checkboxes = document.querySelectorAll('.prod-row-check');
+        checkboxes.forEach(c => {
+            c.checked = false;
+            const tr = c.closest('tr');
+            if (tr) tr.classList.remove('row-selected');
+        });
+        updateProdActionBar();
+    };
+
+    function renderProductsGrid() {
+        const grid = document.getElementById('productsGrid');
+        if (!grid || !window.lastProductsData) return;
+        
+        const perPageSelect = document.getElementById('prodPerPage');
+        const perPage = perPageSelect ? parseInt(perPageSelect.value) || 25 : 25;
+        
+        const q = (document.getElementById('searchProducts')?.value || '').toLowerCase();
+        const cat = document.getElementById('filterProductCategory')?.value || '';
+        const stat = document.getElementById('filterProductStatus')?.value || '';
+        
+        const filtered = window.lastProductsData.filter(p => {
+             const matchName = ((p.name||'') + ' ' + (p.description||'') + ' ' + (p.searchable_children||'')).toLowerCase().includes(q);
+             const matchCat = cat === '' || p.category_id == cat;
+             let matchStat = true;
+             if (stat === 'con_stock') matchStat = parseInt(p.qty_disponible||0) > 0;
+             else if (stat === 'sin_stock') matchStat = parseInt(p.qty_disponible||0) === 0;
+             else if (stat === 'stock_critico') matchStat = parseInt(p.qty_disponible||0) <= parseInt(p.stock_critico||0);
+             else if (stat === 'con_malogrados') matchStat = parseInt(p.qty_malogrado||0) > 0;
+             return matchName && matchCat && matchStat;
+        });
+        
+        const totalRows = filtered.length;
+        const totalPages = Math.ceil(totalRows / perPage) || 1;
+        if (prodCurrentPage > totalPages) prodCurrentPage = totalPages;
+        if (prodCurrentPage < 1) prodCurrentPage = 1;
+        
+        const start = (prodCurrentPage - 1) * perPage;
+        const pageData = filtered.slice(start, start + perPage);
+        
+        const pageInfo = document.getElementById('prodPageInfo');
+        if (pageInfo) pageInfo.textContent = totalRows > 0 ? `Mostrando ${start + 1} - ${Math.min(start + perPage, totalRows)} de ${totalRows}` : 'Mostrando 0 - 0 de 0';
+        
+        const btnPrev = document.getElementById('btnProdPrev');
+        const btnNext = document.getElementById('btnProdNext');
+        if (btnPrev) btnPrev.disabled = prodCurrentPage === 1;
+        if (btnNext) btnNext.disabled = prodCurrentPage === totalPages;
+        
+        if (pageData.length === 0) {
+             grid.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-muted);">No hay productos que coincidan con los filtros.</td></tr>';
+             return;
+        }
+
+        grid.innerHTML = pageData.map((p, i) => {
+            const isChecked = window.selectedProducts.has(p.id) ? 'checked' : '';
+            const rowClass = isChecked ? 'product-row row-selected' : 'product-row';
+            return `<tr class="${rowClass}" data-product-id="${p.id}" data-product-type="${p.product_type||'normal'}" data-name="${(p.name||'').toLowerCase()} ${(p.description||'').toLowerCase()} ${(p.searchable_children||'').toLowerCase()}" data-cat="${p.category_id||''}" data-disp="${p.qty_disponible||0}" data-crit="${p.stock_critico||0}" data-malo="${p.qty_malogrado||0}" data-total="${p.total_quantity||0}" data-inst="${p.qty_instalado||0}" style="animation: fadeIn 0.3s ease forwards; animation-delay: ${i*0.05}s; opacity: 0;">
+                <td style="text-align:center;width:40px;vertical-align:middle;">
+                    <input type="checkbox" class="prod-row-check form-check-input" value="${p.id}" ${isChecked} onchange="toggleProductSelection(this, ${p.id})">
+                </td>
+                <td data-label="Producto">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        ${p.product_type === 'agrupado' ? `<button class="accordion-toggle-btn" onclick="toggleProductChildren(${p.id}, this)" title="Expandir variantes"><i class="ph ph-caret-right"></i></button>` : ''}
+                        ${p.display_image 
+                            ? `<img src="${BASE}/${p.display_image}" class="lb-thumb" data-lb-src="${BASE}/${p.display_image}" data-lb-caption="${esc(p.name)}" onclick="event.stopPropagation(); openImgViewer('${BASE}/${p.display_image}', '${esc(p.name).replace(/'/g, "\\'")}');" style="width:36px;height:36px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid var(--border-color);cursor:zoom-in;">` 
+                            : (p.requires_photos == 1 
+                                ? '<div style="width:36px;height:36px;border-radius:8px;background:rgba(139,92,246,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="ph ph-camera" style="color:#8b5cf6;font-size:1rem;"></i></div>'
+                                : '<div style="width:36px;height:36px;border-radius:8px;background:var(--bg-color);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid var(--border-color);"><i class="ph ph-package" style="color:var(--text-muted);font-size:1rem;opacity:0.5;"></i></div>'
+                            )
+                        }
+                        <div>
+                            <div style="font-weight:700;color:var(--text-color);">${esc(p.name)}</div>
+                            ${p.is_bulk == 1 && p.product_type !== 'agrupado' ? '<span style="font-size:0.75rem;color:var(--text-muted);"><i class="ph ph-cube"></i> Granel</span>' : ''}
+                            ${p.product_type === 'agrupado' ? '<span class="agrupado-badge"><i class="ph ph-stack"></i> Agrupado <small>(' + (p.children_count||0) + ')</small></span>' : ''}
+                        </div>
+                    </div>
+                </td>
+                <td data-label="Categoría"><span class="cat-badge">${esc(p.category_name||'Sin cat.')}</span></td>
+                <td data-label="Total">
+                    <span style="font-weight:700;color:#6366f1;">${p.total_quantity}</span>
+                    ${p.is_bulk == 1 && p.product_type !== 'agrupado' ? `<span style="font-size:0.8rem;color:var(--text-muted);">${esc(p.unit_type||'Und')}</span>` : ''}
+                </td>
+                <td data-label="Disponibles"><span style="font-weight:700;color:#10b981;">${p.qty_disponible}</span></td>
+                <td data-label="Instalados"><span style="font-weight:700;color:#3b82f6;">${p.qty_instalado}</span></td>
+                <td data-label="Malogrados">${p.is_bulk == 1 ? '<span style="font-weight:700;color:#ef4444;">0</span>' : `<span style="font-weight:700;color:#ef4444;">${p.qty_malogrado}</span>`}</td>
+                <td data-label="Acciones">
+                    <div style="display:flex; gap:6px;">
+                        ${p.product_type === 'agrupado' ? `<button type="button" class="btn btn-secondary btn-sm" onclick="openAssignGrouped(${p.id})" title="Asignar variantes"><i class="ph ph-users-three"></i></button>` : ''}
+                        ${p.is_bulk == 1 && p.product_type !== 'agrupado' ? '' : (p.product_type !== 'agrupado' ? `<button class="btn btn-secondary btn-sm" onclick="viewProductSkus(${p.id})" title="Ver SKUs"><i class="ph ph-list-bullets"></i></button>` : '')}
+                        <button class="btn btn-secondary btn-sm" onclick="openEditProduct(${p.id}, this)" title="Editar"><i class="ph ph-pencil-simple"></i></button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})" title="Eliminar"><i class="ph ph-trash"></i></button>
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
     async function loadProducts() {
         try {
             const fd = new FormData(); fd.append('action', 'list_products');
             const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
-            const grid = document.getElementById('productsGrid');
             const wrap = document.getElementById('productsTableWrap');
             const empty = document.getElementById('productsEmpty');
+            const pag = document.getElementById('productsPagination');
             if (res.success && res.data.length > 0) {
+                window.lastProductsData = res.data;
                 wrap.style.display = 'block'; empty.style.display = 'none';
-                grid.innerHTML = res.data.map((p, i) => `
-                    <tr class="product-row" data-product-id="${p.id}" data-product-type="${p.product_type||'normal'}" data-name="${(p.name||'').toLowerCase()} ${(p.description||'').toLowerCase()} ${(p.searchable_children||'').toLowerCase()}" data-cat="${p.category_id||''}" data-disp="${p.qty_disponible||0}" data-crit="${p.stock_critico||0}" data-malo="${p.qty_malogrado||0}" data-total="${p.total_quantity||0}" data-inst="${p.qty_instalado||0}" style="animation: fadeIn 0.3s ease forwards; animation-delay: ${i*0.05}s; opacity: 0;">
-                        <td data-label="Producto">
-                            <div style="display:flex; align-items:center; gap:10px;">
-                                ${p.product_type === 'agrupado' ? `<button class="accordion-toggle-btn" onclick="toggleProductChildren(${p.id}, this)" title="Expandir variantes"><i class="ph ph-caret-right"></i></button>` : ''}
-                                ${p.display_image 
-                                    ? `<img src="${BASE}/${p.display_image}" class="lb-thumb" data-lb-src="${BASE}/${p.display_image}" data-lb-caption="${esc(p.name)}" style="width:36px;height:36px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid var(--border-color);cursor:zoom-in;">` 
-                                    : (p.requires_photos == 1 
-                                        ? '<div style="width:36px;height:36px;border-radius:8px;background:rgba(139,92,246,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="ph ph-camera" style="color:#8b5cf6;font-size:1rem;"></i></div>'
-                                        : '<div style="width:36px;height:36px;border-radius:8px;background:var(--bg-color);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid var(--border-color);"><i class="ph ph-package" style="color:var(--text-muted);font-size:1rem;opacity:0.5;"></i></div>'
-                                    )
-                                }
-                                <div>
-                                    <div style="font-weight:700;color:var(--text-color);">${esc(p.name)}</div>
-                                    ${p.is_bulk == 1 && p.product_type !== 'agrupado' ? '<span style="font-size:0.75rem;color:var(--text-muted);"><i class="ph ph-cube"></i> Granel</span>' : ''}
-                                    ${p.product_type === 'agrupado' ? '<span class="agrupado-badge"><i class="ph ph-stack"></i> Agrupado <small>(' + (p.children_count||0) + ')</small></span>' : ''}
-                                </div>
-                            </div>
-                        </td>
-                        <td data-label="Categoría"><span class="cat-badge">${esc(p.category_name||'Sin cat.')}</span></td>
-                        <td data-label="Total">
-                            <span style="font-weight:700;color:#6366f1;">${p.total_quantity}</span>
-                            ${p.is_bulk == 1 && p.product_type !== 'agrupado' ? `<span style="font-size:0.8rem;color:var(--text-muted);">${esc(p.unit_type||'Und')}</span>` : ''}
-                        </td>
-                        <td data-label="Disponibles"><span style="font-weight:700;color:#10b981;">${p.qty_disponible}</span></td>
-                        <td data-label="Instalados"><span style="font-weight:700;color:#3b82f6;">${p.qty_instalado}</span></td>
-                        <td data-label="Malogrados">${p.is_bulk == 1 ? '<span style="font-weight:700;color:#ef4444;">0</span>' : `<span style="font-weight:700;color:#ef4444;">${p.qty_malogrado}</span>`}</td>
-                        <td data-label="Acciones">
-                            <div style="display:flex; gap:6px;">
-                                ${p.product_type === 'agrupado' ? `<button type="button" class="btn btn-secondary btn-sm" onclick="openAssignGrouped(${p.id})" title="Asignar variantes"><i class="ph ph-users-three"></i></button>` : ''}
-                                ${p.is_bulk == 1 && p.product_type !== 'agrupado' ? '' : (p.product_type !== 'agrupado' ? `<button class="btn btn-secondary btn-sm" onclick="viewProductSkus(${p.id})" title="Ver SKUs"><i class="ph ph-list-bullets"></i></button>` : '')}
-                                <button class="btn btn-secondary btn-sm" onclick="openEditProduct(${p.id}, this)" title="Editar"><i class="ph ph-pencil-simple"></i></button>
-                                <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})" title="Eliminar"><i class="ph ph-trash"></i></button>
-                            </div>
-                        </td>
-                    </tr>`).join('');
-            } else { wrap.style.display = 'none'; empty.style.display = 'block'; }
+                if(pag) pag.style.display = 'flex';
+                renderProductsGrid();
+            } else { 
+                wrap.style.display = 'none'; empty.style.display = 'block'; 
+                if(pag) pag.style.display = 'none'; 
+            }
         } catch (e) { 
             const wrap = document.getElementById('productsTableWrap');
             if (wrap) {
@@ -259,35 +440,43 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         const applyProductFilters = () => {
-            const q = (document.getElementById('searchProducts')?.value || '').toLowerCase();
-            const cat = document.getElementById('filterProductCategory')?.value || '';
-            const stat = document.getElementById('filterProductStatus')?.value || '';
-            
-            document.querySelectorAll('.product-row').forEach(row => {
-                const matchName = row.dataset.name.includes(q);
-                const matchCat = cat === '' || row.dataset.cat == cat;
-                let matchStat = true;
-                
-                if (stat === 'con_stock') matchStat = parseInt(row.dataset.disp) > 0;
-                else if (stat === 'sin_stock') matchStat = parseInt(row.dataset.disp) === 0;
-                else if (stat === 'stock_critico') matchStat = parseInt(row.dataset.disp) <= parseInt(row.dataset.crit);
-                else if (stat === 'con_malogrados') matchStat = parseInt(row.dataset.malo) > 0;
-
-                row.style.display = (matchName && matchCat && matchStat) ? '' : 'none';
-            });
+            prodCurrentPage = 1;
+            renderProductsGrid();
         };
 
         const si = document.getElementById('searchProducts');
         const sc = document.getElementById('filterProductCategory');
         const ss = document.getElementById('filterProductStatus');
+        const pp = document.getElementById('prodPerPage');
+        const btnPrev = document.getElementById('btnProdPrev');
+        const btnNext = document.getElementById('btnProdNext');
         
-        if (si) si.addEventListener('input', applyProductFilters);
+        if (si) {
+            let skuSearchTimeout;
+            si.addEventListener('input', () => {
+                applyProductFilters();
+                const searchSkuInput = document.getElementById('searchSku');
+                if (searchSkuInput) {
+                    searchSkuInput.value = si.value;
+                    clearTimeout(skuSearchTimeout);
+                    skuSearchTimeout = setTimeout(() => {
+                        const tabStock = document.getElementById('tab-stock');
+                        if (tabStock && tabStock.classList.contains('active')) {
+                            if (typeof loadAllSkus === 'function') loadAllSkus();
+                        }
+                    }, 400);
+                }
+            });
+        }
         if (sc) sc.addEventListener('change', applyProductFilters);
         if (ss) ss.addEventListener('change', applyProductFilters);
+        if (pp) pp.addEventListener('change', () => { prodCurrentPage = 1; renderProductsGrid(); });
+        if (btnPrev) btnPrev.addEventListener('click', () => { if (prodCurrentPage > 1) { prodCurrentPage--; renderProductsGrid(); } });
+        if (btnNext) btnNext.addEventListener('click', () => { prodCurrentPage++; renderProductsGrid(); });
     });
 
     window.viewProductSkus = async function(id) {
-        document.querySelectorAll('.inv-tabs-bar .inv-tab[data-tab]').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.inv-toolbar-tabs .inv-tab[data-tab]').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.inv-tab-pane').forEach(p => p.classList.remove('active'));
         document.querySelector('[data-tab="stock"]').classList.add('active');
         document.getElementById('tab-stock').classList.add('active');
@@ -1681,12 +1870,17 @@
     }
 
     function renderSkuTable(data) {
-        // Determine custom keys
-        let customKeys = [];
-        if (data[0]) {
-            const cd = data[0].custom_data ? (typeof data[0].custom_data === 'string' ? JSON.parse(data[0].custom_data) : data[0].custom_data) : {};
-            customKeys = Object.keys(cd);
-        }
+        // Determine custom keys from ALL records (not just data[0])
+        let customKeysSet = new Set();
+        data.forEach(s => {
+            try {
+                const cd = s.custom_data ? (typeof s.custom_data === 'string' ? JSON.parse(s.custom_data) : s.custom_data) : {};
+                if (cd && typeof cd === 'object' && !Array.isArray(cd)) {
+                    Object.keys(cd).forEach(k => customKeysSet.add(k));
+                }
+            } catch(e) {}
+        });
+        let customKeys = [...customKeysSet];
         if (!columnOrder) columnOrder = loadColumnOrder(customKeys);
         // Ensure new custom keys are included
         customKeys.forEach(k => { if (!columnOrder.includes(k)) columnOrder.push(k); });
@@ -1733,7 +1927,7 @@
             customKeys.forEach(key => {
                 const val = esc(cd[key]) || '<em style="color:var(--text-muted)">\u2014</em>';
                 if (s.is_bulk) {
-                    cellMap[key] = `<td><span style="color:var(--text-muted);">\u2014</span></td>`;
+                    cellMap[key] = `<td><div class="inv-cell-scannable"><span class="inv-editable" onclick="editBulkCustom(${s.product_id}, '${esc(key)}', this)" title="Clic para editar">${val}</span><button class="btn-scan-cell" onclick="scanForBulkField(${s.product_id}, '${esc(key)}', this)" title="Escanear"><i class="ph ph-qr-code"></i></button></div></td>`;
                 } else {
                     cellMap[key] = `<td><div class="inv-cell-scannable"><span class="inv-editable" onclick="editSkuCustom(${s.id}, '${esc(key)}', this)" title="Clic para editar">${val}</span><button class="btn-scan-cell" onclick="scanForCustomField(${s.id}, '${esc(key)}', this)" title="Escanear"><i class="ph ph-qr-code"></i></button></div></td>`;
                 }
@@ -1834,43 +2028,119 @@
         if (res.success) { if (window.showToast) window.showToast('Estado actualizado', 'success'); loadAllSkus(); loadMetrics(); loadProducts(); }
     };
 
-    // ── Inline Edit SKU Code ──
+    // ── Inline Edit SKU Code (floating popover with ✓/✗ buttons) ──
     window.editSkuCode = function(skuId, el) {
+        // Remove any existing popover first
+        document.querySelectorAll('.inline-edit-popover').forEach(p => p.remove());
+        document.querySelectorAll('.inv-cell-editing').forEach(c => c.classList.remove('inv-cell-editing'));
+
         const current = el.textContent.trim();
+        const td = el.closest('td');
+
+        td.classList.add('inv-cell-editing');
+
+        // Create floating popover on body (to escape table overflow)
+        const popover = document.createElement('div');
+        popover.className = 'inline-edit-popover';
+        popover.style.position = 'fixed';
+
         const input = document.createElement('input');
-        input.className = 'inv-editable-input';
+        input.type = 'text';
         input.value = current;
-        el.innerHTML = '';
-        el.appendChild(input);
-        input.focus(); input.select();
+        input.placeholder = 'Código SKU...';
+
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'inline-edit-btn btn-save';
+        saveBtn.innerHTML = '<i class="ph ph-check"></i>';
+        saveBtn.title = 'Guardar';
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'inline-edit-btn btn-delete';
+        cancelBtn.innerHTML = '<i class="ph ph-x"></i>';
+        cancelBtn.title = 'Cancelar';
+
+        popover.appendChild(input);
+        popover.appendChild(saveBtn);
+        popover.appendChild(cancelBtn);
+        document.body.appendChild(popover);
+
+        // Position relative to cell
+        const positionPopover = () => {
+            const rect = td.getBoundingClientRect();
+            popover.style.left = (rect.left + rect.width / 2) + 'px';
+            popover.style.top = (rect.top + rect.height / 2) + 'px';
+        };
+        positionPopover();
+
+        input.focus();
+        input.select();
+
+        const cleanup = () => {
+            td.classList.remove('inv-cell-editing');
+            popover.remove();
+            document.removeEventListener('mousedown', outsideHandler);
+        };
+
         const save = async () => {
             const val = input.value.trim();
+            cleanup();
             if (!val || val === current) { el.innerHTML = `<code style="font-weight:700;">${esc(current)}</code>`; return; }
+            el.innerHTML = '<i class="ph ph-spinner ph-spin" style="color:var(--primary-color);"></i>';
             const fd = new FormData(); fd.append('action', 'update_sku_code'); fd.append('sku_id', skuId); fd.append('sku_code', val);
             const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
             if (res.success) { if (window.showToast) window.showToast('SKU actualizado', 'success'); loadAllSkus(); }
             else { if (window.showToast) window.showToast(res.message, 'error'); el.innerHTML = `<code style="font-weight:700;">${esc(current)}</code>`; }
         };
-        input.addEventListener('blur', save);
-        input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = current; input.blur(); } });
+
+        const cancel = () => {
+            cleanup();
+            el.innerHTML = `<code style="font-weight:700;">${esc(current)}</code>`;
+        };
+
+        saveBtn.onclick = (e) => { e.stopPropagation(); save(); };
+        cancelBtn.onclick = (e) => { e.stopPropagation(); cancel(); };
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); save(); }
+            if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+        });
+
+        const outsideHandler = (e) => {
+            if (!popover.contains(e.target) && e.target !== el) {
+                cancel();
+            }
+        };
+        setTimeout(() => document.addEventListener('mousedown', outsideHandler), 100);
     };
 
-    // ── Inline Edit SKU Custom Data (with scan button) ──
+    // ── Inline Edit SKU Custom Data (floating popover with ✓/✗ buttons) ──
     window.editSkuCustom = function(skuId, key, el) {
+        // Remove any existing popover first
+        document.querySelectorAll('.inline-edit-popover').forEach(p => p.remove());
+        document.querySelectorAll('.inv-cell-editing').forEach(c => c.classList.remove('inv-cell-editing'));
+
         const current = el.textContent.trim() === '—' ? '' : el.textContent.trim();
-        const wrapper = document.createElement('div');
-        wrapper.style.cssText = 'display:flex;gap:4px;align-items:center;';
+        const td = el.closest('td');
+
+        // Add editing state to the cell
+        td.classList.add('inv-cell-editing');
+
+        // Create floating popover on body (to escape table overflow)
+        const popover = document.createElement('div');
+        popover.className = 'inline-edit-popover';
+        popover.style.position = 'fixed';
+
         const input = document.createElement('input');
-        input.className = 'inv-editable-input';
-        input.style.flex = '1';
+        input.type = 'text';
         input.value = current;
+        input.placeholder = key + '...';
+
+        // Scan button
         const scanBtn = document.createElement('button');
+        scanBtn.className = 'inline-edit-btn btn-scan';
         scanBtn.innerHTML = '<i class="ph ph-qr-code"></i>';
-        scanBtn.style.cssText = 'background:var(--primary-color,#6366f1);color:white;border:none;border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.9rem;flex-shrink:0;';
         scanBtn.title = 'Escanear código';
         scanBtn.onclick = (e) => {
             e.stopPropagation();
-            // Open scan picker and set callback to fill this input
             scanPickerCallback = (code) => {
                 input.value = code;
                 input.focus();
@@ -1885,13 +2155,47 @@
             spm1.classList.add('active');
             startScanPicker();
         };
-        el.innerHTML = '';
-        wrapper.appendChild(input);
-        wrapper.appendChild(scanBtn);
-        el.appendChild(wrapper);
+
+        // Save button (✓)
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'inline-edit-btn btn-save';
+        saveBtn.innerHTML = '<i class="ph ph-check"></i>';
+        saveBtn.title = 'Guardar';
+
+        // Cancel button (✗)
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'inline-edit-btn btn-delete';
+        cancelBtn.innerHTML = '<i class="ph ph-x"></i>';
+        cancelBtn.title = 'Cancelar';
+
+        popover.appendChild(input);
+        popover.appendChild(scanBtn);
+        popover.appendChild(saveBtn);
+        popover.appendChild(cancelBtn);
+        document.body.appendChild(popover);
+
+        // Position relative to cell
+        const positionPopover = () => {
+            const rect = td.getBoundingClientRect();
+            popover.style.left = (rect.left + rect.width / 2) + 'px';
+            popover.style.top = (rect.top + rect.height / 2) + 'px';
+        };
+        positionPopover();
+
         input.focus();
+        input.select();
+
+        const cleanup = () => {
+            td.classList.remove('inv-cell-editing');
+            popover.remove();
+            document.removeEventListener('mousedown', outsideHandler);
+        };
+
         const save = async () => {
             const val = input.value.trim();
+            cleanup();
+            // Show saving indicator
+            el.innerHTML = '<i class="ph ph-spinner ph-spin" style="color:var(--primary-color);"></i>';
             const row = el.closest('tr');
             const skuCode = row.querySelector('code')?.textContent || '';
             const fd1 = new FormData(); fd1.append('action', 'search_sku'); fd1.append('code', skuCode);
@@ -1901,16 +2205,36 @@
             cd[key] = val;
             const fd = new FormData(); fd.append('action', 'update_sku_custom'); fd.append('sku_id', skuId); fd.append('custom_data', JSON.stringify(cd));
             const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
-            if (res.success) { el.innerHTML = val ? esc(val) : '<em style=color:var(--text-muted)>—</em>'; }
-            else { el.innerHTML = current ? esc(current) : '<em style=color:var(--text-muted)>—</em>'; }
+            if (res.success) {
+                el.innerHTML = val ? esc(val) : '<em style=color:var(--text-muted)>—</em>';
+                if (window.showToast) window.showToast('Campo actualizado', 'success');
+            } else {
+                el.innerHTML = current ? esc(current) : '<em style=color:var(--text-muted)>—</em>';
+                if (window.showToast) window.showToast('Error al guardar', 'error');
+            }
         };
-        input.addEventListener('blur', (e) => {
-            // Don't trigger save if user clicked the scan button
-            if (e.relatedTarget === scanBtn) return;
-            save();
+
+        const cancel = () => {
+            cleanup();
+            el.innerHTML = current ? esc(current) : '<em style=color:var(--text-muted)>—</em>';
+        };
+
+        saveBtn.onclick = (e) => { e.stopPropagation(); save(); };
+        cancelBtn.onclick = (e) => { e.stopPropagation(); cancel(); };
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); save(); }
+            if (e.key === 'Escape') { e.preventDefault(); cancel(); }
         });
-        input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.target.removeEventListener('blur', save); save(); } if (e.key === 'Escape') { input.value = current; save(); } });
+
+        // Close on click outside
+        const outsideHandler = (e) => {
+            if (!popover.contains(e.target) && e.target !== el) {
+                cancel();
+            }
+        };
+        setTimeout(() => document.addEventListener('mousedown', outsideHandler), 100);
     };
+
 
     // ── Scan button in table cell for custom columns ──
     window.scanForCustomField = function(skuId, key, btnEl) {
@@ -1939,6 +2263,166 @@
         document.getElementById('scanPickerList').innerHTML = '';
         document.getElementById('scanPickerManual').value = '';
         document.getElementById('scanPickerStatus').innerHTML = '<i class="ph ph-camera"></i> Apunta la c\u00e1mara al c\u00f3digo...';
+        const spm2 = document.getElementById('scanPickerModal');
+        if (spm2.parentElement !== document.body) document.body.appendChild(spm2);
+        spm2.classList.add('active');
+        startScanPicker();
+    };
+
+    // ── Inline Edit BULK Product Custom Data (floating popover with ✓/✗ buttons) ──
+    window.editBulkCustom = function(productId, key, el) {
+        // Remove any existing popover first
+        document.querySelectorAll('.inline-edit-popover').forEach(p => p.remove());
+        document.querySelectorAll('.inv-cell-editing').forEach(c => c.classList.remove('inv-cell-editing'));
+
+        const current = el.textContent.trim() === '—' ? '' : el.textContent.trim();
+        const td = el.closest('td');
+
+        td.classList.add('inv-cell-editing');
+
+        const popover = document.createElement('div');
+        popover.className = 'inline-edit-popover';
+        popover.style.position = 'fixed';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = current;
+        input.placeholder = key + '...';
+
+        const scanBtn = document.createElement('button');
+        scanBtn.className = 'inline-edit-btn btn-scan';
+        scanBtn.innerHTML = '<i class="ph ph-qr-code"></i>';
+        scanBtn.title = 'Escanear código';
+        scanBtn.onclick = (e) => {
+            e.stopPropagation();
+            scanPickerCallback = (code) => { input.value = code; input.focus(); };
+            scanPickerDetected = [];
+            document.getElementById('scanPickerResults').style.display = 'none';
+            document.getElementById('scanPickerList').innerHTML = '';
+            document.getElementById('scanPickerManual').value = '';
+            document.getElementById('scanPickerStatus').innerHTML = '<i class="ph ph-camera"></i> Apunta la cámara al código...';
+            const spm1 = document.getElementById('scanPickerModal');
+            if (spm1.parentElement !== document.body) document.body.appendChild(spm1);
+            spm1.classList.add('active');
+            startScanPicker();
+        };
+
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'inline-edit-btn btn-save';
+        saveBtn.innerHTML = '<i class="ph ph-check"></i>';
+        saveBtn.title = 'Guardar';
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'inline-edit-btn btn-delete';
+        cancelBtn.innerHTML = '<i class="ph ph-x"></i>';
+        cancelBtn.title = 'Cancelar';
+
+        popover.appendChild(input);
+        popover.appendChild(scanBtn);
+        popover.appendChild(saveBtn);
+        popover.appendChild(cancelBtn);
+        document.body.appendChild(popover);
+
+        const positionPopover = () => {
+            const rect = td.getBoundingClientRect();
+            popover.style.left = (rect.left + rect.width / 2) + 'px';
+            popover.style.top = (rect.top + rect.height / 2) + 'px';
+        };
+        positionPopover();
+
+        input.focus();
+        input.select();
+
+        const cleanup = () => {
+            td.classList.remove('inv-cell-editing');
+            popover.remove();
+            document.removeEventListener('mousedown', outsideHandler);
+        };
+
+        const save = async () => {
+            const val = input.value.trim();
+            cleanup();
+            el.innerHTML = '<i class="ph ph-spinner ph-spin" style="color:var(--primary-color);"></i>';
+            // Fetch current bulk_custom_data from the row data
+            const row = el.closest('tr');
+            // Find the matching item in lastSkuData
+            let cd = {};
+            if (lastSkuData) {
+                const bulkItem = lastSkuData.find(s => s.is_bulk && s.product_id == productId);
+                if (bulkItem && bulkItem.custom_data) {
+                    cd = typeof bulkItem.custom_data === 'string' ? JSON.parse(bulkItem.custom_data) : bulkItem.custom_data;
+                    if (Array.isArray(cd)) cd = {};
+                }
+            }
+            cd[key] = val;
+            const fd = new FormData();
+            fd.append('action', 'update_bulk_custom');
+            fd.append('product_id', productId);
+            fd.append('custom_data', JSON.stringify(cd));
+            const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+            if (res.success) {
+                el.innerHTML = val ? esc(val) : '<em style=color:var(--text-muted)>—</em>';
+                // Update the cached data
+                if (lastSkuData) {
+                    const bulkItem = lastSkuData.find(s => s.is_bulk && s.product_id == productId);
+                    if (bulkItem) bulkItem.custom_data = JSON.stringify(cd);
+                }
+                if (window.showToast) window.showToast('Campo actualizado', 'success');
+            } else {
+                el.innerHTML = current ? esc(current) : '<em style=color:var(--text-muted)>—</em>';
+                if (window.showToast) window.showToast('Error al guardar', 'error');
+            }
+        };
+
+        const cancel = () => {
+            cleanup();
+            el.innerHTML = current ? esc(current) : '<em style=color:var(--text-muted)>—</em>';
+        };
+
+        saveBtn.onclick = (e) => { e.stopPropagation(); save(); };
+        cancelBtn.onclick = (e) => { e.stopPropagation(); cancel(); };
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); save(); }
+            if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+        });
+
+        const outsideHandler = (e) => {
+            if (!popover.contains(e.target) && e.target !== el) {
+                cancel();
+            }
+        };
+        setTimeout(() => document.addEventListener('mousedown', outsideHandler), 100);
+    };
+
+    // ── Scan button for BULK product custom columns ──
+    window.scanForBulkField = function(productId, key, btnEl) {
+        scanPickerCallback = async (code) => {
+            let cd = {};
+            if (lastSkuData) {
+                const bulkItem = lastSkuData.find(s => s.is_bulk && s.product_id == productId);
+                if (bulkItem && bulkItem.custom_data) {
+                    cd = typeof bulkItem.custom_data === 'string' ? JSON.parse(bulkItem.custom_data) : bulkItem.custom_data;
+                    if (Array.isArray(cd)) cd = {};
+                }
+            }
+            cd[key] = code;
+            const fd = new FormData();
+            fd.append('action', 'update_bulk_custom');
+            fd.append('product_id', productId);
+            fd.append('custom_data', JSON.stringify(cd));
+            const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+            if (res.success) {
+                if (window.showToast) window.showToast('Campo actualizado con escaneo', 'success');
+                loadAllSkus();
+            } else {
+                if (window.showToast) window.showToast('Error al guardar', 'error');
+            }
+        };
+        scanPickerDetected = [];
+        document.getElementById('scanPickerResults').style.display = 'none';
+        document.getElementById('scanPickerList').innerHTML = '';
+        document.getElementById('scanPickerManual').value = '';
+        document.getElementById('scanPickerStatus').innerHTML = '<i class="ph ph-camera"></i> Apunta la cámara al código...';
         const spm2 = document.getElementById('scanPickerModal');
         if (spm2.parentElement !== document.body) document.body.appendChild(spm2);
         spm2.classList.add('active');
@@ -1995,7 +2479,8 @@
         // ── Imagen del producto en el header ──
         const headerImg = document.getElementById('skuDetailHeaderImg');
         const statusColors = { disponible:'#10b981', instalado:'#3b82f6', malogrado:'#ef4444', reparado:'#f59e0b', en_transito:'#8b5cf6' };
-        const col = statusColors[data.status] || '#6366f1';
+        const status = data.status || 'disponible';
+        const col = statusColors[status] || '#6366f1';
         const thumbSrc = data.sku_thumbnail || data.product_image; // prefer SKU-specific photo
         if (thumbSrc) {
             headerImg.innerHTML = `<img src="${BASE}/${thumbSrc}" class="lb-thumb" data-lb-src="${BASE}/${thumbSrc}" data-lb-caption="${esc(data.product_name)}" style="width:100%;height:100%;object-fit:cover;cursor:zoom-in;" alt="${esc(data.product_name)}">`;
@@ -2011,7 +2496,7 @@
         const eppCheck = document.getElementById('skuAssignIsEpp');
         if (eppCheck) eppCheck.checked = false;
 
-        document.getElementById('skuDetailStatus').value = data.status;
+        document.getElementById('skuDetailStatus').value = status;
 
         // Edit tab info
         const info = document.getElementById('skuEditInfo');
@@ -2020,7 +2505,7 @@
             <div class="sku-info-item"><div class="sii-label">SKU Code</div><div class="sii-value"><code>${esc(data.sku_code)}</code></div></div>
             <div class="sku-info-item"><div class="sii-label">Producto</div><div class="sii-value">${esc(data.product_name)}</div></div>
             <div class="sku-info-item"><div class="sii-label">Categoría</div><div class="sii-value">${esc(data.category_name || 'Sin categoría')}</div></div>
-            ${data.is_bulk == 1 ? '' : `<div class="sku-info-item"><div class="sii-label">Estado</div><div class="sii-value"><span class="status-badge status-${data.status}">${data.status.toUpperCase()}</span></div></div>`}
+            ${data.is_bulk == 1 ? '' : `<div class="sku-info-item"><div class="sii-label">Estado</div><div class="sii-value"><span class="status-badge status-${esc(status)}">${esc(status).toUpperCase()}</span></div></div>`}
             ${data.is_bulk == 1 ? '' : `<div class="sku-info-item"><div class="sii-label">Asignado a</div><div class="sii-value">${data.assigned_user_name ? esc(data.assigned_user_name) : '<span style="color:var(--text-muted)">Sin asignar</span>'}</div></div>`}
             ${bulkExtra}
             <div class="sku-info-item"><div class="sii-label">Descripción</div><div class="sii-value">${esc(data.product_description || '—')}</div></div>`;
@@ -2098,7 +2583,8 @@
     window.switchDetailTab = function(tab) {
         document.querySelectorAll('#skuDetailModal .inv-tab').forEach(t => t.classList.toggle('active', t.dataset.dtab === tab));
         document.querySelectorAll('.sdt-pane').forEach(p => p.classList.remove('active'));
-        document.getElementById('dtab-' + tab).classList.add('active');
+        const targetPane = document.getElementById('dtab-' + tab);
+        if (targetPane) targetPane.classList.add('active');
     };
 
     // ── Detail: Update Status ──
@@ -2915,6 +3401,162 @@
 
         return { open: open, close: closePopover, clearCol: clearCol, clearAll: clearAll, applyFilters: applyFilters };
     })();
+
+    // ── History Modal Logic ──
+    window.openHistoryModal = function() {
+        console.log("-> openHistoryModal called");
+        const hm = document.getElementById('historyModal');
+        if (!hm) {
+            console.error("-> ERROR: historyModal element not found!");
+            if (window.showToast) window.showToast('Error: Modal de historial no encontrado', 'error');
+            return;
+        }
+        console.log("-> historyModal found, current parent:", hm.parentElement.tagName);
+        if (hm.parentElement !== document.body) {
+            console.log("-> Moving historyModal to document.body");
+            document.body.appendChild(hm);
+        }
+        hm.classList.add('active');
+        console.log("-> Added 'active' class to historyModal");
+        
+        try {
+            populateHistoryFilters();
+            if (!window.historyLoaded) {
+                console.log("-> Loading history data for the first time");
+                loadAssignmentHistory();
+                loadStockLog();
+                window.historyLoaded = true;
+            }
+        } catch (e) {
+            console.error("-> Error initializing history:", e);
+        }
+    };
+
+    window.switchHistoryTab = function(tab) {
+        document.querySelectorAll('.inv-history-tab').forEach(t => t.classList.toggle('active', t.dataset.htab === tab));
+        document.querySelectorAll('.inv-history-pane').forEach(p => p.classList.remove('active'));
+        document.getElementById('htab-' + tab).classList.add('active');
+    };
+
+    async function populateHistoryFilters() {
+        // Populate histFilterUser
+        const fdUser = new FormData(); fdUser.append('action', 'list_users');
+        const resUser = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fdUser }).then(r => r.json());
+        if (resUser.success) {
+            const sel = document.getElementById('histFilterUser');
+            sel.innerHTML = '<option value="">Todos</option>';
+            resUser.data.forEach(u => sel.innerHTML += `<option value="${u.id}">${esc(u.name)}</option>`);
+        }
+
+        // Populate histStockProduct
+        if (window.lastProductsData) {
+            const selProd = document.getElementById('histStockProduct');
+            selProd.innerHTML = '<option value="">Todos</option>';
+            window.lastProductsData.forEach(p => {
+                selProd.innerHTML += `<option value="${p.id}">${esc(p.name)}</option>`;
+            });
+        }
+    }
+
+    window.loadAssignmentHistory = async function() {
+        const sku = document.getElementById('histFilterSku').value;
+        const user = document.getElementById('histFilterUser').value;
+        const date = document.getElementById('histFilterDateFrom').value;
+        
+        const fd = new FormData();
+        fd.append('action', 'get_assignment_log');
+        if (sku) fd.append('sku', sku);
+        if (user) fd.append('user_id', user);
+        if (date) fd.append('date_from', date);
+
+        const body = document.getElementById('histAssignBody');
+        body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;">Cargando...</td></tr>';
+        
+        try {
+            const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+            if (res.success && res.data.length > 0) {
+                let html = '';
+                res.data.forEach(d => {
+                    const isUnassign = d.action === 'unassign';
+                    html += `<tr>
+                        <td>${esc(d.created_at)}</td>
+                        <td><code>${esc(d.sku_code || '')}</code></td>
+                        <td>${esc(d.product_name || '')}</td>
+                        <td>${esc(d.assigned_to_name || '')}</td>
+                        <td>
+                            <span class="status-badge" style="background:${isUnassign?'#fef2f2':'#ecfdf5'}; color:${isUnassign?'#ef4444':'#10b981'};">
+                                ${isUnassign ? 'Desasignado' : 'Asignado'} (${d.quantity}${d.is_epp == 1 ? ' EPP' : ''})
+                            </span>
+                        </td>
+                        <td>${esc(d.assigned_by_name || 'Sistema')}</td>
+                    </tr>`;
+                });
+                body.innerHTML = html;
+            } else {
+                body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted);">No se encontraron registros.</td></tr>';
+            }
+        } catch (e) {
+            body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:red;">Error de conexión.</td></tr>';
+        }
+    };
+
+    window.loadStockLog = async function() {
+        const product = document.getElementById('histStockProduct').value;
+        const date = document.getElementById('histStockDateFrom').value;
+        
+        const fd = new FormData();
+        fd.append('action', 'get_stock_log');
+        if (product) fd.append('product_id', product);
+        if (date) fd.append('date_from', date);
+
+        const body = document.getElementById('histStockBody');
+        body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;">Cargando...</td></tr>';
+        
+        try {
+            const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+            if (res.success && res.data.length > 0) {
+                let html = '';
+                res.data.forEach(d => {
+                    let skus = [];
+                    try { skus = JSON.parse(d.sku_codes || '[]'); } catch(e){}
+                    html += `<tr>
+                        <td>${esc(d.created_at)}</td>
+                        <td>${esc(d.product_name || '')}</td>
+                        <td><span style="font-weight:600;color:var(--primary-color);">${d.quantity > 0 ? '+'+d.quantity : d.quantity}</span></td>
+                        <td><div style="max-height:60px;overflow-y:auto;font-size:0.8rem;">${skus.map(s=>`<code>${esc(s)}</code>`).join(', ') || '—'}</div></td>
+                        <td>${esc(d.user_name || '')}</td>
+                        <td>${esc(d.notes || '—')}</td>
+                        <td>
+                            <button class="btn btn-danger btn-sm" onclick="deleteStockLog(${d.id})" title="Eliminar"><i class="ph ph-trash"></i></button>
+                        </td>
+                    </tr>`;
+                });
+                body.innerHTML = html;
+            } else {
+                body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted);">No se encontraron registros.</td></tr>';
+            }
+        } catch (e) {
+            body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:red;">Error de conexión.</td></tr>';
+        }
+    };
+
+    window.deleteStockLog = async function(id) {
+        const ok = await invConfirm('¿Eliminar registro?', 'Se restará el stock y se eliminarán los SKUs generados (si no han sido usados).');
+        if (!ok) return;
+        const fd = new FormData();
+        fd.append('action', 'delete_stock_log');
+        fd.append('log_id', id);
+        const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+        if (res.success) {
+            if (window.showToast) window.showToast('Registro eliminado', 'success');
+            loadStockLog();
+            if (window.loadProducts) loadProducts();
+            if (window.loadMetrics) loadMetrics();
+        } else {
+            if (window.showToast) window.showToast(res.message, 'error');
+        }
+    };
+
 })();
 
 // ══════════════════════════════════════════════════════════════

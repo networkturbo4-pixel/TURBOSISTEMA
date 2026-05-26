@@ -179,6 +179,8 @@ window.addEventListener('error', function(e) {
     <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:var(--surface-color); border-bottom: 1px solid var(--border-color);">
         <div style="display:flex; gap:10px; align-items:center;">
             <div id="prodActiveActions" style="display:none; gap:6px;">
+                <button class="btn btn-secondary btn-sm" onclick="exportSelectedProductsToExcel()"><i class="ph ph-file-csv"></i> Descargar Excel</button>
+                <button class="btn btn-secondary btn-sm" onclick="clearProductSelection()"><i class="ph ph-x"></i> Cancelar</button>
                 <button class="btn btn-danger btn-sm" onclick="bulkDeleteProducts()"><i class="ph ph-trash"></i> Eliminar</button>
             </div>
         </div>
@@ -1073,7 +1075,7 @@ window.addEventListener('error', function(e) {
 <!-- ═══════════════════════════════════════════ -->
 <!-- Image Viewer / Lightbox                    -->
 <!-- ═══════════════════════════════════════════ -->
-<div id="invLightbox" onclick="if(event.target===this)closeLightbox()">
+<div id="invLightbox" style="display:none;" onclick="if(event.target===this)closeLightbox()">
     <button id="invLbClose" onclick="closeLightbox()" title="Cerrar (ESC)"><i class="ph ph-x"></i></button>
     <div id="invLbCaption"></div>
     <div id="invLbImgWrap">
@@ -1336,4 +1338,20 @@ window.addEventListener('error', function(e) {
 
 <script src="<?php echo BASE_URL; ?>/modules/inventario/inventario_v2.js?v=<?php echo time(); ?>"></script>
 
+<script>
+// Move modals to body root to escape any stacking context / overflow clipping
+document.addEventListener('DOMContentLoaded', function() {
+    var lb = document.getElementById('invLightbox');
+    if (lb && lb.parentElement !== document.body) {
+        document.body.appendChild(lb);
+        lb.style.display = 'none';
+    }
+    var hm = document.getElementById('historyModal');
+    if (hm && hm.parentElement !== document.body) {
+        document.body.appendChild(hm);
+    }
+});
+</script>
+
 <?php include '../../includes/footer.php'; ?>
+

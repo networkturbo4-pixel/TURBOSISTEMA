@@ -553,6 +553,20 @@ try {
             echo json_encode(['success' => true, 'message' => 'Datos actualizados']);
             break;
 
+        case 'update_bulk_custom':
+            $product_id = intval($_POST['product_id'] ?? 0);
+            $custom_data = $_POST['custom_data'] ?? '{}';
+
+            if (!$product_id) {
+                echo json_encode(['success' => false, 'message' => 'ID inválido']);
+                break;
+            }
+
+            $stmt = $pdo->prepare("UPDATE inventory_products SET bulk_custom_data = ? WHERE id = ?");
+            $stmt->execute([$custom_data, $product_id]);
+            echo json_encode(['success' => true, 'message' => 'Datos actualizados']);
+            break;
+
         case 'update_sku_code':
             $sku_id = intval($_POST['sku_id'] ?? 0);
             $new_code = trim($_POST['sku_code'] ?? '');
@@ -701,7 +715,7 @@ try {
                                'ninguno' as historia,
                                p.total_quantity as stock_disponible,
                                p.unit_type,
-                               '{}' as custom_data,
+                               COALESCE(p.bulk_custom_data, '{}') as custom_data,
                                1 as is_bulk,
                                p.product_type,
                                p.custom_columns,
@@ -1251,6 +1265,46 @@ try {
                 echo json_encode(['success' => false, 'message' => $e->getMessage()]);
             }
             break;
+
+        case 'export_products':
+            $ids = isset($_GET['ids']) ? explode(',', $_GET['ids']) : [];
+            if (empty($ids)) {
+                echo json_encode(['success' => false, 'message' => 'No IDs provided']);
+                break;
+            }
+            
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $sql = "SELECT p.*, c.name as category_name,
+                    (SELECT COUNT(*) FROM inventory_skus WHERE product_id = p.id AND status = 'disponible') as qty_disponible,
+                    (SELECT COUNT(*) FROM inventory_skus WHERE product_id = p.id AND status = 'instalado') as qty_instalado,
+                    (SELECT COUNT(*) FROM inventory_skus WHERE product_id = p.id AND status = 'malogrado') as qty_malogrado
+                    FROM inventory_products p
+                    LEFT JOIN inventory_categories c ON p.category_id = c.id
+                    WHERE p.id IN ($placeholders)";
+            
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($ids);
+            $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename=productos_exportados_' . date('Ymd_His') . '.csv');
+            
+            $output = fopen('php://output', 'w');
+            fputcsv($output, ['ID', 'Nombre', 'Categoria', 'Total', 'Disponibles', 'Instalados', 'Malogrados']);
+            
+            foreach ($products as $p) {
+                fputcsv($output, [
+                    $p['id'],
+                    $p['name'],
+                    $p['category_name'] ?: 'Sin categoria',
+                    $p['total_quantity'],
+                    $p['is_bulk'] ? $p['total_quantity'] : $p['qty_disponible'],
+                    $p['qty_instalado'],
+                    $p['is_bulk'] ? 0 : $p['qty_malogrado']
+                ]);
+            }
+            fclose($output);
+            exit;
 
         default:
             echo json_encode(['success' => false, 'message' => 'Acción no válida']);
