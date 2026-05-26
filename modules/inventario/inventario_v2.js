@@ -2000,7 +2000,7 @@
                     bulkAssignHtml += `<div style="margin-top:6px;font-size:0.8rem;color:var(--text-muted);line-height:1.4;">${s.bulk_assignments}</div>`;
                 }
             } else {
-                bulkAssignHtml = `<div class="assign-badge none"><i class="ph ph-package"></i> Almac\u00e9n (${s.stock_disponible} ${s.unit_type||})</div>`;
+                bulkAssignHtml = `<div class="assign-badge none"><i class="ph ph-package"></i> Almac\u00e9n (${s.stock_disponible} ${s.unit_type||''})</div>`;
                 if (s.is_bulk && s.bulk_assignments) {
                     bulkAssignHtml += `<div style="margin-top:6px;font-size:0.8rem;color:var(--text-muted);line-height:1.4;">${s.bulk_assignments}</div>`;
                 }
