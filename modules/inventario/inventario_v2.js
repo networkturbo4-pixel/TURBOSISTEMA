@@ -1992,7 +1992,7 @@
                     s.sku_thumbnail
                         ? `<img src="${BASE}/${s.sku_thumbnail}" data-sku-img="${s.id}" class="lb-thumb" data-lb-src="${BASE}/${s.sku_thumbnail}" data-lb-caption="${esc(s.product_name)}" style="width:36px;height:36px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid var(--border-color);cursor:zoom-in;">`
                         : `<div data-sku-img="${s.id}" style="width:36px;height:36px;border-radius:8px;background:var(--bg-color);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid var(--border-color);"><i class="ph ph-image" style="color:var(--text-muted);font-size:1rem;opacity:0.4;"></i></div>`
-                }<span class="sku-product-name">${esc(s.product_name)}</span>${s.is_bulk ? '<br><small style="color:var(--text-muted);font-size:0.75rem;"><i class="ph ph-package"></i> Granel</small>' : ''}</div></td>`,
+                }<span class="sku-product-name">${esc(s.product_name)}</span>${s.is_bulk ? (s.product_type === 'agrupado' ? '<br><small style="color:#8b5cf6;font-size:0.75rem;"><i class="ph ph-stack"></i> Agrupado</small>' : '<br><small style="color:var(--text-muted);font-size:0.75rem;"><i class="ph ph-package"></i> Granel</small>') : ''}</div></td>`,
                 'Categor\u00eda': `<td>${esc(s.category_name||'\u2014')}</td>`,
                 'Estado': `<td><span class=\"status-badge status-${s.status}\">${s.status.toUpperCase()}</span></td>`,
                 'Historia': s.is_bulk ? `<td><span style=\"color:var(--text-muted);\">\u2014</span></td>` : `<td><select class=\"status-select historia-select\" onchange=\"updateHistoria(${s.id}, this.value)\"><option value=\"ninguno\" ${hist==='ninguno'?'selected':''}>\u2014</option><option value=\"devuelto\" ${hist==='devuelto'?'selected':''}>Devuelto</option><option value=\"malogrado\" ${hist==='malogrado'?'selected':''}>Malogrado</option><option value=\"antiguo\" ${hist==='antiguo'?'selected':''}>Antiguo</option><option value=\"en_transito\" ${hist==='en_transito'?'selected':''}>En Tr\u00e1nsito</option></select></td>`,
@@ -2578,7 +2578,13 @@
 
         // Edit tab info
         const info = document.getElementById('skuEditInfo');
-        let bulkExtra = data.is_bulk == 1 ? `<div class="sku-info-item"><div class="sii-label">Stock Almacén</div><div class="sii-value" style="font-weight:bold; color:var(--primary-color);">${data.stock} ${data.unit_type||''}</div></div>` : '';
+        let bulkExtra = '';
+        if (data.product_type === 'agrupado') {
+            bulkExtra = `<div class="sku-info-item"><div class="sii-label">Tipo</div><div class="sii-value"><span style="background:rgba(139,92,246,0.15);color:#8b5cf6;padding:2px 8px;border-radius:6px;font-size:0.8rem;font-weight:700;"><i class="ph ph-stack"></i> Agrupado</span></div></div>
+                         <div class="sku-info-item"><div class="sii-label">Stock Total</div><div class="sii-value" style="font-weight:bold; color:#8b5cf6;">${data.stock} ${data.unit_type||'Unidades'}</div></div>`;
+        } else if (data.is_bulk == 1) {
+            bulkExtra = `<div class="sku-info-item"><div class="sii-label">Stock Almacén</div><div class="sii-value" style="font-weight:bold; color:var(--primary-color);">${data.stock} ${data.unit_type||''}</div></div>`;
+        }
         info.innerHTML = `
             <div class="sku-info-item"><div class="sii-label">SKU Code</div><div class="sii-value"><code>${esc(data.sku_code)}</code></div></div>
             <div class="sku-info-item"><div class="sii-label">Producto</div><div class="sii-value">${esc(data.product_name)}</div></div>
@@ -2594,36 +2600,76 @@
             document.getElementById('skuDetailStatus').parentElement.style.display = 'block';
         }
 
+
         // Assign tab
         const assignCurrent = document.getElementById('skuAssignCurrent');
         window.currentSkuChildren = []; // Reset
-        if (data.product_type === 'agrupado') {
-            assignCurrent.innerHTML = `<div class="assign-badge none"><i class="ph ph-package"></i> Producto Agrupado (Stock: ${data.stock} ${data.unit_type||''})</div><div id="agrupadoAssignOptions" style="margin-top:12px;background:rgba(99,102,241,0.05);padding:10px;border-radius:8px;border:1px solid rgba(99,102,241,0.2);">Cargando variantes...</div>`;
+
+        // Detect agrupado: check product_type from data directly
+        const isAgrupado = (data.product_type === 'agrupado');
+
+        if (isAgrupado) {
+            assignCurrent.innerHTML = `<div class="assign-badge none" style="background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);color:#8b5cf6;"><i class="ph ph-stack"></i> Producto Agrupado &mdash; selecciona variante a asignar</div><div id="agrupadoAssignOptions" style="margin-top:12px;background:rgba(99,102,241,0.05);padding:12px;border-radius:8px;border:1px solid rgba(99,102,241,0.2);"><div style="display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:0.85rem;"><i class="ph ph-spinner ph-spin"></i> Cargando variantes...</div></div>`;
             
             const fd2 = new FormData();
-            const realProductId = data.id.toString().replace('bulk_', '');
+            // Use product_id if available, otherwise strip 'bulk_' prefix from id
+            const realProductId = data.product_id ? data.product_id : data.id.toString().replace('bulk_', '');
             fd2.append('action', 'get_children');
             fd2.append('product_id', realProductId);
             
             fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd2 })
                 .then(r => r.json())
                 .then(res2 => {
-                    if(res2.success) {
+                    const optionsEl = document.getElementById('agrupadoAssignOptions');
+                    if (!optionsEl) return;
+                    if (res2.success) {
                         window.currentSkuChildren = res2.data;
-                        let html = '';
-                        (res2.columns || []).forEach(c => {
-                            const uniqueVals = [...new Set(res2.data.map(child => child.variant_attributes[c.name]).filter(v => v))];
-                            html += `<div style="margin-bottom:8px;">
-                                <label style="font-size:0.85rem;font-weight:600;margin-bottom:4px;display:block;">${esc(c.name)}</label>
-                                <select class="form-select form-select-sm agrupado-variant-select" data-col="${esc(c.name)}">
-                                    <option value="">Seleccionar...</option>
-                                    ${uniqueVals.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('')}
+                        const cols = res2.columns || [];
+
+                        if (cols.length === 0 && res2.data.length === 0) {
+                            optionsEl.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;margin:0;"><i class="ph ph-warning"></i> Este producto no tiene variantes configuradas.</p>';
+                            return;
+                        }
+
+                        let html = '<div style="display:flex;flex-direction:column;gap:10px;">';
+
+                        if (cols.length > 0) {
+                            cols.forEach(c => {
+                                const colName = c.name || c;
+                                const uniqueVals = [...new Set(
+                                    res2.data.map(child => {
+                                        const attrs = child.variant_attributes || {};
+                                        return attrs[colName];
+                                    }).filter(v => v !== undefined && v !== null && v !== '')
+                                )];
+                                html += `<div>
+                                    <label style="font-size:0.82rem;font-weight:700;margin-bottom:5px;display:flex;align-items:center;gap:5px;color:var(--text-color);">
+                                        <i class="ph ph-tag" style="color:#8b5cf6;"></i> ${esc(colName)}
+                                    </label>
+                                    <select class="form-select form-select-sm agrupado-variant-select" data-col="${esc(colName)}" style="border-color:rgba(139,92,246,0.4);">
+                                        <option value="">— Seleccionar ${esc(colName)} —</option>
+                                        ${uniqueVals.map(v => {
+                                            const matchingChildren = res2.data.filter(ch => (ch.variant_attributes || {})[colName] == v);
+                                            const totalStock = matchingChildren.reduce((sum, ch) => sum + parseFloat(ch.total_quantity || 0), 0);
+                                            return `<option value="${esc(v)}">${esc(v)} (${totalStock} disp.)</option>`;
+                                        }).join('')}
+                                    </select>
+                                </div>`;
+                            });
+                        } else {
+                            html += `<div>
+                                <label style="font-size:0.82rem;font-weight:700;margin-bottom:5px;display:block;">Variante</label>
+                                <select class="form-select form-select-sm agrupado-variant-select" data-col="__variant__">
+                                    <option value="">— Seleccionar variante —</option>
+                                    ${res2.data.map(ch => `<option value="${ch.id}">${esc(ch.name)} (${ch.total_quantity} disp.)</option>`).join('')}
                                 </select>
                             </div>`;
-                        });
-                        document.getElementById('agrupadoAssignOptions').innerHTML = html;
+                        }
+
+                        html += '</div>';
+                        optionsEl.innerHTML = html;
                     } else {
-                        document.getElementById('agrupadoAssignOptions').innerHTML = 'Error cargando opciones.';
+                        optionsEl.innerHTML = `<p style="color:#ef4444;font-size:0.85rem;margin:0;"><i class="ph ph-x-circle"></i> Error: ${esc(res2.message || 'No se pudieron cargar las variantes')}</p>`;
                     }
                 }).catch(() => {
                     document.getElementById('agrupadoAssignOptions').innerHTML = 'Error de conexión.';
@@ -2720,7 +2766,8 @@
             
             // Find child matching these attrs
             const match = window.currentSkuChildren.find(child => {
-                return Object.keys(selectedAttrs).every(k => child.variant_attributes[k] == selectedAttrs[k]);
+                const attrs = child.variant_attributes || {};
+                return Object.keys(selectedAttrs).every(k => k === '__variant__' || String(attrs[k]) === String(selectedAttrs[k]));
             });
             
             if (!match) {
@@ -2736,12 +2783,19 @@
         }
 
         let quantity = 0;
-        if (currentSkuData.is_bulk == 1) {
-            const qtyStr = prompt(`Ingresa la cantidad a asignar (Disponible: ${availableStock} ${currentSkuData.unit_type||''}):`);
+        // For agrupado products OR bulk products, ask for quantity
+        const needsQty = currentSkuData.product_type === 'agrupado' || currentSkuData.is_bulk == 1;
+        if (needsQty) {
+            const unitLabel = currentSkuData.unit_type || 'Unidades';
+            const qtyStr = prompt(`Ingresa la cantidad a asignar (Disponible: ${availableStock} ${unitLabel}):`);
             if (!qtyStr) return;
             quantity = parseFloat(qtyStr);
             if (isNaN(quantity) || quantity <= 0) {
                 if (window.showToast) window.showToast('Cantidad inválida', 'error');
+                return;
+            }
+            if (quantity > parseFloat(availableStock)) {
+                if (window.showToast) window.showToast(`Stock insuficiente. Disponible: ${availableStock}`, 'error');
                 return;
             }
         }
@@ -2749,24 +2803,25 @@
         const fd = new FormData(); fd.append('action', 'assign_sku'); fd.append('sku_id', targetSkuId); fd.append('user_id', userId);
         const isEpp = document.getElementById('skuAssignIsEpp')?.checked ? 1 : 0;
         fd.append('is_epp', isEpp);
-        if (currentSkuData.is_bulk == 1) fd.append('quantity', quantity);
+        if (needsQty) fd.append('quantity', quantity);
 
         const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
         if (res.success) {
             if (window.showToast) window.showToast(res.message, 'success');
-            if (currentSkuData.is_bulk != 1) {
+            if (currentSkuData.product_type === 'agrupado' || currentSkuData.is_bulk == 1) {
+                closeSkuDetail();
+                loadProducts(); // Refresh warehouse stock
+            } else {
                 currentSkuData.assigned_to = userId;
                 currentSkuData.assigned_user_name = res.user_name;
                 document.getElementById('skuAssignCurrent').innerHTML = `<div class="assign-badge"><i class="ph ph-user-circle"></i> Asignado a: <strong>${esc(res.user_name)}</strong></div>`;
                 loadAllSkus();
-            } else {
-                closeSkuDetail();
-                loadProducts(); // Refresh warehouse stock
             }
         } else {
             if (window.showToast) window.showToast(res.message, 'error');
         }
     };
+
 
     window.unassignSku = async function() {
         if (!currentSkuData) return;

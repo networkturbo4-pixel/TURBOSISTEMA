@@ -660,13 +660,33 @@ try {
                 $resultBulk = $stmtBulk->fetch();
 
                 if ($resultBulk) {
-                    // It's a bulk product. We structure it similarly so the frontend can handle it.
-                    // We set is_bulk to 1, and we might not have 'id' (since there's no sku row).
-                    // We use product_id as id but with a flag.
+                    // It's a bulk product. We use product_id as id with a flag.
                     $resultBulk['id'] = 'bulk_' . $resultBulk['product_id'];
                     echo json_encode(['success' => true, 'data' => $resultBulk]);
                 } else {
-                    echo json_encode(['success' => false, 'message' => 'SKU no encontrado']);
+                    // Check if it's an agrupado product (parent may have is_bulk=0)
+                    $stmtAgrupado = $pdo->prepare("SELECT p.id as product_id, p.id as id,
+                                               COALESCE(p.master_sku, CONCAT('AGR-', p.id)) as sku_code,
+                                               p.name as product_name,
+                                               c.name as category_name, p.description as product_description,
+                                               p.stock_minimo, p.stock_critico, p.is_bulk,
+                                               COALESCE((SELECT SUM(ch.total_quantity) FROM inventory_products ch WHERE ch.parent_product_id = p.id), 0) as stock,
+                                               'disponible' as status, p.unit_type, p.product_type, p.custom_columns
+                                               FROM inventory_products p
+                                               LEFT JOIN inventory_categories c ON p.category_id = c.id
+                                               WHERE p.product_type = 'agrupado'
+                                                 AND p.parent_product_id IS NULL
+                                                 AND (p.master_sku = ? OR p.name LIKE ?) LIMIT 1");
+                    $stmtAgrupado->execute([$code, "%$code%"]);
+                    $resultAgrupado = $stmtAgrupado->fetch();
+
+                    if ($resultAgrupado) {
+                        // Agrupado parent found — keep product_id for get_children lookup
+                        $resultAgrupado['id'] = 'bulk_' . $resultAgrupado['product_id'];
+                        echo json_encode(['success' => true, 'data' => $resultAgrupado]);
+                    } else {
+                        echo json_encode(['success' => false, 'message' => 'SKU no encontrado']);
+                    }
                 }
             }
             break;
