@@ -404,6 +404,7 @@
                     <div style="display:flex; gap:6px;">
                         ${p.product_type === 'agrupado' ? `<button type="button" class="btn btn-secondary btn-sm" onclick="openAssignGrouped(${p.id})" title="Asignar variantes"><i class="ph ph-users-three"></i></button>` : ''}
                         ${p.is_bulk == 1 && p.product_type !== 'agrupado' ? '' : (p.product_type !== 'agrupado' ? `<button class="btn btn-secondary btn-sm" onclick="viewProductSkus(${p.id})" title="Ver SKUs"><i class="ph ph-list-bullets"></i></button>` : '')}
+                        <button class="btn btn-secondary btn-sm" onclick="openEditStockModal(${p.id}, '${p.product_type||'normal'}', ${p.is_bulk||0}, ${p.total_quantity||0}, '${esc(p.unit_type||'Und')}')" title="Editar stock" style="background:rgba(99,102,241,0.1);color:#6366f1;border-color:rgba(99,102,241,0.3);"><i class="ph ph-stack-plus"></i></button>
                         <button class="btn btn-secondary btn-sm" onclick="openEditProduct(${p.id}, this)" title="Editar"><i class="ph ph-pencil-simple"></i></button>
                         <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})" title="Eliminar"><i class="ph ph-trash"></i></button>
                     </div>
@@ -3833,7 +3834,233 @@
         return { open: open, close: closePopover, clearCol: clearCol, clearAll: clearAll, applyFilters: applyFilters };
     })();
 
+    // ══════════════════════════════════════════════════════════════
+    // Edit Stock Modal — openEditStockModal / saveEditStockModal
+    // ══════════════════════════════════════════════════════════════
+
+    window.openEditStockModal = async function(productId, productType, isBulk, currentStock, unitType) {
+        // Store values
+        document.getElementById('esProductId').value = productId;
+        document.getElementById('esProductType').value = productType;
+        document.getElementById('esIsBulk').value = isBulk;
+        document.getElementById('esCurrentStock').value = currentStock;
+        document.getElementById('esNotes').value = '';
+
+        // Set title
+        const typeLabel = productType === 'agrupado' ? 'Agrupado' : (isBulk == 1 ? 'Granel' : 'Normal (SKU)');
+        document.getElementById('editStockModalTitle').textContent = 'Editar Stock';
+        document.getElementById('editStockModalSub').textContent = `Tipo: ${typeLabel}`;
+
+        const m = document.getElementById('editStockModal');
+        if (m.parentElement !== document.body) document.body.appendChild(m);
+        m.classList.add('active');
+
+        if (productType === 'agrupado') {
+            // Show agrupado section, hide normal
+            document.getElementById('esNormalWrap').style.display = 'none';
+            document.getElementById('esAgrupadoWrap').style.display = '';
+
+            // Load variants
+            const tbody = document.getElementById('esVariantsList');
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;"><i class="ph ph-spinner ph-spin"></i> Cargando variantes...</td></tr>';
+            esUpdateAgrupadoTotal();
+
+            try {
+                const fd = new FormData();
+                fd.append('action', 'get_children');
+                fd.append('product_id', productId);
+                const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+                if (res.success && res.data.length > 0) {
+                    tbody.innerHTML = res.data.map(v => {
+                        const attrs = v.variant_attributes ? Object.values(v.variant_attributes).filter(Boolean).join(' / ') : '';
+                        return `<tr>
+                            <td>
+                                <div style="font-weight:600;">${esc(v.name)}</div>
+                                ${attrs ? `<div style="font-size:0.78rem;color:var(--text-muted);">${esc(attrs)}</div>` : ''}
+                            </td>
+                            <td style="text-align:center;">
+                                <span style="font-weight:700;color:#6366f1;">${parseFloat(v.total_quantity||0)}</span>
+                                <div style="font-size:0.72rem;color:var(--text-muted);">${esc(v.unit_type||'Und')}</div>
+                            </td>
+                            <td style="text-align:center;padding:6px 8px;">
+                                <div style="display:flex;gap:4px;align-items:center;justify-content:center;">
+                                    <button type="button" onclick="esVariantAdjust(${v.id}, -1)" style="width:28px;height:28px;border:1px solid var(--border-color);background:var(--bg-color);border-radius:6px;font-size:1rem;cursor:pointer;color:var(--text-color);">−</button>
+                                    <input type="number" id="esVariant_${v.id}" data-original="${parseFloat(v.total_quantity||0)}" data-name="${esc(v.name)}" value="${parseFloat(v.total_quantity||0)}" min="0" step="1" style="width:70px;text-align:center;padding:4px;border:1px solid var(--border-color);border-radius:6px;background:var(--surface-color);color:var(--text-color);font-size:0.9rem;font-weight:600;" oninput="esUpdateAgrupadoTotal()">
+                                    <button type="button" onclick="esVariantAdjust(${v.id}, 1)" style="width:28px;height:28px;border:1px solid var(--border-color);background:var(--bg-color);border-radius:6px;font-size:1rem;cursor:pointer;color:var(--text-color);">+</button>
+                                </div>
+                            </td>
+                            <td style="text-align:center;" id="esVariantChange_${v.id}">
+                                <span style="font-size:0.85rem;font-weight:700;color:var(--text-muted);">±0</span>
+                            </td>
+                        </tr>`;
+                    }).join('');
+                    esUpdateAgrupadoTotal();
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--text-muted);">No hay variantes.</td></tr>';
+                }
+            } catch(e) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:16px;color:red;">Error al cargar variantes.</td></tr>';
+            }
+        } else {
+            // Show normal/granel section
+            document.getElementById('esNormalWrap').style.display = '';
+            document.getElementById('esAgrupadoWrap').style.display = 'none';
+
+            const cur = parseFloat(currentStock) || 0;
+            document.getElementById('esCurrentStockDisplay').textContent = cur;
+            document.getElementById('esNewStockDisplay').textContent = cur;
+            document.getElementById('esNewQty').value = cur;
+            document.getElementById('esUnitLabel').textContent = isBulk == 1 ? (unitType || 'Und') : 'SKUs';
+            document.getElementById('esChangeBadge').innerHTML = '';
+            document.getElementById('esDeleteWarning').style.display = 'none';
+            document.getElementById('esGenerateInfo').style.display = 'none';
+        }
+    };
+
+    window.closeEditStockModal = function() {
+        document.getElementById('editStockModal').classList.remove('active');
+    };
+
+    window.esAdjust = function(delta) {
+        const inp = document.getElementById('esNewQty');
+        const cur = parseFloat(inp.value) || 0;
+        inp.value = Math.max(0, cur + delta);
+        esUpdatePreview();
+    };
+
+    window.esUpdatePreview = function() {
+        const inp = document.getElementById('esNewQty');
+        const newVal = parseFloat(inp.value) || 0;
+        const original = parseFloat(document.getElementById('esCurrentStock').value) || 0;
+        const isBulk = document.getElementById('esIsBulk').value == 1;
+        const productType = document.getElementById('esProductType').value;
+        const diff = newVal - original;
+
+        document.getElementById('esNewStockDisplay').textContent = newVal;
+
+        const badge = document.getElementById('esChangeBadge');
+        if (diff === 0) {
+            badge.innerHTML = '';
+        } else if (diff > 0) {
+            badge.innerHTML = `<span style="color:#10b981;">▲ +${diff}</span>`;
+        } else {
+            badge.innerHTML = `<span style="color:#ef4444;">▼ ${diff}</span>`;
+        }
+
+        const delWarn = document.getElementById('esDeleteWarning');
+        const genInfo = document.getElementById('esGenerateInfo');
+        delWarn.style.display = 'none';
+        genInfo.style.display = 'none';
+
+        if (!isBulk && productType !== 'agrupado') {
+            // SKU product
+            if (diff < 0) {
+                document.getElementById('esDeleteWarningText').textContent = `Se eliminarán ${Math.abs(diff)} SKU(s) disponibles del sistema. Los SKUs asignados/instalados no se verán afectados.`;
+                delWarn.style.display = '';
+            } else if (diff > 0) {
+                document.getElementById('esGenerateInfoText').textContent = `Se generarán ${diff} nuevo(s) SKU(s) con código TRB-XXXXXX automáticamente.`;
+                genInfo.style.display = '';
+            }
+        }
+    };
+
+    window.esVariantAdjust = function(variantId, delta) {
+        const inp = document.getElementById(`esVariant_${variantId}`);
+        if (!inp) return;
+        const cur = parseFloat(inp.value) || 0;
+        inp.value = Math.max(0, cur + delta);
+        esUpdateAgrupadoTotal();
+    };
+
+    window.esUpdateAgrupadoTotal = function() {
+        let total = 0;
+        document.querySelectorAll('#esVariantsList input[type="number"]').forEach(inp => {
+            const newVal = parseFloat(inp.value) || 0;
+            const orig = parseFloat(inp.dataset.original) || 0;
+            const diff = newVal - orig;
+            total += newVal;
+
+            const variantId = inp.id.replace('esVariant_', '');
+            const changeCell = document.getElementById(`esVariantChange_${variantId}`);
+            if (changeCell) {
+                if (diff === 0) {
+                    changeCell.innerHTML = '<span style="font-size:0.85rem;font-weight:700;color:var(--text-muted);">±0</span>';
+                } else if (diff > 0) {
+                    changeCell.innerHTML = `<span style="font-size:0.85rem;font-weight:700;color:#10b981;">+${diff}</span>`;
+                } else {
+                    changeCell.innerHTML = `<span style="font-size:0.85rem;font-weight:700;color:#ef4444;">${diff}</span>`;
+                }
+            }
+        });
+        const totalEl = document.getElementById('esAgrupadoTotalVal');
+        if (totalEl) totalEl.textContent = total;
+    };
+
+    window.saveEditStockModal = async function() {
+        const productId = document.getElementById('esProductId').value;
+        const productType = document.getElementById('esProductType').value;
+        const isBulk = document.getElementById('esIsBulk').value == 1;
+        const notes = document.getElementById('esNotes').value;
+        const btn = document.getElementById('esSaveBtn');
+        const origText = btn.innerHTML;
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Guardando...';
+
+        try {
+            if (productType === 'agrupado') {
+                // Build list of variant updates
+                const variants = [];
+                document.querySelectorAll('#esVariantsList input[type="number"]').forEach(inp => {
+                    variants.push({
+                        id: inp.id.replace('esVariant_', ''),
+                        new_quantity: parseFloat(inp.value) || 0
+                    });
+                });
+
+                const fd = new FormData();
+                fd.append('action', 'adjust_variant_stock');
+                fd.append('variants', JSON.stringify(variants));
+                fd.append('notes', notes);
+
+                const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+                if (res.success) {
+                    if (window.showToast) window.showToast(res.message || 'Stock actualizado', 'success');
+                    closeEditStockModal();
+                    loadProducts();
+                    if (window.loadMetrics) loadMetrics();
+                } else {
+                    if (window.showToast) window.showToast(res.message || 'Error', 'error');
+                }
+            } else {
+                const newQty = parseFloat(document.getElementById('esNewQty').value) || 0;
+                const fd = new FormData();
+                fd.append('action', 'adjust_product_stock');
+                fd.append('product_id', productId);
+                fd.append('new_total', newQty);
+                fd.append('notes', notes);
+
+                const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+                if (res.success) {
+                    if (window.showToast) window.showToast(res.message || 'Stock actualizado', 'success');
+                    closeEditStockModal();
+                    loadProducts();
+                    if (window.loadMetrics) loadMetrics();
+                    if (typeof loadAllSkus === 'function') loadAllSkus();
+                } else {
+                    if (window.showToast) window.showToast(res.message || 'Error', 'error');
+                }
+            }
+        } catch(e) {
+            if (window.showToast) window.showToast('Error de conexión', 'error');
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = origText;
+    };
+
     // ── History Modal Logic ──
+
     window.openHistoryModal = function() {
         console.log("-> openHistoryModal called");
         const hm = document.getElementById('historyModal');
@@ -3911,6 +4138,9 @@
                     const isUnassign = d.action === 'unassign';
                     const dateForInput = d.created_at ? d.created_at.replace(' ', 'T').substring(0, 16) : '';
                     const notesEsc = (d.notes || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                    // Determine product type from sku_code prefix or store it
+                    const isBulkSku = (d.sku_code === 'GRANEL' || (d.sku_id == null && !d.sku_code?.startsWith('TRB-')));
+                    const productType = isBulkSku ? 'granel' : 'normal';
                     html += `<tr>
                         <td>${esc(d.created_at)}</td>
                         <td><code>${esc(d.sku_code || '')}</code></td>
@@ -3924,7 +4154,7 @@
                         <td>${esc(d.assigned_by_name || 'Sistema')}</td>
                         <td>
                             <div style="display:flex;gap:4px;">
-                                <button onclick="openEditAssignLog(${d.id},'${dateForInput}','${notesEsc}')" title="Editar" class="btn btn-sm" style="background:rgba(99,102,241,0.12);color:#6366f1;border:none;padding:5px 8px;border-radius:6px;cursor:pointer;" onmouseover="this.style.background='rgba(99,102,241,0.25)'" onmouseout="this.style.background='rgba(99,102,241,0.12)'"><i class="ph ph-pencil"></i></button>
+                                <button onclick="openEditAssignLog(${d.id},'${dateForInput}','${notesEsc}',${d.assigned_to||0},${d.quantity||1},'${productType}','${isUnassign?'unassign':'assign'}')" title="Editar" class="btn btn-sm" style="background:rgba(99,102,241,0.12);color:#6366f1;border:none;padding:5px 8px;border-radius:6px;cursor:pointer;" onmouseover="this.style.background='rgba(99,102,241,0.25)'" onmouseout="this.style.background='rgba(99,102,241,0.12)'"><i class="ph ph-pencil"></i></button>
                                 <button onclick="deleteAssignLog(${d.id})" title="Eliminar" class="btn btn-sm" style="background:rgba(239,68,68,0.12);color:#ef4444;border:none;padding:5px 8px;border-radius:6px;cursor:pointer;" onmouseover="this.style.background='rgba(239,68,68,0.25)'" onmouseout="this.style.background='rgba(239,68,68,0.12)'"><i class="ph ph-trash"></i></button>
                             </div>
                         </td>
@@ -3940,13 +4170,77 @@
     };
 
     // ── Edit/Delete Assignment Log ──
-    window.openEditAssignLog = function(id, dateStr, notes) {
+    // Cache for users list
+    let _editAssignUsers = null;
+
+    async function _loadEditAssignUsers() {
+        if (_editAssignUsers) return _editAssignUsers;
+        const fd = new FormData(); fd.append('action', 'list_users');
+        const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+        if (res.success) { _editAssignUsers = res.data; }
+        return _editAssignUsers || [];
+    }
+
+    window.openEditAssignLog = async function(id, dateStr, notes, assignedToId, quantity, productType, action) {
         document.getElementById('editAssignLogId').value = id;
         document.getElementById('editAssignLogDate').value = dateStr || '';
         document.getElementById('editAssignLogNotes').value = notes || '';
+        document.getElementById('editAssignLogProductType').value = productType || 'normal';
+        document.getElementById('editAssignLogIsUnassign').value = (action === 'unassign') ? '1' : '0';
+        document.getElementById('editAssignLogQty').value = quantity || 1;
+
+        // Show/hide quantity field and hint based on product type
+        const qtyWrap = document.getElementById('editAssignLogQtyWrap');
+        const qtyHint = document.getElementById('editAssignLogQtyHint');
+        if (productType === 'granel') {
+            qtyWrap.style.display = '';
+            qtyHint.textContent = 'Producto a granel/agrupado — puedes editar la cantidad asignada.';
+        } else {
+            // For normal SKU products, quantity is 1 per SKU, but allow editing
+            qtyWrap.style.display = '';
+            qtyHint.textContent = 'SKU individual — normalmente la cantidad es 1.';
+        }
+
+        // Show/hide unassign hint
+        const hint = document.getElementById('editAssignLogUnassignHint');
+        const userSel = document.getElementById('editAssignLogUser');
+        if (action === 'unassign') {
+            hint.style.display = 'block';
+            userSel.disabled = true;
+        } else {
+            hint.style.display = 'none';
+            userSel.disabled = false;
+        }
+
+        // Open modal first
         const m = document.getElementById('editAssignLogModal');
         if (m.parentElement !== document.body) document.body.appendChild(m);
         m.classList.add('active');
+
+        // Load users into select
+        userSel.innerHTML = '<option value="">Cargando...</option>';
+        const users = await _loadEditAssignUsers();
+        userSel.innerHTML = '<option value="">— Seleccionar usuario —</option>';
+        users.forEach(u => {
+            const opt = document.createElement('option');
+            opt.value = u.id;
+            opt.textContent = u.name;
+            if (u.id == assignedToId) opt.selected = true;
+            userSel.appendChild(opt);
+        });
+        if (action === 'unassign') userSel.disabled = true;
+    };
+
+    window.editAssignLogSetUnassign = function() {
+        document.getElementById('editAssignLogIsUnassign').value = '1';
+        document.getElementById('editAssignLogUnassignHint').style.display = 'block';
+        document.getElementById('editAssignLogUser').disabled = true;
+    };
+
+    window.editAssignLogCancelUnassign = function() {
+        document.getElementById('editAssignLogIsUnassign').value = '0';
+        document.getElementById('editAssignLogUnassignHint').style.display = 'none';
+        document.getElementById('editAssignLogUser').disabled = false;
     };
 
     window.closeEditAssignLog = function() {
@@ -3957,6 +4251,9 @@
         const id = document.getElementById('editAssignLogId').value;
         const date = document.getElementById('editAssignLogDate').value;
         const notes = document.getElementById('editAssignLogNotes').value;
+        const userId = document.getElementById('editAssignLogUser').value;
+        const qty = document.getElementById('editAssignLogQty').value;
+        const isUnassign = document.getElementById('editAssignLogIsUnassign').value === '1';
         if (!id) return;
         const btn = document.querySelector('#editAssignLogModal .btn-primary');
         const origText = btn.innerHTML;
@@ -3966,6 +4263,13 @@
         fd.append('log_id', id);
         fd.append('notes', notes);
         if (date) fd.append('created_at', date.replace('T', ' ') + ':00');
+        if (isUnassign) {
+            fd.append('log_action', 'unassign');
+        } else {
+            fd.append('log_action', 'assign');
+            if (userId) fd.append('assigned_to', userId);
+        }
+        if (qty) fd.append('quantity', qty);
         try {
             const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
             if (res.success) {

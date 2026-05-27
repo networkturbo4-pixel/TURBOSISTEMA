@@ -1176,7 +1176,134 @@ try {
             
             echo json_encode(['success' => true, 'message' => 'SKUs eliminados']);
             break;
+        // ── Adjust Product Stock (Edit Stock Modal) ─────────────
+        case 'adjust_product_stock':
+            $product_id = intval($_POST['product_id'] ?? 0);
+            $new_total  = intval($_POST['new_total'] ?? 0);
+            $notes      = trim($_POST['notes'] ?? '');
+            if (!$product_id || $new_total < 0) {
+                echo json_encode(['success' => false, 'message' => 'Datos inválidos']);
+                break;
+            }
+
+            $pdo->beginTransaction();
+            try {
+                // Get product info
+                $stmtProd = $pdo->prepare("SELECT is_bulk, total_quantity, custom_columns FROM inventory_products WHERE id = ? FOR UPDATE");
+                $stmtProd->execute([$product_id]);
+                $prod = $stmtProd->fetch();
+                if (!$prod) throw new Exception("Producto no encontrado");
+
+                $old_total = intval($prod['total_quantity']);
+                $diff = $new_total - $old_total;
+                $user_id = intval($_SESSION['user_id'] ?? 0);
+
+                if ($prod['is_bulk']) {
+                    // Granel: just update quantity directly
+                    $pdo->prepare("UPDATE inventory_products SET total_quantity = ? WHERE id = ?")->execute([$new_total, $product_id]);
+                    // Log
+                    $pdo->prepare("INSERT INTO inventory_stock_log (product_id, quantity, sku_codes, user_id, notes) VALUES (?, ?, '[]', ?, ?)")
+                        ->execute([$product_id, $diff, $user_id, $notes ?: "Ajuste directo de stock: {$old_total} → {$new_total}"]);
+                    $pdo->commit();
+                    echo json_encode(['success' => true, 'message' => "Stock actualizado: {$old_total} → {$new_total}"]);
+                } else {
+                    // Normal SKU product
+                    $skus_affected = [];
+                    if ($diff > 0) {
+                        // Generate new SKUs
+                        $cols = json_decode($prod['custom_columns'] ?? '[]', true) ?: [];
+                        $emptyCustom = new stdClass();
+                        foreach ($cols as $col) { $colName = is_array($col) ? ($col['name'] ?? '') : $col; if ($colName) $emptyCustom->{$colName} = ''; }
+                        $customJson = json_encode($emptyCustom);
+
+                        $generated = [];
+                        $attempts = 0;
+                        $max = $diff * 10;
+                        while (count($generated) < $diff && $attempts < $max) {
+                            $code = 'TRB-' . generateRandomCode(6);
+                            $chk = $pdo->prepare("SELECT COUNT(*) FROM inventory_skus WHERE sku_code = ?");
+                            $chk->execute([$code]);
+                            if ($chk->fetchColumn() == 0 && !in_array($code, $generated)) $generated[] = $code;
+                            $attempts++;
+                        }
+                        $ins = $pdo->prepare("INSERT INTO inventory_skus (product_id, sku_code, status, custom_data) VALUES (?, ?, 'disponible', ?)");
+                        foreach ($generated as $sku) { $ins->execute([$product_id, $sku, $customJson]); }
+                        $skus_affected = $generated;
+                    } elseif ($diff < 0) {
+                        // Delete available SKUs (don't touch assigned/installed)
+                        $toDelete = abs($diff);
+                        $stmtDel = $pdo->prepare("SELECT id, sku_code FROM inventory_skus WHERE product_id = ? AND status = 'disponible' AND (assigned_to IS NULL OR assigned_to = 0) ORDER BY id ASC LIMIT ?");
+                        $stmtDel->bindValue(1, $product_id, PDO::PARAM_INT);
+                        $stmtDel->bindValue(2, $toDelete, PDO::PARAM_INT);
+                        $stmtDel->execute();
+                        $toDeleteRows = $stmtDel->fetchAll();
+                        if (count($toDeleteRows) < $toDelete) {
+                            $pdo->rollBack();
+                            echo json_encode(['success' => false, 'message' => 'No hay suficientes SKUs disponibles para eliminar. Solo hay ' . count($toDeleteRows) . ' disponibles.']);
+                            break;
+                        }
+                        $ids = array_column($toDeleteRows, 'id');
+                        $skus_affected = array_column($toDeleteRows, 'sku_code');
+                        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                        $pdo->prepare("DELETE FROM inventory_sku_photos WHERE sku_id IN ($placeholders)")->execute($ids);
+                        $pdo->prepare("DELETE FROM inventory_skus WHERE id IN ($placeholders)")->execute($ids);
+                    }
+                    // Log
+                    if ($diff != 0) {
+                        $pdo->prepare("INSERT INTO inventory_stock_log (product_id, quantity, sku_codes, user_id, notes) VALUES (?, ?, ?, ?, ?)")
+                            ->execute([$product_id, $diff, json_encode($skus_affected), $user_id, $notes ?: "Ajuste directo de stock: {$old_total} → {$new_total}"]);
+                    }
+                    $pdo->commit();
+                    $msg = $diff > 0 ? "Generados {$diff} SKUs nuevos" : ($diff < 0 ? "Eliminados " . abs($diff) . " SKUs disponibles" : "Sin cambios");
+                    echo json_encode(['success' => true, 'message' => $msg]);
+                }
+            } catch(Exception $e) {
+                $pdo->rollBack();
+                echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            }
+            break;
+
+        // ── Adjust Variant Stock (Agrupado) ────────────────────
+        case 'adjust_variant_stock':
+            $variants_json = $_POST['variants'] ?? '[]';
+            $notes = trim($_POST['notes'] ?? '');
+            $variants = json_decode($variants_json, true);
+            if (!is_array($variants) || empty($variants)) {
+                echo json_encode(['success' => false, 'message' => 'Datos inválidos']);
+                break;
+            }
+            $user_id = intval($_SESSION['user_id'] ?? 0);
+            $pdo->beginTransaction();
+            try {
+                $stmtGet = $pdo->prepare("SELECT id, total_quantity, product_type, parent_product_id FROM inventory_products WHERE id = ?");
+                $stmtSet = $pdo->prepare("UPDATE inventory_products SET total_quantity = ? WHERE id = ?");
+                $stmtLog = $pdo->prepare("INSERT INTO inventory_stock_log (product_id, quantity, sku_codes, user_id, notes) VALUES (?, ?, '[]', ?, ?)");
+                $changed = 0;
+                foreach ($variants as $v) {
+                    $vId = intval($v['id'] ?? 0);
+                    $newQty = max(0, floatval($v['new_quantity'] ?? 0));
+                    if (!$vId) continue;
+                    $stmtGet->execute([$vId]);
+                    $row = $stmtGet->fetch();
+                    if (!$row) continue;
+                    $oldQty = floatval($row['total_quantity']);
+                    $diff = $newQty - $oldQty;
+                    $stmtSet->execute([$newQty, $vId]);
+                    if ($diff != 0) {
+                        $stmtLog->execute([$vId, $diff, $user_id, $notes ?: "Ajuste variante: {$oldQty} → {$newQty}"]);
+                        $changed++;
+                    }
+                }
+                $pdo->commit();
+                echo json_encode(['success' => true, 'message' => $changed > 0 ? "Stock actualizado en {$changed} variante(s)" : "Sin cambios"]);
+            } catch(Exception $e) {
+                $pdo->rollBack();
+                echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            }
+            break;
+
         // ── Log Query Endpoints ─────────────────────────────
+
         case 'get_assignment_log':
             $sku_filter = trim($_POST['sku'] ?? '');
             $user_filter = intval($_POST['user_id'] ?? 0);
@@ -1201,14 +1328,47 @@ try {
             $log_id = intval($_POST['log_id'] ?? 0);
             $notes = trim($_POST['notes'] ?? '');
             $created_at = trim($_POST['created_at'] ?? '');
+            $log_action = trim($_POST['log_action'] ?? ''); // 'assign' or 'unassign'
+            $new_assigned_to = intval($_POST['assigned_to'] ?? 0);
+            $new_quantity = floatval($_POST['quantity'] ?? 0);
             if (!$log_id) { echo json_encode(['success' => false, 'message' => 'ID inválido']); break; }
+
+            // Build dynamic SET clause
+            $setClauses = ['notes = ?'];
+            $params = [$notes];
+
             if ($created_at) {
-                $stmt = $pdo->prepare("UPDATE inventory_assignment_log SET notes = ?, created_at = ? WHERE id = ?");
-                $stmt->execute([$notes, $created_at, $log_id]);
-            } else {
-                $stmt = $pdo->prepare("UPDATE inventory_assignment_log SET notes = ? WHERE id = ?");
-                $stmt->execute([$notes, $log_id]);
+                $setClauses[] = 'created_at = ?';
+                $params[] = $created_at;
             }
+
+            // Update action (assign/unassign)
+            if ($log_action === 'assign' || $log_action === 'unassign') {
+                $setClauses[] = 'action = ?';
+                $params[] = $log_action;
+            }
+
+            // Update assigned_to and name if action is assign
+            if ($log_action === 'assign' && $new_assigned_to > 0) {
+                $uName = $pdo->prepare("SELECT name FROM users WHERE id = ?");
+                $uName->execute([$new_assigned_to]);
+                $uNameVal = $uName->fetchColumn() ?: '';
+                $setClauses[] = 'assigned_to = ?';
+                $params[] = $new_assigned_to;
+                $setClauses[] = 'assigned_to_name = ?';
+                $params[] = $uNameVal;
+            }
+
+            // Update quantity if provided
+            if ($new_quantity > 0) {
+                $setClauses[] = 'quantity = ?';
+                $params[] = $new_quantity;
+            }
+
+            $params[] = $log_id;
+            $sql = "UPDATE inventory_assignment_log SET " . implode(', ', $setClauses) . " WHERE id = ?";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
             echo json_encode(['success' => true, 'message' => 'Registro actualizado']);
             break;
 

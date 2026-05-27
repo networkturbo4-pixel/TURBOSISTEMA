@@ -1035,19 +1035,133 @@ window.addEventListener('error', function(e) {
         </div>
     </div>
 </div>
+<!-- Modal: Editar Stock de Producto -->
+<div class="modal-overlay" id="editStockModal" style="z-index: 19003;">
+    <div class="modal-content" style="max-width:560px; width:96%;">
+        <div class="modal-header">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="ph ph-stack-plus" style="font-size:1.2rem;color:#fff;"></i>
+                </div>
+                <div>
+                    <h3 style="margin:0;font-size:1.05rem;" id="editStockModalTitle">Editar Stock</h3>
+                    <p style="margin:0;font-size:0.78rem;color:var(--text-muted);" id="editStockModalSub"></p>
+                </div>
+            </div>
+            <button class="close-modal" onclick="closeEditStockModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:20px;">
+            <input type="hidden" id="esProductId">
+            <input type="hidden" id="esProductType">
+            <input type="hidden" id="esIsBulk">
+            <input type="hidden" id="esCurrentStock">
+
+            <!-- ── NORMAL / GRANEL ── -->
+            <div id="esNormalWrap">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+                    <div style="background:var(--bg-color);border:1px solid var(--border-color);border-radius:12px;padding:14px;text-align:center;">
+                        <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">Stock Actual</div>
+                        <div style="font-size:1.8rem;font-weight:800;color:var(--text-color);" id="esCurrentStockDisplay">—</div>
+                        <div style="font-size:0.75rem;color:var(--text-muted);" id="esUnitLabel"></div>
+                    </div>
+                    <div style="background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(139,92,246,0.05));border:1px solid rgba(99,102,241,0.25);border-radius:12px;padding:14px;text-align:center;">
+                        <div style="font-size:0.75rem;color:#6366f1;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">Nuevo Stock</div>
+                        <div style="font-size:1.8rem;font-weight:800;color:#6366f1;" id="esNewStockDisplay">—</div>
+                        <div id="esChangeBadge" style="font-size:0.78rem;font-weight:700;margin-top:2px;"></div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom:16px;">
+                    <label class="form-label" style="font-weight:600;">Nueva cantidad total</label>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <button type="button" onclick="esAdjust(-1)" style="width:40px;height:40px;border:1px solid var(--border-color);background:var(--bg-color);border-radius:8px;font-size:1.2rem;cursor:pointer;flex-shrink:0;color:var(--text-color);">−</button>
+                        <input type="number" id="esNewQty" class="form-control" min="0" step="1" style="text-align:center;font-size:1.1rem;font-weight:700;" oninput="esUpdatePreview()">
+                        <button type="button" onclick="esAdjust(1)" style="width:40px;height:40px;border:1px solid var(--border-color);background:var(--bg-color);border-radius:8px;font-size:1.2rem;cursor:pointer;flex-shrink:0;color:var(--text-color);">+</button>
+                    </div>
+                </div>
+
+                <!-- Warning for SKU deletions -->
+                <div id="esDeleteWarning" style="display:none;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:0.82rem;color:#b45309;">
+                    <i class="ph ph-warning"></i> <span id="esDeleteWarningText"></span>
+                </div>
+                <!-- Info for SKU generation -->
+                <div id="esGenerateInfo" style="display:none;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:0.82rem;color:#059669;">
+                    <i class="ph ph-plus-circle"></i> <span id="esGenerateInfoText"></span>
+                </div>
+            </div>
+
+            <!-- ── AGRUPADO ── -->
+            <div id="esAgrupadoWrap" style="display:none;">
+                <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px;">
+                    <i class="ph ph-info" style="color:#6366f1;"></i> Ajusta la cantidad de cada variante. Los cambios se aplican al guardar.
+                </div>
+                <div style="border:1px solid var(--border-color);border-radius:12px;overflow:hidden;max-height:340px;overflow-y:auto;">
+                    <table class="inv-table" style="margin:0;">
+                        <thead>
+                            <tr>
+                                <th>Variante</th>
+                                <th style="width:100px;text-align:center;">Actual</th>
+                                <th style="width:160px;text-align:center;">Nueva cantidad</th>
+                                <th style="width:80px;text-align:center;">Cambio</th>
+                            </tr>
+                        </thead>
+                        <tbody id="esVariantsList"></tbody>
+                    </table>
+                </div>
+                <div id="esAgrupadoTotal" style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:10px 14px;background:var(--bg-color);border-radius:10px;border:1px solid var(--border-color);">
+                    <span style="font-weight:600;font-size:0.88rem;color:var(--text-muted);">Total agrupado:</span>
+                    <span style="font-weight:800;font-size:1.1rem;color:#6366f1;" id="esAgrupadoTotalVal">—</span>
+                </div>
+            </div>
+
+            <div style="margin-top:4px;">
+                <label class="form-label" style="font-weight:600;">Notas (opcional)</label>
+                <textarea class="form-control" id="esNotes" rows="2" placeholder="Motivo del ajuste de stock..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer" style="padding:14px 20px;border-top:1px solid var(--border-color);display:flex;gap:10px;justify-content:flex-end;">
+            <button type="button" class="btn btn-secondary" onclick="closeEditStockModal()">Cancelar</button>
+            <button type="button" class="btn btn-primary" id="esSaveBtn" onclick="saveEditStockModal()">
+                <i class="ph ph-floppy-disk"></i> Guardar Cambios
+            </button>
+        </div>
+    </div>
+</div>
 
 <!-- Modal: Editar Registro de Asignación -->
 <div class="modal-overlay" id="editAssignLogModal" style="z-index: 19002;">
-    <div class="modal-content" style="max-width:420px;">
+    <div class="modal-content" style="max-width:480px;">
         <div class="modal-header">
             <h3><i class="ph ph-pencil-simple" style="color:#6366f1;"></i> Editar Asignación</h3>
             <button class="close-modal" onclick="closeEditAssignLog()">&times;</button>
         </div>
         <div class="modal-body">
             <input type="hidden" id="editAssignLogId">
+            <input type="hidden" id="editAssignLogProductType">
+            <input type="hidden" id="editAssignLogIsUnassign" value="0">
             <div class="inv-form-field" style="margin-bottom:12px;">
                 <label class="form-label">Fecha y Hora</label>
                 <input type="datetime-local" class="form-control" id="editAssignLogDate">
+            </div>
+            <div class="inv-form-field" style="margin-bottom:12px;">
+                <label class="form-label"><i class="ph ph-user" style="color:#6366f1;"></i> Asignado a</label>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <select class="form-select" id="editAssignLogUser" style="flex:1;">
+                        <option value="">Cargando...</option>
+                    </select>
+                    <button type="button" class="btn btn-secondary" title="Marcar como desasignado" onclick="editAssignLogSetUnassign()" style="padding:8px 12px;flex-shrink:0;" id="editAssignLogUnassignBtn">
+                        <i class="ph ph-user-minus"></i>
+                    </button>
+                </div>
+                <div id="editAssignLogUnassignHint" style="display:none;margin-top:6px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:8px 12px;font-size:0.82rem;color:#ef4444;">
+                    <i class="ph ph-warning"></i> Se marcará como <strong>DESASIGNADO</strong>
+                    <button type="button" onclick="editAssignLogCancelUnassign()" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:0.8rem;float:right;text-decoration:underline;">Cancelar</button>
+                </div>
+            </div>
+            <div class="inv-form-field" id="editAssignLogQtyWrap" style="margin-bottom:12px;">
+                <label class="form-label"><i class="ph ph-stack" style="color:#6366f1;"></i> Cantidad</label>
+                <input type="number" class="form-control" id="editAssignLogQty" min="0.01" step="0.01" value="1">
+                <small style="color:var(--text-muted);font-size:0.78rem;" id="editAssignLogQtyHint"></small>
             </div>
             <div class="inv-form-field" style="margin-bottom:16px;">
                 <label class="form-label">Notas</label>
