@@ -2039,13 +2039,17 @@
             return cellMap;
         });
 
-        tbody.innerHTML = rows.map(cellMap => {
+        // No-filter columns (only used as labels)
+        const noFilterCols = new Set(['#', 'Acción']);
+
+        tbody.innerHTML = rows.map((cellMap, ri) => {
+            const s = data[ri];
             const cells = columnOrder.map((col, ci) => {
                 let cell = cellMap[col] || '<td>\u2014</td>';
                 if (ci < STICKY_COUNT) cell = cell.replace('<td', `<td class="sticky-col sticky-col-${ci}"`);
                 return cell;
             }).join('');
-            return `<tr>${cells}</tr>`;
+            return `<tr class="sku-filter-row" data-sku="${(s.sku_code||'').toLowerCase()}" data-prod="${(s.product_name||'').toLowerCase()}" data-cat="${(s.category_name||'').toLowerCase()}" data-status="${s.status||''}" data-hist="${s.historia||'ninguno'}" data-assigned="${(s.assigned_user_name||'').toLowerCase()}" data-acta="${(s.acta_cliente||'').toLowerCase()}" data-fecha="${s.sku_created_at||''}" data-ultact="${s.last_history_date||''}">${cells}</tr>`;
         }).join('');
 
         // Render headers in column order
@@ -2053,16 +2057,20 @@
         const thead = document.querySelector('#skuTable thead tr');
         thead.innerHTML = columnOrder.map((col, ci) => {
             const sortKey = sortableColumns[col];
-            const sortHtml = sortKey ? ` ${si(sortKey)}` : '';
             const sortClass = sortKey ? ' sortable-th' : '';
             const sortClick = sortKey ? ` onclick="toggleSort('${sortKey}')"` : '';
             const stickyClass = ci < STICKY_COUNT ? ` sticky-col sticky-col-${ci} sticky-th` : '';
             const dragAttr = `draggable="true" data-colidx="${ci}"`;
-            return `<th class="draggable-th${sortClass}${stickyClass}"${sortClick} ${dragAttr}>${col}${sortHtml}</th>`;
+            const filterBtn = !noFilterCols.has(col)
+                ? ` <button class="cf-btn" id="skuFilterBtn_${ci}" onclick="event.stopPropagation(); SkuColFilter.open('${col.replace(/'/g,'\\\'')}', this)" title="Filtrar"><i class="ph ph-funnel-simple"></i></button>`
+                : '';
+            return `<th class="draggable-th${sortClass}${stickyClass}"${sortClick} ${dragAttr} data-skucol="${col.replace(/"/g,'&quot;')}"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="white-space:nowrap;">${col}</span>${filterBtn}</div></th>`;
         }).join('');
 
         // Setup drag-and-drop on headers
         setupColumnDragDrop();
+        // Reapply any active SkuColFilter state after re-render
+        if (window.SkuColFilter) window.SkuColFilter.reapply();
     }
 
     // ── Column drag-and-drop ──
@@ -3526,6 +3534,277 @@
     // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // Smart Column Filters - ColFilterManager
     // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    // ══════════════════════════════════════════════════════════════
+    // Smart Column Filters - SkuColFilter (Control de Stock table)
+    // ══════════════════════════════════════════════════════════════
+    window.SkuColFilter = (function() {
+        var state = {};
+        var currentCol = null;
+        var popover = null;
+
+        // Map column display name → filter definition
+        var skuCols = {
+            'SKU':            { label: 'SKU',            type: 'text',       dataKey: 'sku' },
+            'Producto':       { label: 'Producto',        type: 'text',       dataKey: 'prod' },
+            'Categoría':      { label: 'Categoría',       type: 'checkboxes', optionsFn: getCatOpts },
+            'Estado':         { label: 'Estado',          type: 'checkboxes', optionsFn: getStatusOpts },
+            'Historia':       { label: 'Historia',        type: 'checkboxes', optionsFn: getHistOpts },
+            'Últ. Actividad': { label: 'Últ. Actividad',  type: 'date',       dataKey: 'ultact' },
+            'Instalado a':    { label: 'Instalado a',     type: 'text',       dataKey: 'acta' },
+            'Asignado':       { label: 'Asignado',        type: 'text',       dataKey: 'assigned' },
+            'Fecha Registro': { label: 'Fecha Registro',  type: 'date',       dataKey: 'fecha' }
+        };
+
+        function getCatOpts() {
+            var seen = new Set();
+            var opts = [];
+            document.querySelectorAll('#skuTableBody .sku-filter-row').forEach(function(r) {
+                var v = r.dataset.cat;
+                if (v && !seen.has(v)) { seen.add(v); opts.push({ value: v, label: v }); }
+            });
+            opts.sort(function(a, b) { return a.label.localeCompare(b.label); });
+            return opts;
+        }
+
+        function getStatusOpts() {
+            return [
+                { value: 'disponible',  label: 'Disponible' },
+                { value: 'instalado',   label: 'Instalado' },
+                { value: 'malogrado',   label: 'Malogrado' },
+                { value: 'reparado',    label: 'Reparado' },
+                { value: 'en_transito', label: 'En Tránsito' }
+            ];
+        }
+
+        function getHistOpts() {
+            return [
+                { value: 'ninguno',     label: '— Ninguno' },
+                { value: 'devuelto',    label: 'Devuelto' },
+                { value: 'malogrado',   label: 'Malogrado' },
+                { value: 'antiguo',     label: 'Antiguo' },
+                { value: 'en_transito', label: 'En Tránsito' }
+            ];
+        }
+
+        function encodeId(col) { return col.replace(/[^a-zA-Z0-9]/g, '_'); }
+
+        function open(col, anchorBtn) {
+            currentCol = col;
+            closePopover();
+            var def = skuCols[col];
+            if (!def) return;
+            popover = document.createElement('div');
+            popover.id = 'cfPopoverSku';
+            popover.innerHTML = buildPopoverHTML(col, def);
+            document.body.appendChild(popover);
+            positionPopover(anchorBtn);
+            wirePopover(col, def);
+            setTimeout(function() { document.addEventListener('click', outsideClick, true); }, 10);
+        }
+
+        function buildPopoverHTML(col, def) {
+            var cur = state[col] || {};
+            var body = '';
+            if (def.type === 'text' || def.type === 'date') {
+                var inputType = def.type === 'date' ? 'date' : 'text';
+                var icon = def.type === 'date' ? '<i class="ph ph-calendar-blank"></i>' : '<i class="ph ph-magnifying-glass"></i>';
+                body += '<div class="cf-section-label">Buscar</div><div class="cf-text-input">' + icon + '<input id="skuCfInput_' + encodeId(col) + '" type="' + inputType + '" placeholder="Escribir para filtrar..." value="' + (cur.text || '') + '" autocomplete="off"></div>';
+            }
+            if (def.type === 'checkboxes') {
+                var opts = def.optionsFn ? def.optionsFn() : [];
+                var selected = cur.checked || [];
+                body += '<div class="cf-section-label">Seleccionar</div><div class="cf-check-list">';
+                if (opts.length === 0) {
+                    body += '<span style="font-size:0.82rem;color:var(--text-muted);">No hay opciones</span>';
+                } else {
+                    opts.forEach(function(o) {
+                        var chk = selected.includes(o.value) ? 'checked' : '';
+                        body += '<label class="cf-check-item"><input type="checkbox" value="' + o.value + '" ' + chk + '><span>' + o.label + '</span></label>';
+                    });
+                }
+                body += '</div>';
+            }
+            var hasFilter = isActive(col);
+            var escapedCol = col.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            var clearBtn = hasFilter ? '<div class="cf-pop-clear"><button onclick="SkuColFilter.clearCol(\'' + escapedCol + '\')"><i class="ph ph-eraser"></i> Limpiar este filtro</button></div>' : '';
+            return '<div class="cf-pop-header"><span><i class="ph ph-funnel-simple" style="color:var(--primary-color);margin-right:4px;"></i>' + def.label + '</span><button onclick="SkuColFilter.close()"><i class="ph ph-x"></i></button></div><div class="cf-pop-body">' + body + clearBtn + '</div>';
+        }
+
+        function positionPopover(anchorBtn) {
+            if (!popover) return;
+            var rect = anchorBtn.getBoundingClientRect();
+            var pw = popover.offsetWidth || 260;
+            var ph = popover.offsetHeight || 200;
+            var top = rect.bottom + 6;
+            var left = rect.left;
+            if (left + pw > window.innerWidth - 10) left = window.innerWidth - pw - 10;
+            if (top + ph > window.innerHeight - 10) top = rect.top - ph - 6;
+            popover.style.top = top + 'px';
+            popover.style.left = left + 'px';
+        }
+
+        function wirePopover(col, def) {
+            if (!popover) return;
+            if (def.type === 'text' || def.type === 'date') {
+                var inp = popover.querySelector('#skuCfInput_' + encodeId(col));
+                if (inp) {
+                    inp.focus();
+                    inp.addEventListener('input', function() {
+                        if (!state[col]) state[col] = {};
+                        state[col].text = inp.value.trim();
+                        applyFilters(); updateHeaderUI(col); updateActiveBar();
+                    });
+                }
+            }
+            if (def.type === 'checkboxes') {
+                popover.querySelectorAll('.cf-check-list input[type="checkbox"]').forEach(function(cb) {
+                    cb.addEventListener('change', function() {
+                        if (!state[col]) state[col] = {};
+                        var checked = Array.from(popover.querySelectorAll('.cf-check-list input:checked')).map(function(c) { return c.value; });
+                        state[col].checked = checked;
+                        applyFilters(); updateHeaderUI(col); updateActiveBar();
+                    });
+                });
+            }
+        }
+
+        function applyFilters() {
+            document.querySelectorAll('#skuTableBody .sku-filter-row').forEach(function(row) {
+                var show = true;
+
+                Object.entries(state).forEach(function(entry) {
+                    if (!show) return;
+                    var col = entry[0]; var f = entry[1];
+                    var def = skuCols[col];
+                    if (!def) return;
+
+                    if ((def.type === 'text' || def.type === 'date') && f.text) {
+                        var txt = f.text.toLowerCase();
+                        var val = '';
+                        if      (col === 'SKU')            val = row.dataset.sku      || '';
+                        else if (col === 'Producto')        val = row.dataset.prod     || '';
+                        else if (col === 'Asignado')        val = row.dataset.assigned || '';
+                        else if (col === 'Instalado a')     val = row.dataset.acta     || '';
+                        else if (col === 'Últ. Actividad')  val = row.dataset.ultact   || '';
+                        else if (col === 'Fecha Registro')  val = row.dataset.fecha    || '';
+                        if (!val.includes(txt)) show = false;
+                    }
+
+                    if (def.type === 'checkboxes' && f.checked && f.checked.length > 0) {
+                        var rowVal = '';
+                        if      (col === 'Categoría') rowVal = (row.dataset.cat    || '').toLowerCase();
+                        else if (col === 'Estado')    rowVal = (row.dataset.status || '');
+                        else if (col === 'Historia')  rowVal = (row.dataset.hist   || 'ninguno');
+                        var haystack = (col === 'Categoría') ? f.checked.map(function(v){ return v.toLowerCase(); }) : f.checked;
+                        if (!haystack.includes(rowVal)) show = false;
+                    }
+                });
+
+                row.style.display = show ? '' : 'none';
+            });
+
+            var visible = document.querySelectorAll('#skuTableBody .sku-filter-row:not([style*="display: none"]):not([style*="display:none"])');
+            var empty = document.getElementById('skuEmpty');
+            var table = document.getElementById('skuTable');
+            if (empty) empty.style.display = (visible.length === 0 && table && table.style.display !== 'none') ? 'block' : 'none';
+        }
+
+        function updateHeaderUI(col) {
+            var active = isActive(col);
+            var escapedCol = col.replace(/"/g, '&quot;');
+            var th = document.querySelector('#skuTable thead th[data-skucol="' + escapedCol + '"]');
+            if (!th) return;
+            var btn = th.querySelector('.cf-btn');
+            if (btn) btn.classList.toggle('cf-active', active);
+            var badge = th.querySelector('.cf-badge');
+            var labelSpan = th.querySelector('span[style]');
+            if (active) {
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.className = 'cf-badge';
+                    if (labelSpan) labelSpan.appendChild(badge);
+                }
+                badge.textContent = String.fromCharCode(0x25CF);
+                badge.style.display = 'inline-flex';
+            } else {
+                if (badge) badge.style.display = 'none';
+            }
+        }
+
+        function updateActiveBar() {
+            var bar = document.getElementById('skuActiveBar');
+            var tagsEl = document.getElementById('skuActiveTags');
+            if (!bar || !tagsEl) return;
+            var activeCols = Object.entries(state).filter(function(e) { return isActive(e[0]); });
+            if (activeCols.length === 0) { bar.style.display = 'none'; return; }
+            bar.style.display = 'flex';
+            tagsEl.innerHTML = activeCols.map(function(e) {
+                var col = e[0];
+                var def = skuCols[col];
+                if (!def) return '';
+                var label = buildFilterLabel(col);
+                var escapedCol = col.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                return '<span class="cf-active-tag"><i class="ph ph-funnel-simple"></i><span>' + def.label + ': <strong>' + label + '</strong></span><button onclick="SkuColFilter.clearCol(\'' + escapedCol + '\')" title="Quitar"><i class="ph ph-x"></i></button></span>';
+            }).join('');
+        }
+
+        function buildFilterLabel(col) {
+            var f = state[col] || {};
+            var def = skuCols[col];
+            if (!def) return '';
+            if (def.type === 'text' || def.type === 'date') return '"' + f.text + '"';
+            if (def.type === 'checkboxes' && f.checked && f.checked.length) {
+                var opts = def.optionsFn ? def.optionsFn() : [];
+                var labels = f.checked.map(function(v) { var o = opts.find(function(x) { return x.value === v; }); return o ? o.label : v; });
+                return labels.slice(0, 2).join(', ') + (labels.length > 2 ? ' +' + (labels.length - 2) : '');
+            }
+            return '';
+        }
+
+        function isActive(col) {
+            var f = state[col];
+            if (!f) return false;
+            if (f.text) return true;
+            if (f.checked && f.checked.length > 0) return true;
+            return false;
+        }
+
+        function closePopover() {
+            if (popover) { popover.remove(); popover = null; }
+            document.removeEventListener('click', outsideClick, true);
+        }
+
+        function outsideClick(e) {
+            if (popover && !popover.contains(e.target) && !e.target.closest('.cf-btn')) {
+                closePopover();
+            }
+        }
+
+        function clearCol(col) {
+            delete state[col];
+            closePopover();
+            applyFilters();
+            updateHeaderUI(col);
+            updateActiveBar();
+        }
+
+        function clearAll() {
+            Object.keys(state).forEach(function(k) { delete state[k]; });
+            closePopover();
+            applyFilters();
+            Object.keys(skuCols).forEach(function(col) { updateHeaderUI(col); });
+            updateActiveBar();
+        }
+
+        function reapply() {
+            applyFilters();
+            Object.keys(skuCols).forEach(function(col) { updateHeaderUI(col); });
+            updateActiveBar();
+        }
+
+        return { open: open, close: closePopover, clearCol: clearCol, clearAll: clearAll, applyFilters: applyFilters, reapply: reapply };
+    })();
+
     window.ColFilter = (function() {
         var state = {};
         var currentCol = null;

@@ -1776,23 +1776,25 @@ body.dark-theme .sku-photo-source-btn:hover { background: rgba(255,255,255,0.07)
 }
 
 /* Badge de filtros activos en el header */
-.cf-th .cf-badge {
+.cf-th .cf-badge,
+#skuTable thead th .cf-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
+    width: 8px;
+    height: 8px;
     background: var(--primary-color);
     color: #fff;
     border-radius: 50%;
-    font-size: 0.65rem;
+    font-size: 0.5rem;
     font-weight: 700;
-    margin-left: 2px;
+    margin-left: 3px;
     vertical-align: middle;
 }
 
 /* Popover container */
-#cfPopover {
+#cfPopover,
+#cfPopoverSku {
     position: fixed;
     z-index: 99999;
     background: var(--surface-color);
@@ -2031,7 +2033,8 @@ body.dark-theme #cfPopover {
 }
 
 @media (max-width: 768px) {
-    #cfPopover {
+    #cfPopover,
+    #cfPopoverSku {
         position: fixed;
         bottom: 0;
         left: 0;
