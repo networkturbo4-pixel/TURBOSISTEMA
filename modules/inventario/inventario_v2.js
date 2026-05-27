@@ -404,7 +404,7 @@
                     <div style="display:flex; gap:6px;">
                         ${p.product_type === 'agrupado' ? `<button type="button" class="btn btn-secondary btn-sm" onclick="openAssignGrouped(${p.id})" title="Asignar variantes"><i class="ph ph-users-three"></i></button>` : ''}
                         ${p.is_bulk == 1 && p.product_type !== 'agrupado' ? '' : (p.product_type !== 'agrupado' ? `<button class="btn btn-secondary btn-sm" onclick="viewProductSkus(${p.id})" title="Ver SKUs"><i class="ph ph-list-bullets"></i></button>` : '')}
-                        <button class="btn btn-secondary btn-sm" onclick="openEditStockModal(${p.id}, '${p.product_type||'normal'}', ${p.is_bulk||0}, ${p.total_quantity||0}, '${esc(p.unit_type||'Und')}')" title="Editar stock" style="background:rgba(99,102,241,0.1);color:#6366f1;border-color:rgba(99,102,241,0.3);"><i class="ph ph-stack-plus"></i></button>
+                        <button class="btn btn-secondary btn-sm" onclick="openEditStockModal(${p.id}, '${p.product_type||'normal'}', ${p.is_bulk||0}, ${p.is_bulk==1 && p.product_type!=='agrupado' ? (p.qty_disponible||0) : (p.total_quantity||0)}, '${esc(p.unit_type||'Und')}')" title="Editar stock" style="background:rgba(99,102,241,0.1);color:#6366f1;border-color:rgba(99,102,241,0.3);"><i class="ph ph-stack-plus"></i></button>
                         <button class="btn btn-secondary btn-sm" onclick="openEditProduct(${p.id}, this)" title="Editar"><i class="ph ph-pencil-simple"></i></button>
                         <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})" title="Eliminar"><i class="ph ph-trash"></i></button>
                     </div>
@@ -3910,7 +3910,7 @@
             document.getElementById('esCurrentStockDisplay').textContent = cur;
             document.getElementById('esNewStockDisplay').textContent = cur;
             document.getElementById('esNewQty').value = cur;
-            document.getElementById('esUnitLabel').textContent = isBulk == 1 ? (unitType || 'Und') : 'SKUs';
+            document.getElementById('esUnitLabel').textContent = isBulk == 1 ? (unitType || 'Und') + ' (almacén)' : 'SKUs totales';
             document.getElementById('esChangeBadge').innerHTML = '';
             document.getElementById('esDeleteWarning').style.display = 'none';
             document.getElementById('esGenerateInfo').style.display = 'none';

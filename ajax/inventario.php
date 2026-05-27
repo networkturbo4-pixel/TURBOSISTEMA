@@ -1181,7 +1181,7 @@ try {
             $product_id = intval($_POST['product_id'] ?? 0);
             $new_total  = intval($_POST['new_total'] ?? 0);
             $notes      = trim($_POST['notes'] ?? '');
-            if (!$product_id || $new_total < 0) {
+            if (!$product_id || $new_total < 0 || !isset($_POST['new_total'])) {
                 echo json_encode(['success' => false, 'message' => 'Datos inválidos']);
                 break;
             }
