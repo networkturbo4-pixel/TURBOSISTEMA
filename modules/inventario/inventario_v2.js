@@ -5451,5 +5451,44 @@ window.SheetsSync = (function() {
             console.error(e);
         }
     };
+
+    window.bulkChangeSkuStatus = async function() {
+        const selected = Array.from(document.querySelectorAll('.sku-row-check:checked')).map(el => el.value);
+        if (!selected.length) return;
+
+        const newStatus = prompt("Escribe el nuevo estado (disponible, instalado, malogrado, reparado, en_transito, observacion):", "disponible");
+        if (!newStatus) return;
+
+        const validStatuses = ['disponible', 'instalado', 'malogrado', 'reparado', 'en_transito', 'observacion'];
+        if (!validStatuses.includes(newStatus.toLowerCase())) {
+            alert("Estado inválido.");
+            return;
+        }
+
+        const fd = new FormData();
+        fd.append('action', 'bulk_change_sku_status');
+        fd.append('skus', JSON.stringify(selected));
+        fd.append('status', newStatus.toLowerCase());
+
+        try {
+            const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+            if (res.success) {
+                if (window.showToast) window.showToast(res.message, 'success');
+                const chkAll = document.getElementById('skuCheckAll');
+                if (chkAll) chkAll.checked = false;
+                if (window.loadAllSkus) window.loadAllSkus();
+                if (window.loadMetrics) window.loadMetrics();
+            } else {
+                if (window.showToast) window.showToast(res.message, 'error');
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    window.exportSkusToExcel = function() {
+        alert("La exportación a Excel estará disponible en la próxima actualización.");
+    };
+
 })();
 

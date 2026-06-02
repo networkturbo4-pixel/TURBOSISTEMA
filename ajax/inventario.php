@@ -1177,6 +1177,34 @@ try {
             echo json_encode(['success' => true, 'message' => 'Estados actualizados']);
             break;
 
+        case 'bulk_change_sku_status':
+            $skus_json = $_POST['skus'] ?? '[]';
+            $skus = json_decode($skus_json, true);
+            $status = trim($_POST['status'] ?? '');
+            
+            if (!is_array($skus) || empty($skus) || empty($status)) {
+                echo json_encode(['success' => false, 'message' => 'Datos inválidos']);
+                break;
+            }
+            
+            // Extract IDs from 'bulk_xxx' vs normal '123'
+            $normal_ids = [];
+            foreach ($skus as $id) {
+                if (strpos($id, 'bulk_') !== 0) {
+                    $normal_ids[] = intval($id);
+                }
+            }
+            
+            if (count($normal_ids) > 0) {
+                $placeholders = implode(',', array_fill(0, count($normal_ids), '?'));
+                $params = array_merge([$status], $normal_ids);
+                $stmt = $pdo->prepare("UPDATE inventory_skus SET status = ? WHERE id IN ($placeholders)");
+                $stmt->execute($params);
+            }
+            
+            echo json_encode(['success' => true, 'message' => count($skus) . ' SKUs actualizados']);
+            break;
+
         case 'bulk_delete_skus':
             $skus_json = $_POST['skus'] ?? '[]';
             $skus = json_decode($skus_json, true);
