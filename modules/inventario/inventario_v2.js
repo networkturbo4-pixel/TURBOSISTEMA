@@ -1,6 +1,6 @@
 /* INVENTARIO MODULE — JavaScript */
 (function() {
-    const BASE = document.querySelector('meta[name="base-url"]')?.content || (function() { const s = document.querySelector('script[src*="inventario"]'); return s ? s.src.split('/modules/')[0] : ''; })();
+    const BASE = document.querySelector('meta[name="base-url"]')?.content || (window.location.pathname.includes('/TURBOSAAS') ? '/TURBOSAAS' : '');
     let customColumns = [];
     let previewCustomData = []; // [{col: value, ...}, ...] per SKU row
     let previewSkuCodes = [];
@@ -71,6 +71,7 @@
                 document.getElementById('btnNewProduct').style.display = btn.dataset.tab === 'productos' ? 'flex' : 'none';
                 if (btn.dataset.tab === 'stock') loadAllSkus();
                 if (btn.dataset.tab === 'etiquetas') populateLabelProducts();
+                if (btn.dataset.tab === 'papelera' && window.loadPapelera) window.loadPapelera();
             });
         });
     }
@@ -207,8 +208,8 @@
             if (res.success) {
                 const d = res.data;
                 const status = d.status || 'disponible';
-                const c = { disponible:'#10b981', instalado:'#3b82f6', malogrado:'#ef4444', reparado:'#f59e0b', en_transito:'#8b5cf6' };
-                const ic = { disponible:'ph-check-circle', instalado:'ph-arrow-circle-up', malogrado:'ph-x-circle', reparado:'ph-wrench', en_transito:'ph-truck' };
+                const c = { disponible:'#10b981', instalado:'#3b82f6', malogrado:'#ef4444', reparado:'#f59e0b', en_transito:'#8b5cf6', observacion:'#0891b2' };
+                const ic = { disponible:'ph-check-circle', instalado:'ph-arrow-circle-up', malogrado:'ph-x-circle', reparado:'ph-wrench', en_transito:'ph-truck', observacion:'ph-eye' };
                 const color = c[status] || '#6366f1';
                 const icon = ic[status] || 'ph-package';
                 r.innerHTML = `<div class="sr-icon" style="background:${color}20;color:${color};"><i class="ph ${icon}"></i></div><div class="sr-info"><h4>${esc(d.sku_code)} — ${esc(d.product_name)}</h4><p>Categoría: ${esc(d.category_name||'Sin categoría')} · <span class="status-badge status-${esc(status)}">${esc(status).toUpperCase()}</span></p></div>`;
@@ -293,12 +294,12 @@
             if (window.showToast) window.showToast('No hay productos seleccionados', 'error');
             return;
         }
-        const colsToExport = ['Producto', 'Categoría', 'Total', 'Disponibles', 'Instalados', 'Malogrados'];
+        const colsToExport = ['Producto', 'Categoría', 'Total', 'Disponibles', 'Instalados', 'Malogrados', 'Observados'];
         let csvContent = "\uFEFF";
         csvContent += colsToExport.map(c => `"${c.replace(/"/g, '""')}"`).join(',') + '\n';
         const exportData = (window.lastProductsData || []).filter(p => window.selectedProducts.has(p.id));
         exportData.forEach(p => {
-            const row = [p.name || '', p.category_name || 'Sin cat.', p.total_quantity || 0, p.qty_disponible || 0, p.qty_instalado || 0, p.qty_malogrado || 0];
+            const row = [p.name || '', p.category_name || 'Sin cat.', p.total_quantity || 0, p.qty_disponible || 0, p.qty_instalado || 0, p.qty_malogrado || 0, p.qty_observacion || 0];
             csvContent += row.map(val => `"${val.toString().replace(/"/g, '""')}"`).join(',') + '\n';
         });
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -344,6 +345,7 @@
              else if (stat === 'sin_stock') matchStat = parseInt(p.qty_disponible||0) === 0;
              else if (stat === 'stock_critico') matchStat = parseInt(p.qty_disponible||0) <= parseInt(p.stock_critico||0);
              else if (stat === 'con_malogrados') matchStat = parseInt(p.qty_malogrado||0) > 0;
+             else if (stat === 'con_observacion') matchStat = parseInt(p.qty_observacion||0) > 0;
              return matchName && matchCat && matchStat;
         });
         
@@ -371,7 +373,7 @@
         grid.innerHTML = pageData.map((p, i) => {
             const isChecked = window.selectedProducts.has(p.id) ? 'checked' : '';
             const rowClass = isChecked ? 'product-row row-selected' : 'product-row';
-            return `<tr class="${rowClass}" data-product-id="${p.id}" data-product-type="${p.product_type||'normal'}" data-name="${(p.name||'').toLowerCase()} ${(p.description||'').toLowerCase()} ${(p.searchable_children||'').toLowerCase()}" data-cat="${p.category_id||''}" data-disp="${p.qty_disponible||0}" data-crit="${p.stock_critico||0}" data-malo="${p.qty_malogrado||0}" data-total="${p.total_quantity||0}" data-inst="${p.qty_instalado||0}" style="animation: fadeIn 0.3s ease forwards; animation-delay: ${i*0.05}s; opacity: 0;">
+            return `<tr class="${rowClass}" data-product-id="${p.id}" data-product-type="${p.product_type||'normal'}" data-name="${(p.name||'').toLowerCase()} ${(p.description||'').toLowerCase()} ${(p.searchable_children||'').toLowerCase()}" data-cat="${p.category_id||''}" data-disp="${p.qty_disponible||0}" data-crit="${p.stock_critico||0}" data-malo="${p.qty_malogrado||0}" data-obs="${p.qty_observacion||0}" data-total="${p.total_quantity||0}" data-inst="${p.qty_instalado||0}" style="animation: fadeIn 0.3s ease forwards; animation-delay: ${i*0.05}s; opacity: 0;">
                 <td style="text-align:center;width:40px;vertical-align:middle;">
                     <input type="checkbox" class="prod-row-check form-check-input" value="${p.id}" ${isChecked} onchange="toggleProductSelection(this, ${p.id})">
                 </td>
@@ -400,6 +402,7 @@
                 <td data-label="Disponibles"><span style="font-weight:700;color:#10b981;">${p.qty_disponible}</span></td>
                 <td data-label="Instalados"><span style="font-weight:700;color:#3b82f6;">${p.qty_instalado}</span></td>
                 <td data-label="Malogrados">${p.is_bulk == 1 ? '<span style="font-weight:700;color:#ef4444;">0</span>' : `<span style="font-weight:700;color:#ef4444;">${p.qty_malogrado}</span>`}</td>
+                <td data-label="Observados">${p.is_bulk == 1 ? '<span style="font-weight:700;color:#0891b2;">0</span>' : `<span style="font-weight:700;color:#0891b2;">${p.qty_observacion}</span>`}</td>
                 <td data-label="Acciones">
                     <div style="display:flex; gap:6px;">
                         ${p.product_type === 'agrupado' ? `<button type="button" class="btn btn-secondary btn-sm" onclick="openAssignGrouped(${p.id})" title="Asignar variantes"><i class="ph ph-users-three"></i></button>` : ''}
@@ -1194,6 +1197,7 @@
                     const qtyDisp      = child.qty_disponible  != null ? parseFloat(child.qty_disponible)  : qtyTotal;
                     const qtyInst      = child.qty_instalado   != null ? parseFloat(child.qty_instalado)   : 0;
                     const qtyMalogrado = child.qty_malogrado   != null ? parseFloat(child.qty_malogrado)   : 0;
+                    const qtyObservacion = child.qty_observacion != null ? parseFloat(child.qty_observacion) : 0;
 
                     tr.innerHTML = `
                         <td></td>
@@ -1211,6 +1215,7 @@
                         <td data-label="Disponibles"><span style="font-weight:700;color:#10b981;">${qtyDisp}</span></td>
                         <td data-label="Instalados"><span style="font-weight:700;color:#3b82f6;">${qtyInst}</span></td>
                         <td data-label="Malogrados"><span style="font-weight:700;color:#ef4444;">${qtyMalogrado}</span></td>
+                        <td data-label="Observados"><span style="font-weight:700;color:#0891b2;">${qtyObservacion}</span></td>
                         <td data-label="Acciones"></td>
                     `;
                     fragment.appendChild(tr);
@@ -1672,7 +1677,7 @@
                         ? `<img src="${BASE}/${s.sku_thumbnail}" data-sku-img="${s.id}" class="lb-thumb" data-lb-src="${BASE}/${s.sku_thumbnail}" data-lb-caption="${esc(s.sku_code)}" style="width:36px;height:36px;border-radius:8px;object-fit:cover;border:1px solid var(--border-color);cursor:zoom-in;flex-shrink:0;">`
                         : `<div data-sku-img="${s.id}" style="width:36px;height:36px;border-radius:8px;background:var(--bg-color);border:1.5px dashed var(--border-color);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="ph ph-camera" style="color:var(--text-muted);font-size:0.9rem;opacity:0.45;"></i></div>`;
 
-                    const statusColors = { disponible:'#10b981', instalado:'#3b82f6', malogrado:'#ef4444', reparado:'#f59e0b', en_transito:'#f59e0b' };
+                    const statusColors = { disponible:'#10b981', instalado:'#3b82f6', malogrado:'#ef4444', reparado:'#f59e0b', en_transito:'#f59e0b', observacion:'#0891b2' };
                     const statusColor = statusColors[s.status] || '#888';
 
                     return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border-color);transition:background 0.15s;" onmouseover="this.style.background='var(--bg-color)'" onmouseout="this.style.background='transparent'">
@@ -2008,7 +2013,7 @@
             }
 
             let cellMap = {
-                '#': `<td>${i+1}</td>`,
+                '#': s.is_bulk ? `<td></td>` : `<td><input type="checkbox" class="sku-row-check form-check-input" value="${s.id}" onchange="updateSkuSelection()" ${s.status !== 'disponible' ? 'disabled title="Solo se pueden eliminar SKUs disponibles"' : ''}></td>`,
                 'SKU': s.is_bulk ? `<td><code style=\"font-weight:700;\">${s.sku_code}</code></td>` : `<td><span class=\"inv-editable\" onclick=\"editSkuCode(${s.id}, this)\" title=\"Clic para editar\"><code style=\"font-weight:700;\">${s.sku_code}</code></span></td>`,
                 'Producto': `<td><div style="display:flex;align-items:center;gap:8px;">${
                     s.product_type === 'agrupado'
@@ -2021,11 +2026,11 @@
                 }<span class="sku-product-name">${esc(s.product_name)}</span>${s.is_bulk ? (s.product_type === 'agrupado' ? '<br><small style="color:#8b5cf6;font-size:0.75rem;"><i class="ph ph-stack"></i> Agrupado</small>' : '<br><small style="color:var(--text-muted);font-size:0.75rem;"><i class="ph ph-package"></i> Granel</small>') : ''}</div></td>`,
                 'Categor\u00eda': `<td>${esc(s.category_name||'\u2014')}</td>`,
                 'Estado': `<td><span class=\"status-badge status-${s.status}\">${s.status.toUpperCase()}</span></td>`,
-                'Historia': s.is_bulk ? `<td><span style=\"color:var(--text-muted);\">\u2014</span></td>` : `<td><select class=\"status-select historia-select\" onchange=\"updateHistoria(${s.id}, this.value)\"><option value=\"ninguno\" ${hist==='ninguno'?'selected':''}>\u2014</option><option value=\"devuelto\" ${hist==='devuelto'?'selected':''}>Devuelto</option><option value=\"malogrado\" ${hist==='malogrado'?'selected':''}>Malogrado</option><option value=\"antiguo\" ${hist==='antiguo'?'selected':''}>Antiguo</option><option value=\"en_transito\" ${hist==='en_transito'?'selected':''}>En Tr\u00e1nsito</option></select></td>`,
+                'Historia': s.is_bulk ? `<td><span style=\"color:var(--text-muted);\">\u2014</span></td>` : `<td><select class=\"status-select historia-select\" onchange=\"updateHistoria(${s.id}, this.value)\"><option value=\"ninguno\" ${hist==='ninguno'?'selected':''}>\u2014</option><option value=\"devuelto\" ${hist==='devuelto'?'selected':''}>Devuelto</option><option value=\"malogrado\" ${hist==='malogrado'?'selected':''}>Malogrado</option><option value=\"observacion\" ${hist==='observacion'?'selected':''}>Observaci\u00f3n</option><option value=\"antiguo\" ${hist==='antiguo'?'selected':''}>Antiguo</option><option value=\"en_transito\" ${hist==='en_transito'?'selected':''}>En Tr\u00e1nsito</option></select></td>`,
                 '\u00dalt. Actividad': s.is_bulk ? `<td><span style=\"color:var(--text-muted);\">\u2014</span></td>` : `<td>${lastHistDate}</td>`,
                 'Instalado a': s.is_bulk ? `<td><span style=\"color:var(--text-muted);\">\u2014</span></td>` : `<td>${instaladoA}</td>`,
                 'Asignado': s.is_bulk ? `<td>${bulkAssignHtml}</td>` : `<td>${assignedHtml}</td>`,
-                'Acci\u00f3n': s.is_bulk ? `<td><span style=\"color:var(--text-muted);\">\u2014</span></td>` : `<td><div style=\"display:flex;gap:4px;align-items:center;\"><select class=\"status-select\" onchange=\"updateSkuStatus(${s.id}, this.value)\"><option value=\"disponible\" ${s.status==='disponible'?'selected':''}>Disponible</option><option value=\"instalado\" ${s.status==='instalado'?'selected':''}>Instalado</option><option value=\"malogrado\" ${s.status==='malogrado'?'selected':''}>Malogrado</option><option value=\"reparado\" ${s.status==='reparado'?'selected':''}>Reparado</option><option value=\"en_transito\" ${s.status==='en_transito'?'selected':''}>En Tr\u00e1nsito</option></select><button class=\"btn-scan-cell\" onclick=\"openSkuPhotoUpload(${s.id}, '${esc(s.sku_code)}')\" title=\"Fotos del SKU\" style=\"color:#8b5cf6;\"><i class=\"ph ph-camera\"></i></button></div></td>`,
+                'Acci\u00f3n': s.is_bulk ? `<td><span style=\"color:var(--text-muted);\">\u2014</span></td>` : `<td><div style=\"display:flex;gap:4px;align-items:center;\"><select class=\"status-select\" onchange=\"updateSkuStatus(${s.id}, this.value)\"><option value=\"disponible\" ${s.status==='disponible'?'selected':''}>Disponible</option><option value=\"instalado\" ${s.status==='instalado'?'selected':''}>Instalado</option><option value=\"malogrado\" ${s.status==='malogrado'?'selected':''}>Malogrado</option><option value=\"reparado\" ${s.status==='reparado'?'selected':''}>Reparado</option><option value=\"en_transito\" ${s.status==='en_transito'?'selected':''}>En Tr\u00e1nsito</option><option value=\"observacion\" ${s.status==='observacion'?'selected':''}>Observaci\u00f3n</option></select><button class=\"btn-scan-cell\" onclick=\"openSkuPhotoUpload(${s.id}, '${esc(s.sku_code)}')\" title=\"Fotos del SKU\" style=\"color:#8b5cf6;\"><i class=\"ph ph-camera\"></i></button></div></td>`,
                 'Fecha Registro': `<td>${fechaReg}</td>`
             };
             customKeys.forEach(key => {
@@ -2049,7 +2054,7 @@
                 if (ci < STICKY_COUNT) cell = cell.replace('<td', `<td class="sticky-col sticky-col-${ci}"`);
                 return cell;
             }).join('');
-            return `<tr class="sku-filter-row" data-sku="${(s.sku_code||'').toLowerCase()}" data-prod="${(s.product_name||'').toLowerCase()}" data-cat="${(s.category_name||'').toLowerCase()}" data-status="${s.status||''}" data-hist="${s.historia||'ninguno'}" data-assigned="${(s.assigned_user_name||'').toLowerCase()}" data-acta="${(s.acta_cliente||'').toLowerCase()}" data-fecha="${s.sku_created_at||''}" data-ultact="${s.last_history_date||''}">${cells}</tr>`;
+            return `<tr class="sku-filter-row" data-id="${s.id}" data-sku="${(s.sku_code||'').toLowerCase()}" data-prod="${(s.product_name||'').toLowerCase()}" data-cat="${(s.category_name||'').toLowerCase()}" data-status="${s.status||''}" data-hist="${s.historia||'ninguno'}" data-assigned="${(s.assigned_user_name||'').toLowerCase()}" data-acta="${(s.acta_cliente||'').toLowerCase()}" data-fecha="${s.sku_created_at||''}" data-ultact="${s.last_history_date||''}">${cells}</tr>`;
         }).join('');
 
         // Render headers in column order
@@ -2111,6 +2116,7 @@
                     const qtyDisp      = child.qty_disponible != null ? parseFloat(child.qty_disponible) : qtyTotal;
                     const qtyInst      = child.qty_instalado  != null ? parseFloat(child.qty_instalado)  : 0;
                     const qtyMalogrado = child.qty_malogrado  != null ? parseFloat(child.qty_malogrado)  : 0;
+                    const qtyObservacion = child.qty_observacion != null ? parseFloat(child.qty_observacion) : 0;
                     // Fill empty cells for extra columns in the middle
                     const emptyCells = Array(Math.max(0, colCount - 7)).fill('<td></td>').join('');
                     tr.innerHTML = `
@@ -2129,6 +2135,7 @@
                         <td><span style="font-weight:700;color:#10b981;">${qtyDisp}</span></td>
                         <td><span style="font-weight:700;color:#3b82f6;">${qtyInst}</span></td>
                         <td><span style="font-weight:700;color:#ef4444;">${qtyMalogrado}</span></td>
+                        <td><span style="font-weight:700;color:#0891b2;">${qtyObservacion}</span></td>
                         <td></td>`;
                     fragment.appendChild(tr);
                 });
@@ -2649,7 +2656,7 @@
 
         // ── Imagen del producto en el header ──
         const headerImg = document.getElementById('skuDetailHeaderImg');
-        const statusColors = { disponible:'#10b981', instalado:'#3b82f6', malogrado:'#ef4444', reparado:'#f59e0b', en_transito:'#8b5cf6' };
+        const statusColors = { disponible:'#10b981', instalado:'#3b82f6', malogrado:'#ef4444', reparado:'#f59e0b', en_transito:'#8b5cf6', observacion:'#0891b2' };
         const status = data.status || 'disponible';
         const col = statusColors[status] || '#6366f1';
         const thumbSrc = data.sku_thumbnail || data.product_image; // prefer SKU-specific photo
@@ -3572,7 +3579,8 @@
                 { value: 'instalado',   label: 'Instalado' },
                 { value: 'malogrado',   label: 'Malogrado' },
                 { value: 'reparado',    label: 'Reparado' },
-                { value: 'en_transito', label: 'En Tránsito' }
+                { value: 'en_transito', label: 'En Tránsito' },
+                { value: 'observacion', label: 'Observación' }
             ];
         }
 
@@ -3582,7 +3590,8 @@
                 { value: 'devuelto',    label: 'Devuelto' },
                 { value: 'malogrado',   label: 'Malogrado' },
                 { value: 'antiguo',     label: 'Antiguo' },
-                { value: 'en_transito', label: 'En Tránsito' }
+                { value: 'en_transito', label: 'En Tránsito' },
+                { value: 'observacion', label: 'Observación' }
             ];
         }
 
@@ -3820,7 +3829,9 @@
             instalados: { label: 'Instalados',  type: 'range',
                           presets: [{label:'Con instalados', fn: function(v) { return v > 0; }}, {label:'Sin instalados', fn: function(v) { return v === 0; }}] },
             malogrados: { label: 'Malogrados',  type: 'range',
-                          presets: [{label:'Con malogrados', fn: function(v) { return v > 0; }}, {label:'Sin malogrados', fn: function(v) { return v === 0; }}] }
+                          presets: [{label:'Con malogrados', fn: function(v) { return v > 0; }}, {label:'Sin malogrados', fn: function(v) { return v === 0; }}] },
+            observados: { label: 'Observados',  type: 'range',
+                          presets: [{label:'Con observados', fn: function(v) { return v > 0; }}, {label:'Sin observados', fn: function(v) { return v === 0; }}] }
         };
 
         function getCategoryOptions() {
@@ -3969,6 +3980,7 @@
                     if (statGlobal === 'sin_stock'      && !(disp === 0))   show = false;
                     if (statGlobal === 'stock_critico'  && !(disp <= crit)) show = false;
                     if (statGlobal === 'con_malogrados' && !(malo > 0))     show = false;
+                    if (statGlobal === 'con_observacion' && !(parseInt(row.dataset.obs||0) > 0))     show = false;
                 }
                 if (show) {
                     Object.entries(state).forEach(function(entry) {
@@ -4011,6 +4023,7 @@
             if (col === 'disponibles') return parseInt(row.dataset.disp  || 0);
             if (col === 'instalados')  return parseInt(row.dataset.inst  || 0);
             if (col === 'malogrados')  return parseInt(row.dataset.malo  || 0);
+            if (col === 'observados')  return parseInt(row.dataset.obs  || 0);
             return 0;
         }
 
@@ -4117,65 +4130,56 @@
     // Edit Stock Modal — openEditStockModal / saveEditStockModal
     // ══════════════════════════════════════════════════════════════
 
+    // ── Estado del modal Edit Stock ──
+    window.esCurrentMode = 'manual'; // 'manual' o 'scan'
+    window.esScanAction = 'add'; // 'add' o 'remove'
+    window.esScannedItems = []; // Array of scanned codes
+
     window.openEditStockModal = async function(productId, productType, isBulk, currentStock, unitType) {
-        // Store values
         document.getElementById('esProductId').value = productId;
         document.getElementById('esProductType').value = productType;
         document.getElementById('esIsBulk').value = isBulk;
         document.getElementById('esCurrentStock').value = currentStock;
+        
         document.getElementById('esNotes').value = '';
-
-        // Set title
-        const typeLabel = productType === 'agrupado' ? 'Agrupado' : (isBulk == 1 ? 'Granel' : 'Normal (SKU)');
-        document.getElementById('editStockModalTitle').textContent = 'Editar Stock';
-        document.getElementById('editStockModalSub').textContent = `Tipo: ${typeLabel}`;
-
-        const m = document.getElementById('editStockModal');
-        if (m.parentElement !== document.body) document.body.appendChild(m);
-        m.classList.add('active');
+        document.getElementById('esSaveBtn').disabled = false;
+        
+        const hm = document.getElementById('editStockModal');
+        if (hm.parentElement !== document.body) document.body.appendChild(hm);
+        hm.classList.add('active');
 
         if (productType === 'agrupado') {
-            // Show agrupado section, hide normal
             document.getElementById('esNormalWrap').style.display = 'none';
             document.getElementById('esAgrupadoWrap').style.display = '';
-
-            // Load variants
+            // Load variants logic...
             const tbody = document.getElementById('esVariantsList');
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;"><i class="ph ph-spinner ph-spin"></i> Cargando variantes...</td></tr>';
-            esUpdateAgrupadoTotal();
-
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:16px;">Cargando variantes...</td></tr>';
             try {
-                const fd = new FormData();
-                fd.append('action', 'get_children');
-                fd.append('product_id', productId);
-                const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
-                if (res.success && res.data.length > 0) {
-                    tbody.innerHTML = res.data.map(v => {
-                        const attrs = v.variant_attributes ? Object.values(v.variant_attributes).filter(Boolean).join(' / ') : '';
-                        return `<tr>
-                            <td>
-                                <div style="font-weight:600;">${esc(v.name)}</div>
-                                ${attrs ? `<div style="font-size:0.78rem;color:var(--text-muted);">${esc(attrs)}</div>` : ''}
-                            </td>
-                            <td style="text-align:center;">
-                                <span style="font-weight:700;color:#6366f1;">${parseFloat(v.total_quantity||0)}</span>
-                                <div style="font-size:0.72rem;color:var(--text-muted);">${esc(v.unit_type||'Und')}</div>
-                            </td>
-                            <td style="text-align:center;padding:6px 8px;">
-                                <div style="display:flex;gap:4px;align-items:center;justify-content:center;">
-                                    <button type="button" onclick="esVariantAdjust(${v.id}, -1)" style="width:28px;height:28px;border:1px solid var(--border-color);background:var(--bg-color);border-radius:6px;font-size:1rem;cursor:pointer;color:var(--text-color);">−</button>
-                                    <input type="number" id="esVariant_${v.id}" data-original="${parseFloat(v.total_quantity||0)}" data-name="${esc(v.name)}" value="${parseFloat(v.total_quantity||0)}" min="0" step="1" style="width:70px;text-align:center;padding:4px;border:1px solid var(--border-color);border-radius:6px;background:var(--surface-color);color:var(--text-color);font-size:0.9rem;font-weight:600;" oninput="esUpdateAgrupadoTotal()">
-                                    <button type="button" onclick="esVariantAdjust(${v.id}, 1)" style="width:28px;height:28px;border:1px solid var(--border-color);background:var(--bg-color);border-radius:6px;font-size:1rem;cursor:pointer;color:var(--text-color);">+</button>
-                                </div>
-                            </td>
-                            <td style="text-align:center;" id="esVariantChange_${v.id}">
-                                <span style="font-size:0.85rem;font-weight:700;color:var(--text-muted);">±0</span>
-                            </td>
-                        </tr>`;
-                    }).join('');
-                    esUpdateAgrupadoTotal();
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--text-muted);">No hay variantes.</td></tr>';
+                const fd = new FormData(); fd.append('action', 'get_children'); fd.append('product_id', productId);
+                const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r=>r.json());
+                if (res.success) {
+                    let html = '';
+                    let totalAgrupado = 0;
+                    res.data.forEach(v => {
+                        const cur = parseFloat(v.total_quantity) || 0;
+                        totalAgrupado += cur;
+                        html += `
+                            <tr>
+                                <td style="font-size:0.85rem;"><strong>${esc(v.name)}</strong><br><span style="color:var(--text-muted);font-size:0.75rem;">${esc(v.variant_attributes||'')}</span></td>
+                                <td style="text-align:center;font-weight:600;color:var(--text-color);">${cur}</td>
+                                <td>
+                                    <div style="display:flex;align-items:center;justify-content:center;gap:4px;">
+                                        <button type="button" onclick="esVariantAdjust(${v.id}, -1)" style="width:24px;height:24px;border:none;background:rgba(255,255,255,0.1);border-radius:4px;cursor:pointer;">-</button>
+                                        <input type="number" id="esVariant_${v.id}" value="${cur}" data-original="${cur}" min="0" step="1" class="form-control" style="width:60px;text-align:center;padding:4px;" oninput="esUpdateAgrupadoTotal()">
+                                        <button type="button" onclick="esVariantAdjust(${v.id}, 1)" style="width:24px;height:24px;border:none;background:rgba(255,255,255,0.1);border-radius:4px;cursor:pointer;">+</button>
+                                    </div>
+                                </td>
+                                <td id="esVariantChange_${v.id}" style="text-align:center;"><span style="font-size:0.85rem;font-weight:700;color:var(--text-muted);">±0</span></td>
+                            </tr>
+                        `;
+                    });
+                    html += `<tr><td colspan="2" style="text-align:right;font-weight:700;">TOTAL:</td><td colspan="2" style="text-align:left;font-weight:800;color:#6366f1;font-size:1.1rem;"><span id="esAgrupadoTotalVal">${totalAgrupado}</span></td></tr>`;
+                    tbody.innerHTML = html;
                 }
             } catch(e) {
                 tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:16px;color:red;">Error al cargar variantes.</td></tr>';
@@ -4191,13 +4195,144 @@
             document.getElementById('esNewQty').value = cur;
             document.getElementById('esUnitLabel').textContent = isBulk == 1 ? (unitType || 'Und') + ' (almacén)' : 'SKUs totales';
             document.getElementById('esChangeBadge').innerHTML = '';
-            document.getElementById('esDeleteWarning').style.display = 'none';
-            document.getElementById('esGenerateInfo').style.display = 'none';
+            
+            // UI setup for mode
+            if (isBulk || productType === 'agrupado') {
+                document.getElementById('esModeToggleWrap').style.display = 'none';
+                esSetMode('manual');
+            } else {
+                document.getElementById('esModeToggleWrap').style.display = 'block';
+                // Reset mode to manual and clear scan state
+                window.esScannedItems = [];
+                esSetScanAction('add');
+                esSetMode('manual');
+                
+                // Fetch custom columns for target col select
+                const fd = new FormData();
+                fd.append('action', 'get_product_columns');
+                fd.append('product_id', productId);
+                fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r=>r.json()).then(res => {
+                    if (res.success && res.data && res.data.length > 0) {
+                        const sel = document.getElementById('esScanTargetCol');
+                        sel.innerHTML = '<option value="sku_code">Código Principal (SKU)</option>';
+                        res.data.forEach(c => {
+                            const cname = typeof c === 'string' ? c : c.name;
+                            if (cname) {
+                                const opt = document.createElement('option');
+                                opt.value = cname;
+                                opt.textContent = `Columna: ${cname}`;
+                                sel.appendChild(opt);
+                            }
+                        });
+                    }
+                }).catch(console.error);
+            }
         }
     };
 
     window.closeEditStockModal = function() {
         document.getElementById('editStockModal').classList.remove('active');
+    };
+
+    window.esSetMode = function(mode) {
+        window.esCurrentMode = mode;
+        const isScan = (mode === 'scan');
+        document.getElementById('btnModeManual').classList.toggle('active', !isScan);
+        document.getElementById('btnModeScan').classList.toggle('active', isScan);
+        document.getElementById('esManualSection').style.display = isScan ? 'none' : 'block';
+        document.getElementById('esScanSection').style.display = isScan ? 'block' : 'none';
+        
+        if (isScan) {
+            // Reset to original stock when entering scan mode
+            const original = parseFloat(document.getElementById('esCurrentStock').value) || 0;
+            document.getElementById('esNewQty').value = original;
+            esUpdatePreview();
+            setTimeout(() => document.getElementById('esScanInputLive').focus(), 100);
+            esRenderScannedTable();
+        } else {
+            // Recalculate preview in manual mode just in case
+            esUpdatePreview();
+        }
+    };
+
+    window.esSetScanAction = function(action) {
+        window.esScanAction = action;
+        const isAdd = (action === 'add');
+        document.getElementById('btnScanActionAdd').classList.replace(isAdd ? 'btn-secondary' : 'btn-primary', isAdd ? 'btn-primary' : 'btn-secondary');
+        document.getElementById('btnScanActionRemove').classList.replace(!isAdd ? 'btn-secondary' : 'btn-primary', !isAdd ? 'btn-primary' : 'btn-secondary');
+        
+        document.getElementById('esScanAddConfig').style.display = isAdd ? 'block' : 'none';
+        document.getElementById('esScanInputLabel').textContent = isAdd ? 'Escanea para añadir stock' : 'Escanea para retirar stock';
+        
+        // Reset scanned items if we switch actions
+        if (window.esScannedItems.length > 0) {
+            window.esScannedItems = [];
+            const original = parseFloat(document.getElementById('esCurrentStock').value) || 0;
+            document.getElementById('esNewQty').value = original;
+            esUpdatePreview();
+            esRenderScannedTable();
+        }
+        document.getElementById('esScanInputLive').focus();
+    };
+
+    window.esHandleLiveScan = function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const input = document.getElementById('esScanInputLive');
+            const code = input.value.trim();
+            if (!code) return;
+            
+            if (window.esScannedItems.includes(code)) {
+                const warn = document.getElementById('esScanWarning');
+                warn.textContent = "Este código ya ha sido escaneado.";
+                warn.style.display = 'block';
+                setTimeout(() => warn.style.display = 'none', 3000);
+                input.select();
+                return;
+            }
+            
+            window.esScannedItems.push(code);
+            input.value = '';
+            
+            // Automatically update new quantity
+            const isAdd = (window.esScanAction === 'add');
+            const delta = isAdd ? 1 : -1;
+            esAdjust(delta);
+            esRenderScannedTable();
+            input.focus();
+        }
+    };
+
+    window.esRemoveScannedCode = function(code) {
+        const idx = window.esScannedItems.indexOf(code);
+        if (idx > -1) {
+            window.esScannedItems.splice(idx, 1);
+            const isAdd = (window.esScanAction === 'add');
+            const delta = isAdd ? -1 : 1; // Reverse the operation
+            esAdjust(delta);
+            esRenderScannedTable();
+            document.getElementById('esScanInputLive').focus();
+        }
+    };
+
+    window.esRenderScannedTable = function() {
+        const wrap = document.getElementById('esScannedTableWrap');
+        const list = document.getElementById('esScannedList');
+        if (window.esScannedItems.length === 0) {
+            wrap.style.display = 'none';
+            return;
+        }
+        wrap.style.display = 'block';
+        list.innerHTML = window.esScannedItems.map(c => `
+            <tr>
+                <td style="font-family:monospace; padding:6px 10px;">${esc(c)}</td>
+                <td style="text-align:center; padding:6px 10px;">
+                    <button type="button" class="btn btn-sm" style="color:#ef4444; background:none; border:none; cursor:pointer;" onclick="esRemoveScannedCode('${esc(c)}')">
+                        <i class="ph ph-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
     };
 
     window.esAdjust = function(delta) {
@@ -4211,8 +4346,6 @@
         const inp = document.getElementById('esNewQty');
         const newVal = parseFloat(inp.value) || 0;
         const original = parseFloat(document.getElementById('esCurrentStock').value) || 0;
-        const isBulk = document.getElementById('esIsBulk').value == 1;
-        const productType = document.getElementById('esProductType').value;
         const diff = newVal - original;
 
         document.getElementById('esNewStockDisplay').textContent = newVal;
@@ -4225,21 +4358,13 @@
         } else {
             badge.innerHTML = `<span style="color:#ef4444;">▼ ${diff}</span>`;
         }
-
-        const delWarn = document.getElementById('esDeleteWarning');
-        const genInfo = document.getElementById('esGenerateInfo');
-        delWarn.style.display = 'none';
-        genInfo.style.display = 'none';
-
-        if (!isBulk && productType !== 'agrupado') {
-            // SKU product
-            if (diff < 0) {
-                document.getElementById('esDeleteWarningText').textContent = `Se eliminarán ${Math.abs(diff)} SKU(s) disponibles del sistema. Los SKUs asignados/instalados no se verán afectados.`;
-                delWarn.style.display = '';
-            } else if (diff > 0) {
-                document.getElementById('esGenerateInfoText').textContent = `Se generarán ${diff} nuevo(s) SKU(s) con código TRB-XXXXXX automáticamente.`;
-                genInfo.style.display = '';
-            }
+        
+        // Prevent saving if diff < 0 and currentStock < abs(diff) ? Not needed, max(0) handles it.
+        const btn = document.getElementById('esSaveBtn');
+        if (window.esCurrentMode === 'scan' && window.esScannedItems.length === 0) {
+            btn.disabled = true;
+        } else {
+            btn.disabled = false;
         }
     };
 
@@ -4283,6 +4408,12 @@
         const btn = document.getElementById('esSaveBtn');
         const origText = btn.innerHTML;
 
+        // Validaciones pre-guardado
+        if (window.esCurrentMode === 'scan' && window.esScannedItems.length === 0) {
+            if (window.showToast) window.showToast('Debes escanear al menos un código.', 'error');
+            return;
+        }
+
         btn.disabled = true;
         btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Guardando...';
 
@@ -4318,14 +4449,31 @@
                 fd.append('product_id', productId);
                 fd.append('new_total', newQty);
                 fd.append('notes', notes);
+                
+                // Add mode parameters for normal products
+                if (!isBulk && productType !== 'agrupado') {
+                    if (window.esCurrentMode === 'manual') {
+                        fd.append('auto_generate', 1); // Manual mode always auto-generates or auto-deletes
+                    } else if (window.esCurrentMode === 'scan') {
+                        fd.append('auto_generate', 0);
+                        fd.append('scanned_codes', JSON.stringify(window.esScannedItems));
+                        
+                        if (window.esScanAction === 'add') {
+                            const targetCol = document.getElementById('esScanTargetCol').value;
+                            fd.append('target_col', targetCol);
+                        } else {
+                            fd.append('is_scan_delete', 1); // Inform backend this is explicit deletion via scan
+                        }
+                    }
+                }
 
                 const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
                 if (res.success) {
                     if (window.showToast) window.showToast(res.message || 'Stock actualizado', 'success');
                     closeEditStockModal();
                     loadProducts();
-                    if (window.loadMetrics) loadMetrics();
-                    if (typeof loadAllSkus === 'function') loadAllSkus();
+                    if (window.loadMetrics) window.loadMetrics();
+                    if (typeof window.loadAllSkus === 'function') window.loadAllSkus();
                 } else {
                     if (window.showToast) window.showToast(res.message || 'Error', 'error');
                 }
@@ -4682,6 +4830,11 @@
         }
     };
 
+    // Expose core functions globally for Bulk Actions, Papelera, and SheetsSync
+    window.loadAllSkus = loadAllSkus;
+    window.loadMetrics = loadMetrics;
+    window.loadProducts = loadProducts;
+
 })();
 
 // ══════════════════════════════════════════════════════════════
@@ -4689,7 +4842,7 @@
 // ══════════════════════════════════════════════════════════════
 window.SheetsSync = (function() {
     const BASE = (function() {
-        const s = document.querySelector('script[src*="inventario.js"]');
+        const s = document.querySelector('script[src*="inventario"]');
         return s ? s.src.split('/modules/')[0] : '';
     })();
     const AJAX = BASE + '/ajax/google_sheets.php';
@@ -4857,6 +5010,237 @@ window.SheetsSync = (function() {
         el.innerHTML = html;
     }
 
+    // ── Custom Context Menu for SKU Table ──
+    const setupMenu = () => {
+        if (document.getElementById('skuContextMenu')) return; // Avoid duplicates
+
+        const contextMenu = document.createElement('div');
+        contextMenu.id = 'skuContextMenu';
+        contextMenu.style.cssText = `
+            display: none;
+            position: fixed;
+            z-index: 100000;
+            background: var(--surface-color, #1e1e2d);
+            border: 1px solid var(--border-color, #333);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            border-radius: 8px;
+            padding: 8px 0;
+            min-width: 160px;
+            font-family: inherit;
+        `;
+        
+        const optionAssign = document.createElement('div');
+        optionAssign.innerHTML = '<i class="ph ph-user-plus" style="margin-right:8px; color:var(--primary-color, #6366f1);"></i> Asignar';
+        const optionDelete = document.createElement('div');
+        optionDelete.innerHTML = '<i class="ph ph-trash" style="margin-right:8px; color:#ef4444;"></i> Eliminar';
+        
+        const styleOption = (opt) => {
+            opt.style.cssText = `
+                padding: 10px 16px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                font-size: 0.9rem;
+                color: var(--text-color, #e2e8f0);
+                transition: background 0.15s;
+            `;
+            opt.onmouseover = () => opt.style.background = 'rgba(255,255,255,0.05)';
+            opt.onmouseout = () => opt.style.background = 'transparent';
+        };
+        
+        styleOption(optionAssign);
+        styleOption(optionDelete);
+        
+        contextMenu.appendChild(optionAssign);
+        contextMenu.appendChild(optionDelete);
+        document.body.appendChild(contextMenu);
+        
+        let currentRightClickSkuId = null;
+        let currentRightClickSkuCode = null;
+        let currentRightClickSkuData = null;
+        
+        document.addEventListener('contextmenu', (e) => {
+            const tr = e.target.closest('tr.sku-filter-row');
+            // Allow right click anywhere on the row, but especially on the SKU cell
+            if (tr && tr.closest('#skuTableBody')) {
+                e.preventDefault();
+                
+                const skuId = tr.dataset.id;
+                const skuCode = tr.dataset.sku; // lowercase sku code fallback
+                
+                currentRightClickSkuId = skuId;
+                currentRightClickSkuCode = skuCode;
+                
+                console.log("Context menu triggered for row. SKU ID:", skuId, "SKU Code:", skuCode);
+
+                // Find data from lastSkuData (Best effort)
+                currentRightClickSkuData = null;
+                if (typeof lastSkuData !== 'undefined' && Array.isArray(lastSkuData)) {
+                    currentRightClickSkuData = lastSkuData.find(s => s.id == skuId || (s.sku_code && s.sku_code.toLowerCase() === skuCode));
+                }
+                
+                console.log("Found SKU Data locally:", currentRightClickSkuData);
+
+                // Always show the menu if we have an ID
+                if (currentRightClickSkuId) {
+                    contextMenu.style.display = 'block';
+                    
+                    // Keep menu inside viewport
+                    let x = e.clientX;
+                    let y = e.clientY;
+                    if (x + 160 > window.innerWidth) x -= 160;
+                    if (y + 100 > window.innerHeight) y -= 100;
+                    
+                    contextMenu.style.left = x + 'px';
+                    contextMenu.style.top = y + 'px';
+                }
+            } else {
+                contextMenu.style.display = 'none';
+            }
+        });
+        
+        document.addEventListener('click', (e) => {
+            if (e.button !== 2 && contextMenu.style.display === 'block') {
+                contextMenu.style.display = 'none';
+            }
+        });
+        
+        optionAssign.onclick = async () => {
+            contextMenu.style.display = 'none';
+            if (currentRightClickSkuData) {
+                if (typeof openSkuDetailModal === 'function') {
+                    openSkuDetailModal(currentRightClickSkuData);
+                }
+            } else if (currentRightClickSkuCode) {
+                // Fetch dynamically if not found locally
+                try {
+                    const fd = new FormData();
+                    fd.append('action', 'search_sku');
+                    fd.append('code', currentRightClickSkuCode);
+                    const response = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd });
+                    const text = await response.text();
+                    try {
+                        const res = JSON.parse(text);
+                        if (res.success && res.data) {
+                            if (typeof openSkuDetailModal === 'function') openSkuDetailModal(res.data);
+                        } else {
+                            if (window.showToast) window.showToast('No se pudo cargar la información del SKU', 'error');
+                        }
+                    } catch(e) {
+                        console.error("Invalid JSON from search_sku:", text);
+                        if (window.showToast) window.showToast('Error al procesar la información del servidor', 'error');
+                    }
+                } catch(err) {
+                    console.error("Fetch error:", err);
+                    if (window.showToast) window.showToast('Error de conexión', 'error');
+                }
+            }
+        };
+        
+        let activeUndoToast = null;
+        
+        optionDelete.onclick = async () => {
+            contextMenu.style.display = 'none';
+            if (!currentRightClickSkuId) return;
+            
+            // 1. Hide the row immediately
+            const tr = document.querySelector(`tr[data-id="${currentRightClickSkuId}"]`);
+            if (tr) tr.style.display = 'none';
+            
+            // 2. Create the Undo Toast
+            const toastId = 'undo_' + Date.now();
+            let container = document.getElementById('toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toast-container';
+                document.body.appendChild(container);
+                container.className = 'toast-pos-bottom-right';
+            }
+            
+            const toast = document.createElement('div');
+            toast.className = 'app-toast toast-success toast-style-card';
+            toast.id = toastId;
+            toast.innerHTML = `
+                <div class="toast-icon"><i class="ph ph-trash"></i></div>
+                <div class="toast-message" style="display:flex; align-items:center;">
+                    Producto eliminado 
+                    <button id="btnUndo_${toastId}" style="margin-left:12px; background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.5); color:#fff; padding:4px 10px; border-radius:6px; cursor:pointer; font-size:0.8rem; font-weight:600; transition:all 0.2s;">Deshacer</button>
+                </div>
+                <button class="toast-close">&times;</button>
+            `;
+            container.appendChild(toast);
+            
+            // Remove previous active undo if any (to avoid overlapping timeouts, though unlikely)
+            if (activeUndoToast) activeUndoToast.remove();
+            activeUndoToast = toast;
+            
+            setTimeout(() => toast.classList.add('show'), 10);
+            
+            let isUndone = false;
+            
+            const removeToast = () => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            };
+            
+            toast.querySelector('.toast-close').addEventListener('click', () => {
+                isUndone = true; // Treated as dismiss/undo
+                if (tr) tr.style.display = '';
+                removeToast();
+            });
+            
+            document.getElementById(`btnUndo_${toastId}`).addEventListener('click', () => {
+                isUndone = true;
+                if (tr) tr.style.display = '';
+                removeToast();
+                if (window.showToast) window.showToast('Acción deshecha', 'success');
+            });
+            
+            // Wait 5 seconds
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            
+            if (!isUndone) {
+                removeToast();
+                // Proceed with actual deletion
+                const fd = new FormData();
+                fd.append('action', 'bulk_delete_skus');
+                fd.append('skus', JSON.stringify([currentRightClickSkuId]));
+                
+                try {
+                    const response = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd });
+                    const text = await response.text();
+                    try {
+                        const res = JSON.parse(text);
+                        if (res.success) {
+                            if (window.loadAllSkus) window.loadAllSkus();
+                            if (window.loadMetrics) window.loadMetrics();
+                            if (window.loadProducts) window.loadProducts();
+                        } else {
+                            if (window.showToast) window.showToast(res.message || 'Error al eliminar', 'error');
+                            if (tr) tr.style.display = ''; // Revert visual hide
+                        }
+                    } catch(e) {
+                        console.error("Invalid JSON:", text);
+                        if (window.showToast) window.showToast('Error del servidor', 'error');
+                        if (tr) tr.style.display = '';
+                    }
+                } catch (err) {
+                    if (window.showToast) window.showToast('Error de conexión', 'error');
+                    if (tr) tr.style.display = '';
+                }
+            }
+        };
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupMenu);
+    } else {
+        setupMenu();
+    }
+
+    // ── Bulk Actions for Control de Stock ──
+    // (moved outside SheetsSync — these are global window functions)
+
     return {
         openModal,
         closeModal,
@@ -4867,3 +5251,201 @@ window.SheetsSync = (function() {
         checkConfig
     };
 })();
+
+// ══════════════════════════════════════════════════════════════
+// Bulk Actions & Papelera
+// ══════════════════════════════════════════════════════════════
+(function() {
+    const BASE = document.querySelector('meta[name="base-url"]')?.content || (window.location.pathname.includes('/TURBOSAAS') ? '/TURBOSAAS' : '');
+    function esc(str) {
+        if (str == null) return '';
+        return String(str).replace(/[&<>'"]/g, tag => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+        }[tag]));
+    }
+
+    window.toggleAllSkus = function(cb) {
+        document.querySelectorAll('.sku-row-check:not(:disabled)').forEach(el => el.checked = cb.checked);
+        updateSkuSelection();
+    };
+
+    window.updateSkuSelection = function() {
+        const checked = document.querySelectorAll('.sku-row-check:checked').length;
+        document.getElementById('skuSelectedCount').textContent = checked;
+        document.getElementById('skuActiveActions').style.display = checked > 0 ? 'flex' : 'none';
+        
+        let hasNonDisponible = false;
+        document.querySelectorAll('.sku-row-check:checked').forEach(el => {
+            const row = el.closest('tr');
+            if (row && row.dataset.status !== 'disponible') hasNonDisponible = true;
+        });
+        const btnEliminar = document.querySelector('button[onclick="bulkDeleteSkus()"]');
+        if (btnEliminar) btnEliminar.disabled = hasNonDisponible;
+    };
+
+    window.bulkDeleteSkus = async function() {
+        const selected = Array.from(document.querySelectorAll('.sku-row-check:checked')).map(el => el.value);
+        if (!selected.length) return;
+        
+        if (!confirm('¿Enviar ' + selected.length + ' SKUs a la papelera?')) return;
+        
+        const fd = new FormData();
+        fd.append('action', 'bulk_delete_skus');
+        fd.append('skus', JSON.stringify(selected));
+        
+        try {
+            const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+            if (res.success) {
+                if (window.showToast) window.showToast(res.message, 'success');
+                const chkAll = document.getElementById('skuCheckAll');
+                if (chkAll) chkAll.checked = false;
+                if (window.loadAllSkus) window.loadAllSkus();
+                if (window.loadMetrics) window.loadMetrics();
+                if (window.loadProducts) window.loadProducts();
+            } else {
+                if (window.showToast) window.showToast(res.message, 'error');
+            }
+        } catch(e) {
+            console.error(e);
+            if (window.showToast) window.showToast('Error de conexión', 'error');
+        }
+    };
+
+    // ── Papelera ──
+    window.loadPapelera = async function() {
+        const tbody = document.getElementById('papeleraTableBody');
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding:30px;color:rgba(255,255,255,0.5);">Cargando...</td></tr>';
+        
+        const fd = new FormData();
+        fd.append('action', 'get_deleted_items');
+        
+        try {
+            const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+            console.log('Papelera response:', res); // DEBUG LOG
+            if (res.success && res.data && res.data.length > 0) {
+                // Sort: products first, then SKUs (SKUs of deleted products after their product)
+                const sorted = res.data.sort((a, b) => {
+                    if (a.item_type === 'product' && b.item_type !== 'product') return -1;
+                    if (a.item_type !== 'product' && b.item_type === 'product') return 1;
+                    return 0;
+                });
+                
+                tbody.innerHTML = sorted.map(item => {
+                    const isProduct = item.item_type === 'product';
+                    const parentDeleted = !isProduct && parseInt(item.parent_deleted) === 1;
+                    
+                    // Badge styling: product=purple, sku individual=blue, sku of deleted product=orange
+                    let badgeBg, badgeColor, badgeBorder, badgeIcon, badgeLabel;
+                    if (isProduct) {
+                        badgeBg = 'rgba(168,85,247,0.15)'; badgeColor = '#a855f7'; badgeBorder = 'rgba(168,85,247,0.3)';
+                        badgeIcon = 'ph-package'; badgeLabel = 'Producto';
+                    } else if (parentDeleted) {
+                        badgeBg = 'rgba(251,146,60,0.15)'; badgeColor = '#fb923c'; badgeBorder = 'rgba(251,146,60,0.3)';
+                        badgeIcon = 'ph-link-break'; badgeLabel = 'SKU (prod.)';
+                    } else {
+                        badgeBg = 'rgba(59,130,246,0.15)'; badgeColor = '#3b82f6'; badgeBorder = 'rgba(59,130,246,0.3)';
+                        badgeIcon = 'ph-barcode'; badgeLabel = 'SKU';
+                    }
+                    
+                    // Name display
+                    let nameHtml = `<span style="font-weight:600;">${esc(item.code || '')}</span>`;
+                    if (!isProduct && item.product_name) {
+                        const parentTag = parentDeleted 
+                            ? `<span style="font-size:0.7rem; background:rgba(251,146,60,0.15); color:#fb923c; padding:1px 6px; border-radius:4px; margin-left:4px;">eliminado</span>` 
+                            : '';
+                        nameHtml += `<br><span style="font-size:0.78rem; color:rgba(255,255,255,0.45);"><i class="ph ph-arrow-bend-down-right" style="margin-right:3px;"></i>de: ${esc(item.product_name)}${parentTag}</span>`;
+                    }
+                    
+                    // Quantity display
+                    const qtyText = isProduct ? `${item.quantity} SKUs` : '1 unidad';
+                    
+                    return `
+                    <tr style="border-left: 3px solid ${badgeColor}; ${parentDeleted ? 'opacity:0.75;' : ''}">
+                        <td>
+                            <span class="status-badge" style="background:${badgeBg}; color:${badgeColor}; border:1px solid ${badgeBorder}; font-weight:600; font-size:0.78rem; padding:4px 10px; border-radius:6px; display:inline-flex; align-items:center; gap:5px;">
+                                <i class="ph ${badgeIcon}"></i> ${badgeLabel}
+                            </span>
+                        </td>
+                        <td>${nameHtml}</td>
+                        <td>${esc(item.name || '')}</td>
+                        <td>${esc(item.category_name || '-')}</td>
+                        <td><span style="color:rgba(255,255,255,0.6); font-size:0.85rem;">${qtyText}</span></td>
+                        <td class="text-end">
+                            <div style="display:flex; justify-content:flex-end; gap:6px;">
+                                <button class="btn btn-sm" style="background:rgba(16,185,129,0.1); color:#10b981; border:1px solid rgba(16,185,129,0.2);" onclick="restoreItem(${item.item_id}, '${item.item_type}')" title="Restaurar"><i class="ph ph-arrow-counter-clockwise"></i> Restaurar</button>
+                                <button class="btn btn-sm btn-danger" onclick="hardDeleteItem(${item.item_id}, '${item.item_type}')" title="Eliminar Permanentemente"><i class="ph ph-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>`;
+                }).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding:30px;color:rgba(255,255,255,0.5);">La papelera está vacía.</td></tr>';
+            }
+        } catch(e) {
+            console.error(e);
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="color:#ef4444;">Error al cargar la papelera.</td></tr>';
+        }
+    };
+
+    window.restoreItem = async function(id, type) {
+        const fd = new FormData();
+        fd.append('action', 'restore_item');
+        fd.append('item_id', id);
+        fd.append('item_type', type);
+        
+        try {
+            const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+            if (res.success) {
+                if (window.showToast) window.showToast(res.message, 'success');
+                loadPapelera();
+                if (window.loadMetrics) loadMetrics();
+                if (window.loadProducts) loadProducts();
+                const stockTab = document.getElementById('tab-stock');
+                if (stockTab && stockTab.classList.contains('active') && window.loadAllSkus) loadAllSkus();
+            } else {
+                if (window.showToast) window.showToast(res.message, 'error');
+            }
+        } catch(e) {
+            console.error(e);
+        }
+    };
+
+    window.hardDeleteItem = async function(id, type) {
+        if (!confirm('¿Estás seguro de ELIMINAR PERMANENTEMENTE este elemento? Esta acción no se puede deshacer.')) return;
+        
+        const fd = new FormData();
+        fd.append('action', 'hard_delete_item');
+        fd.append('item_id', id);
+        fd.append('item_type', type);
+        
+        try {
+            const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+            if (res.success) {
+                if (window.showToast) window.showToast(res.message, 'success');
+                loadPapelera();
+            } else {
+                if (window.showToast) window.showToast(res.message, 'error');
+            }
+        } catch(e) {
+            console.error(e);
+        }
+    };
+
+    window.emptyPapelera = async function() {
+        if (!confirm('¿Estás seguro de vaciar la papelera? Todos los elementos se eliminarán permanentemente.')) return;
+        const fd = new FormData();
+        fd.append('action', 'empty_papelera');
+        try {
+            const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+            if (res.success) {
+                if (window.showToast) window.showToast(res.message, 'success');
+                loadPapelera();
+            } else {
+                if (window.showToast) window.showToast(res.message, 'error');
+            }
+        } catch(e) {
+            console.error(e);
+        }
+    };
+})();
+

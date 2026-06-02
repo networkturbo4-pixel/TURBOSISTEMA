@@ -99,15 +99,16 @@ try {
                          JOIN inventory_skus sk ON sp.sku_id = sk.id 
                          WHERE sk.product_id = p.id ORDER BY sp.id ASC LIMIT 1)
                     ) as display_image,
-                    (SELECT COUNT(*) FROM inventory_skus WHERE product_id = p.id AND status = 'disponible') as qty_disponible,
-                    (SELECT COUNT(*) FROM inventory_skus WHERE product_id = p.id AND status = 'instalado') as qty_instalado,
-                    (SELECT COUNT(*) FROM inventory_skus WHERE product_id = p.id AND status = 'malogrado') as qty_malogrado,
-                    (SELECT COUNT(*) FROM inventory_skus WHERE product_id = p.id AND status = 'reparado') as qty_reparado,
-                    (SELECT COUNT(*) FROM inventory_skus WHERE product_id = p.id) as real_total_quantity,
-                    (SELECT COUNT(*) FROM inventory_products ch WHERE ch.parent_product_id = p.id) as children_count
+                    (SELECT COUNT(*) FROM inventory_skus WHERE product_id = p.id AND status = 'disponible' AND is_deleted = 0) as qty_disponible,
+                    (SELECT COUNT(*) FROM inventory_skus WHERE product_id = p.id AND status = 'instalado' AND is_deleted = 0) as qty_instalado,
+                    (SELECT COUNT(*) FROM inventory_skus WHERE product_id = p.id AND status = 'malogrado' AND is_deleted = 0) as qty_malogrado,
+                    (SELECT COUNT(*) FROM inventory_skus WHERE product_id = p.id AND status = 'reparado' AND is_deleted = 0) as qty_reparado,
+                    (SELECT COUNT(*) FROM inventory_skus WHERE product_id = p.id AND status = 'observacion' AND is_deleted = 0) as qty_observacion,
+                    (SELECT COUNT(*) FROM inventory_skus WHERE product_id = p.id AND is_deleted = 0) as real_total_quantity,
+                    (SELECT COUNT(*) FROM inventory_products ch WHERE ch.parent_product_id = p.id AND ch.is_deleted = 0) as children_count
                     FROM inventory_products p
                     LEFT JOIN inventory_categories c ON p.category_id = c.id
-                    WHERE p.parent_product_id IS NULL
+                    WHERE p.parent_product_id IS NULL AND p.is_deleted = 0
                     ORDER BY p.created_at DESC";
             $stmt = $pdo->query($sql);
             $products = $stmt->fetchAll();
@@ -128,6 +129,7 @@ try {
                     $p['qty_instalado'] = 0;
                     $p['qty_malogrado'] = 0;
                     $p['qty_reparado'] = 0;
+                    $p['qty_observacion'] = 0;
                     // Searchable text includes child names + attributes
                     $stmtChildSearch->execute([$p['id']]);
                     $p['searchable_children'] = $stmtChildSearch->fetchColumn() ?: '';
@@ -144,6 +146,7 @@ try {
                     $p['qty_asignado'] = $qty_asignado; 
                     $p['qty_malogrado'] = 0; 
                     $p['qty_reparado'] = 0;
+                    $p['qty_observacion'] = 0;
                     $p['qty_disponible'] = $qty_disponible;
                     $p['total_quantity'] = $qty_disponible + $qty_asignado + $qty_instalado;
                 } else {
@@ -171,10 +174,11 @@ try {
                        COALESCE((SELECT SUM(ius.quantity) FROM inventory_user_stock ius
                                   JOIN users u ON ius.user_id = u.id
                                   WHERE ius.product_id = p.id AND ius.quantity > 0), 0) as qty_instalado,
-                       0 as qty_malogrado
+                       0 as qty_malogrado,
+                       0 as qty_observacion
                 FROM inventory_products p
                 LEFT JOIN inventory_categories c ON p.category_id = c.id
-                WHERE p.parent_product_id = ?
+                WHERE p.parent_product_id = ? AND p.is_deleted = 0
                 ORDER BY p.name ASC");
             $stmt->execute([$parent_id]);
             $children = $stmt->fetchAll();
@@ -184,6 +188,7 @@ try {
                 $ch['qty_disponible'] = max(0, floatval($ch['total_quantity']) - floatval($ch['qty_asignado']));
                 $ch['qty_instalado']  = floatval($ch['qty_instalado']);
                 $ch['qty_malogrado']  = floatval($ch['qty_malogrado']);
+                $ch['qty_observacion']  = floatval($ch['qty_observacion']);
             }
             unset($ch);
             echo json_encode(['success' => true, 'data' => $children, 'columns' => json_decode($parentCols, true) ?: []]);
@@ -502,9 +507,11 @@ try {
                 echo json_encode(['success' => false, 'message' => 'ID inválido']);
                 break;
             }
-            $stmt = $pdo->prepare("DELETE FROM inventory_products WHERE id = ?");
+            $stmt = $pdo->prepare("UPDATE inventory_products SET is_deleted = 1 WHERE id = ?");
             $stmt->execute([$id]);
-            echo json_encode(['success' => true, 'message' => 'Producto eliminado']);
+            $stmtSku = $pdo->prepare("UPDATE inventory_skus SET is_deleted = 1 WHERE product_id = ?");
+            $stmtSku->execute([$id]);
+            echo json_encode(['success' => true, 'message' => 'Producto enviado a la papelera']);
             break;
         case 'get_product_photos':
             $product_id = intval($_POST['product_id'] ?? 0);
@@ -515,6 +522,19 @@ try {
             $stmt = $pdo->prepare("SELECT id, ruta_archivo, created_at FROM inventory_product_photos WHERE product_id = ? ORDER BY id ASC");
             $stmt->execute([$product_id]);
             echo json_encode(['success' => true, 'data' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+            break;
+
+        case 'get_product_columns':
+            $product_id = intval($_POST['product_id'] ?? 0);
+            if (!$product_id) {
+                echo json_encode(['success' => false, 'message' => 'ID inválido']);
+                break;
+            }
+            $stmt = $pdo->prepare("SELECT custom_columns FROM inventory_products WHERE id = ?");
+            $stmt->execute([$product_id]);
+            $colData = $stmt->fetchColumn();
+            $cols = $colData ? json_decode($colData, true) : [];
+            echo json_encode(['success' => true, 'data' => $cols]);
             break;
 
         // ── SKUs ────────────────────────────────────────────
@@ -547,7 +567,7 @@ try {
                            ) as sku_thumbnail
                     FROM inventory_skus s
                     JOIN inventory_products p ON s.product_id = p.id
-                    WHERE s.product_id = ?";
+                    WHERE s.product_id = ? AND s.is_deleted = 0";
             $params = [$product_id];
 
             if ($status_filter) {
@@ -564,7 +584,7 @@ try {
         case 'update_sku_status':
             $sku_id = intval($_POST['sku_id'] ?? 0);
             $status = $_POST['status'] ?? '';
-            $valid = ['disponible', 'instalado', 'malogrado', 'reparado', 'en_transito'];
+            $valid = ['disponible', 'instalado', 'malogrado', 'reparado', 'en_transito', 'observacion'];
 
             if (!$sku_id || !in_array($status, $valid)) {
                 echo json_encode(['success' => false, 'message' => 'Datos inválidos']);
@@ -722,18 +742,18 @@ try {
 
         // ── Stock Summary ───────────────────────────────────
         case 'get_stock_summary':
-            // Solo contar SKUs que tengan un producto padre válido
-            $total = $pdo->query("SELECT COUNT(*) FROM inventory_skus s JOIN inventory_products p ON s.product_id = p.id")->fetchColumn();
-            $disponible = $pdo->query("SELECT COUNT(*) FROM inventory_skus s JOIN inventory_products p ON s.product_id = p.id WHERE s.status = 'disponible'")->fetchColumn();
-            $instalado = $pdo->query("SELECT COUNT(*) FROM inventory_skus s JOIN inventory_products p ON s.product_id = p.id WHERE s.status = 'instalado'")->fetchColumn();
-            $malogrado = $pdo->query("SELECT COUNT(*) FROM inventory_skus s JOIN inventory_products p ON s.product_id = p.id WHERE s.status = 'malogrado'")->fetchColumn();
-            $reparado = $pdo->query("SELECT COUNT(*) FROM inventory_skus s JOIN inventory_products p ON s.product_id = p.id WHERE s.status = 'reparado'")->fetchColumn();
+            // Solo contar SKUs que tengan un producto padre válido y no estén eliminados
+            $total = $pdo->query("SELECT COUNT(*) FROM inventory_skus s JOIN inventory_products p ON s.product_id = p.id WHERE s.is_deleted = 0 AND p.is_deleted = 0")->fetchColumn();
+            $disponible = $pdo->query("SELECT COUNT(*) FROM inventory_skus s JOIN inventory_products p ON s.product_id = p.id WHERE s.status = 'disponible' AND s.is_deleted = 0 AND p.is_deleted = 0")->fetchColumn();
+            $instalado = $pdo->query("SELECT COUNT(*) FROM inventory_skus s JOIN inventory_products p ON s.product_id = p.id WHERE s.status = 'instalado' AND s.is_deleted = 0 AND p.is_deleted = 0")->fetchColumn();
+            $malogrado = $pdo->query("SELECT COUNT(*) FROM inventory_skus s JOIN inventory_products p ON s.product_id = p.id WHERE s.status = 'malogrado' AND s.is_deleted = 0 AND p.is_deleted = 0")->fetchColumn();
+            $reparado = $pdo->query("SELECT COUNT(*) FROM inventory_skus s JOIN inventory_products p ON s.product_id = p.id WHERE s.status = 'reparado' AND s.is_deleted = 0 AND p.is_deleted = 0")->fetchColumn();
 
-            // Sumar también productos bulk
-            $bulk_total = $pdo->query("SELECT COALESCE(SUM(total_quantity), 0) FROM inventory_products WHERE is_bulk = 1")->fetchColumn();
+            // Sumar también productos bulk (no eliminados)
+            $bulk_total = $pdo->query("SELECT COALESCE(SUM(total_quantity), 0) FROM inventory_products WHERE is_bulk = 1 AND is_deleted = 0")->fetchColumn();
 
             $low_stock = $pdo->query("SELECT COUNT(*) FROM (
-                SELECT s.product_id, COUNT(*) as cnt FROM inventory_skus s JOIN inventory_products p ON s.product_id = p.id WHERE s.status = 'disponible' GROUP BY s.product_id HAVING cnt <= (SELECT stock_minimo FROM inventory_products WHERE id = s.product_id)
+                SELECT s.product_id, COUNT(*) as cnt FROM inventory_skus s JOIN inventory_products p ON s.product_id = p.id WHERE s.status = 'disponible' AND s.is_deleted = 0 AND p.is_deleted = 0 GROUP BY s.product_id HAVING cnt <= (SELECT stock_minimo FROM inventory_products WHERE id = s.product_id)
             ) as low")->fetchColumn();
 
             echo json_encode(['success' => true, 'data' => [
@@ -764,7 +784,7 @@ try {
                     JOIN inventory_products p ON s.product_id = p.id
                     LEFT JOIN inventory_categories c ON p.category_id = c.id
                     LEFT JOIN users u ON s.assigned_to = u.id
-                    WHERE 1=1";
+                    WHERE s.is_deleted = 0";
             $params = [];
 
             if ($status_filter) {
@@ -808,7 +828,8 @@ try {
                         FROM inventory_products p
                         LEFT JOIN inventory_categories c ON p.category_id = c.id
                         WHERE (p.is_bulk = 1 OR p.product_type = 'agrupado')
-                          AND (p.parent_product_id IS NULL OR p.parent_product_id = 0)";
+                          AND (p.parent_product_id IS NULL OR p.parent_product_id = 0)
+                          AND p.is_deleted = 0";
             
             $paramsBulk = [];
             if ($product_filter) {
@@ -1070,7 +1091,7 @@ try {
         case 'update_historia':
             $sku_id = intval($_POST['sku_id'] ?? 0);
             $historia = $_POST['historia'] ?? 'ninguno';
-            $valid_hist = ['ninguno', 'devuelto', 'malogrado', 'antiguo', 'en_transito'];
+            $valid_hist = ['ninguno', 'devuelto', 'malogrado', 'antiguo', 'en_transito', 'observacion'];
             if (!$sku_id || !in_array($historia, $valid_hist)) {
                 echo json_encode(['success' => false, 'message' => 'Datos inválidos']);
                 break;
@@ -1140,7 +1161,7 @@ try {
         case 'bulk_update_sku_status':
             $skus_json = $_POST['skus'] ?? '[]';
             $status = $_POST['status'] ?? '';
-            $valid = ['disponible', 'instalado', 'malogrado', 'reparado', 'en_transito'];
+            $valid = ['disponible', 'instalado', 'malogrado', 'reparado', 'en_transito', 'observacion'];
             
             $skus = json_decode($skus_json, true);
             if (!is_array($skus) || empty($skus) || !in_array($status, $valid)) {
@@ -1167,14 +1188,18 @@ try {
             
             $placeholders = implode(',', array_fill(0, count($skus), '?'));
             
-            // Delete associated photos first (optional if CASCADE is set)
-            $stmtPhotos = $pdo->prepare("DELETE FROM inventory_sku_photos WHERE sku_id IN ($placeholders)");
-            $stmtPhotos->execute($skus);
+            // Validar que todos los SKUs sean disponibles
+            $stmtDisp = $pdo->prepare("SELECT COUNT(*) FROM inventory_skus WHERE id IN ($placeholders) AND status != 'disponible'");
+            $stmtDisp->execute($skus);
+            if ($stmtDisp->fetchColumn() > 0) {
+                echo json_encode(['success' => false, 'message' => 'Solo se pueden eliminar SKUs con estado disponible.']);
+                break;
+            }
             
-            $stmt = $pdo->prepare("DELETE FROM inventory_skus WHERE id IN ($placeholders)");
+            $stmt = $pdo->prepare("UPDATE inventory_skus SET is_deleted = 1 WHERE id IN ($placeholders)");
             $stmt->execute($skus);
             
-            echo json_encode(['success' => true, 'message' => 'SKUs eliminados']);
+            echo json_encode(['success' => true, 'message' => 'SKUs enviados a la papelera']);
             break;
         // ── Adjust Product Stock (Edit Stock Modal) ─────────────
         case 'adjust_product_stock':
@@ -1194,7 +1219,12 @@ try {
                 $prod = $stmtProd->fetch();
                 if (!$prod) throw new Exception("Producto no encontrado");
 
-                $old_total = intval($prod['total_quantity']);
+                if ($prod['is_bulk']) {
+                    $old_total = intval($prod['total_quantity']);
+                } else {
+                    $old_total = (int) $pdo->query("SELECT COUNT(*) FROM inventory_skus WHERE product_id = $product_id AND is_deleted = 0")->fetchColumn();
+                }
+                
                 $diff = $new_total - $old_total;
                 $user_id = intval($_SESSION['user_id'] ?? 0);
 
@@ -1209,44 +1239,148 @@ try {
                 } else {
                     // Normal SKU product
                     $skus_affected = [];
+                    
+                    $target_col = $_POST['target_col'] ?? 'sku_code';
+                    $auto_generate = intval($_POST['auto_generate'] ?? 0);
+                    $scanned_codes_str = $_POST['scanned_codes'] ?? '[]';
+                    $scanned_codes = json_decode($scanned_codes_str, true) ?: [];
+
+                    if (!$auto_generate && count($scanned_codes) !== abs($diff) && $diff !== 0) {
+                        $pdo->rollBack();
+                        echo json_encode(['success' => false, 'message' => "Se esperaban " . abs($diff) . " códigos escaneados, pero se recibieron " . count($scanned_codes) . "."]);
+                        break;
+                    }
+
                     if ($diff > 0) {
-                        // Generate new SKUs
+                        if (!$auto_generate) {
+                            $unique = array_unique($scanned_codes);
+                            if (count($unique) !== count($scanned_codes)) {
+                                $pdo->rollBack();
+                                echo json_encode(['success' => false, 'message' => "Hay códigos duplicados en tu escaneo."]);
+                                break;
+                            }
+                            
+                            // Check existence if target is sku_code
+                            if ($target_col === 'sku_code') {
+                                $placeholders = implode(',', array_fill(0, count($scanned_codes), '?'));
+                                $stmtChk = $pdo->prepare("SELECT sku_code FROM inventory_skus WHERE sku_code IN ($placeholders) AND is_deleted = 0");
+                                $stmtChk->execute($scanned_codes);
+                                $existing = $stmtChk->fetchAll(PDO::FETCH_COLUMN);
+                                if (!empty($existing)) {
+                                    $pdo->rollBack();
+                                    echo json_encode(['success' => false, 'message' => "Los siguientes códigos ya existen: " . implode(', ', $existing)]);
+                                    break;
+                                }
+                            }
+                        }
+
                         $cols = json_decode($prod['custom_columns'] ?? '[]', true) ?: [];
                         $emptyCustom = new stdClass();
                         foreach ($cols as $col) { $colName = is_array($col) ? ($col['name'] ?? '') : $col; if ($colName) $emptyCustom->{$colName} = ''; }
-                        $customJson = json_encode($emptyCustom);
 
                         $generated = [];
                         $attempts = 0;
                         $max = $diff * 10;
-                        while (count($generated) < $diff && $attempts < $max) {
-                            $code = 'TRB-' . generateRandomCode(6);
-                            $chk = $pdo->prepare("SELECT COUNT(*) FROM inventory_skus WHERE sku_code = ?");
-                            $chk->execute([$code]);
-                            if ($chk->fetchColumn() == 0 && !in_array($code, $generated)) $generated[] = $code;
-                            $attempts++;
-                        }
+                        
                         $ins = $pdo->prepare("INSERT INTO inventory_skus (product_id, sku_code, status, custom_data) VALUES (?, ?, 'disponible', ?)");
-                        foreach ($generated as $sku) { $ins->execute([$product_id, $sku, $customJson]); }
-                        $skus_affected = $generated;
-                    } elseif ($diff < 0) {
-                        // Delete available SKUs (don't touch assigned/installed)
-                        $toDelete = abs($diff);
-                        $stmtDel = $pdo->prepare("SELECT id, sku_code FROM inventory_skus WHERE product_id = ? AND status = 'disponible' AND (assigned_to IS NULL OR assigned_to = 0) ORDER BY id ASC LIMIT ?");
-                        $stmtDel->bindValue(1, $product_id, PDO::PARAM_INT);
-                        $stmtDel->bindValue(2, $toDelete, PDO::PARAM_INT);
-                        $stmtDel->execute();
-                        $toDeleteRows = $stmtDel->fetchAll();
-                        if (count($toDeleteRows) < $toDelete) {
-                            $pdo->rollBack();
-                            echo json_encode(['success' => false, 'message' => 'No hay suficientes SKUs disponibles para eliminar. Solo hay ' . count($toDeleteRows) . ' disponibles.']);
-                            break;
+                        
+                        for ($i = 0; $i < $diff; $i++) {
+                            $customData = clone $emptyCustom;
+                            
+                            if ($auto_generate) {
+                                $code = '';
+                                while ($attempts < $max) {
+                                    $c = 'TRB-' . generateRandomCode(6);
+                                    $chk = $pdo->prepare("SELECT COUNT(*) FROM inventory_skus WHERE sku_code = ?");
+                                    $chk->execute([$c]);
+                                    if ($chk->fetchColumn() == 0 && !in_array($c, $generated)) { $code = $c; break; }
+                                    $attempts++;
+                                }
+                                if (!$code) throw new Exception("No se pudieron generar códigos únicos");
+                                $ins->execute([$product_id, $code, json_encode($customData)]);
+                                $generated[] = $code;
+                            } else {
+                                $scanned = $scanned_codes[$i];
+                                $code = '';
+                                if ($target_col === 'sku_code') {
+                                    $code = $scanned;
+                                } else {
+                                    while ($attempts < $max) {
+                                        $c = 'TRB-' . generateRandomCode(6);
+                                        $chk = $pdo->prepare("SELECT COUNT(*) FROM inventory_skus WHERE sku_code = ?");
+                                        $chk->execute([$c]);
+                                        if ($chk->fetchColumn() == 0 && !in_array($c, $generated)) { $code = $c; break; }
+                                        $attempts++;
+                                    }
+                                    if (!$code) throw new Exception("No se pudieron generar códigos únicos");
+                                    $customData->{$target_col} = $scanned;
+                                }
+                                $ins->execute([$product_id, $code, json_encode($customData)]);
+                                $generated[] = $code;
+                            }
                         }
-                        $ids = array_column($toDeleteRows, 'id');
-                        $skus_affected = array_column($toDeleteRows, 'sku_code');
-                        $placeholders = implode(',', array_fill(0, count($ids), '?'));
-                        $pdo->prepare("DELETE FROM inventory_sku_photos WHERE sku_id IN ($placeholders)")->execute($ids);
-                        $pdo->prepare("DELETE FROM inventory_skus WHERE id IN ($placeholders)")->execute($ids);
+                        $skus_affected = $auto_generate ? $generated : $scanned_codes;
+                        
+                    } elseif ($diff < 0) {
+                        $toDelete = abs($diff);
+                        $idsToDelete = [];
+                        $affectedCodes = [];
+                        
+                        $stmtAvail = $pdo->prepare("SELECT id, sku_code, custom_data FROM inventory_skus WHERE product_id = ? AND status = 'disponible' AND is_deleted = 0 AND (assigned_to IS NULL OR assigned_to = 0)");
+                        $stmtAvail->execute([$product_id]);
+                        $availableSkus = $stmtAvail->fetchAll(PDO::FETCH_ASSOC);
+
+                        if ($auto_generate) {
+                            if (count($availableSkus) < $toDelete) {
+                                $pdo->rollBack();
+                                echo json_encode(['success' => false, 'message' => "No hay suficientes SKUs disponibles para eliminar. Se requieren $toDelete, pero hay " . count($availableSkus) . "."]);
+                                exit;
+                            }
+                            shuffle($availableSkus);
+                            for ($i = 0; $i < $toDelete; $i++) {
+                                $idsToDelete[] = $availableSkus[$i]['id'];
+                                $affectedCodes[] = $availableSkus[$i]['sku_code'];
+                            }
+                        } else {
+                            foreach ($scanned_codes as $scanned) {
+                                $foundId = null;
+                                foreach ($availableSkus as $idx => $sku) {
+                                    if (strcasecmp($sku['sku_code'], $scanned) === 0) {
+                                        $foundId = $sku['id'];
+                                        unset($availableSkus[$idx]);
+                                        break;
+                                    } else {
+                                        $cd = json_decode($sku['custom_data'] ?? '{}', true) ?: [];
+                                        $foundInCustom = false;
+                                        foreach ($cd as $key => $val) {
+                                            if (strcasecmp((string)$val, $scanned) === 0) {
+                                                $foundInCustom = true;
+                                                break;
+                                            }
+                                        }
+                                        if ($foundInCustom) {
+                                            $foundId = $sku['id'];
+                                            unset($availableSkus[$idx]);
+                                            break;
+                                        }
+                                    }
+                                }
+                                if ($foundId) {
+                                    $idsToDelete[] = $foundId;
+                                    $affectedCodes[] = $scanned;
+                                } else {
+                                    $pdo->rollBack();
+                                    echo json_encode(['success' => false, 'message' => "El código '$scanned' no se encontró disponible en este producto."]);
+                                    exit;
+                                }
+                            }
+                        }
+                        
+                        if (count($idsToDelete) > 0) {
+                            $placeholders = implode(',', array_fill(0, count($idsToDelete), '?'));
+                            $pdo->prepare("UPDATE inventory_skus SET is_deleted = 1 WHERE id IN ($placeholders)")->execute($idsToDelete);
+                        }
+                        $skus_affected = $affectedCodes;
                     }
                     // Log
                     if ($diff != 0) {
@@ -1469,7 +1603,7 @@ try {
                             }
                             
                             $delPlaceholders = implode(',', array_fill(0, count($disp_skus), '?'));
-                            $stmtDel = $pdo->prepare("DELETE FROM inventory_skus WHERE sku_code IN ($delPlaceholders)");
+                            $stmtDel = $pdo->prepare("UPDATE inventory_skus SET is_deleted = 1 WHERE sku_code IN ($delPlaceholders)");
                             $stmtDel->execute($disp_skus);
                             
                             $sku_codes = array_values(array_diff($sku_codes, $disp_skus));
@@ -1518,7 +1652,7 @@ try {
                         if ($stmtCheck->fetchColumn() > 0) {
                             throw new Exception("No se puede eliminar: algunos SKUs de este lote ya han sido usados o asignados.");
                         }
-                        $stmtDel = $pdo->prepare("DELETE FROM inventory_skus WHERE sku_code IN ($placeholders)");
+                        $stmtDel = $pdo->prepare("UPDATE inventory_skus SET is_deleted = 1 WHERE sku_code IN ($placeholders)");
                         $stmtDel->execute($sku_codes);
                     }
                 }
@@ -1545,7 +1679,8 @@ try {
             $sql = "SELECT p.*, c.name as category_name,
                     (SELECT COUNT(*) FROM inventory_skus WHERE product_id = p.id AND status = 'disponible') as qty_disponible,
                     (SELECT COUNT(*) FROM inventory_skus WHERE product_id = p.id AND status = 'instalado') as qty_instalado,
-                    (SELECT COUNT(*) FROM inventory_skus WHERE product_id = p.id AND status = 'malogrado') as qty_malogrado
+                    (SELECT COUNT(*) FROM inventory_skus WHERE product_id = p.id AND status = 'malogrado') as qty_malogrado,
+                    (SELECT COUNT(*) FROM inventory_skus WHERE product_id = p.id AND status = 'observacion') as qty_observacion
                     FROM inventory_products p
                     LEFT JOIN inventory_categories c ON p.category_id = c.id
                     WHERE p.id IN ($placeholders)";
@@ -1558,7 +1693,7 @@ try {
             header('Content-Disposition: attachment; filename=productos_exportados_' . date('Ymd_His') . '.csv');
             
             $output = fopen('php://output', 'w');
-            fputcsv($output, ['ID', 'Nombre', 'Categoria', 'Total', 'Disponibles', 'Instalados', 'Malogrados']);
+            fputcsv($output, ['ID', 'Nombre', 'Categoria', 'Total', 'Disponibles', 'Instalados', 'Malogrados', 'Observados']);
             
             foreach ($products as $p) {
                 fputcsv($output, [
@@ -1568,11 +1703,79 @@ try {
                     $p['total_quantity'],
                     $p['is_bulk'] ? $p['total_quantity'] : $p['qty_disponible'],
                     $p['qty_instalado'],
-                    $p['is_bulk'] ? 0 : $p['qty_malogrado']
+                    $p['is_bulk'] ? 0 : $p['qty_malogrado'],
+                    $p['is_bulk'] ? 0 : $p['qty_observacion']
                 ]);
             }
             fclose($output);
             exit;
+
+        // ── Papelera ────────────────────────────────────────
+        case 'get_deleted_items':
+            try {
+                $sqlProd = "SELECT p.id as item_id, 'product' as item_type, p.name as name, '' as product_name, c.name as category_name, p.master_sku as code, 
+                            (SELECT COUNT(*) FROM inventory_skus WHERE product_id = p.id) as quantity,
+                            p.created_at as deleted_at, 0 as parent_deleted
+                            FROM inventory_products p LEFT JOIN inventory_categories c ON p.category_id = c.id WHERE p.is_deleted = 1";
+                $sqlSku = "SELECT s.id as item_id, 'sku' as item_type, p.name as product_name, p.name as name, c.name as category_name, s.sku_code as code, 1 as quantity,
+                           s.status as sku_status, s.created_at as deleted_at, p.is_deleted as parent_deleted
+                           FROM inventory_skus s JOIN inventory_products p ON s.product_id = p.id LEFT JOIN inventory_categories c ON p.category_id = c.id WHERE s.is_deleted = 1";
+                
+                $stmt1 = $pdo->query($sqlProd);
+                $deletedProducts = $stmt1->fetchAll(PDO::FETCH_ASSOC);
+                $stmt2 = $pdo->query($sqlSku);
+                $deletedSkus = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+                
+                $all = array_merge($deletedProducts, $deletedSkus);
+                $json = json_encode(['success' => true, 'data' => $all]);
+                if ($json === false) {
+                    file_put_contents('debug.txt', 'JSON Error: ' . json_last_error_msg());
+                    echo json_encode(['success' => false, 'message' => 'JSON Error: ' . json_last_error_msg()]);
+                } else {
+                    echo $json;
+                }
+            } catch (Exception $ex) {
+                file_put_contents('debug.txt', $ex->getMessage());
+                echo json_encode(['success' => false, 'message' => $ex->getMessage()]);
+            }
+            break;
+
+        case 'restore_item':
+            $item_id = intval($_POST['item_id'] ?? 0);
+            $item_type = $_POST['item_type'] ?? '';
+            if (!$item_id || !in_array($item_type, ['product', 'sku'])) {
+                echo json_encode(['success' => false, 'message' => 'Datos inválidos']);
+                break;
+            }
+            if ($item_type === 'product') {
+                $pdo->prepare("UPDATE inventory_products SET is_deleted = 0 WHERE id = ?")->execute([$item_id]);
+                $pdo->prepare("UPDATE inventory_skus SET is_deleted = 0 WHERE product_id = ?")->execute([$item_id]);
+            } else {
+                $pdo->prepare("UPDATE inventory_skus SET is_deleted = 0 WHERE id = ?")->execute([$item_id]);
+            }
+            echo json_encode(['success' => true, 'message' => 'Elemento restaurado']);
+            break;
+
+        case 'hard_delete_item':
+            $item_id = intval($_POST['item_id'] ?? 0);
+            $item_type = $_POST['item_type'] ?? '';
+            if (!$item_id || !in_array($item_type, ['product', 'sku'])) {
+                echo json_encode(['success' => false, 'message' => 'Datos inválidos']);
+                break;
+            }
+            if ($item_type === 'product') {
+                $pdo->prepare("DELETE FROM inventory_products WHERE id = ?")->execute([$item_id]);
+            } else {
+                $pdo->prepare("DELETE FROM inventory_skus WHERE id = ?")->execute([$item_id]);
+            }
+            echo json_encode(['success' => true, 'message' => 'Elemento eliminado permanentemente']);
+            break;
+
+        case 'empty_papelera':
+            $pdo->prepare("DELETE FROM inventory_products WHERE is_deleted = 1")->execute();
+            $pdo->prepare("DELETE FROM inventory_skus WHERE is_deleted = 1")->execute();
+            echo json_encode(['success' => true, 'message' => 'Papelera vaciada correctamente']);
+            break;
 
         default:
             echo json_encode(['success' => false, 'message' => 'Acción no válida']);

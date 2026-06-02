@@ -754,11 +754,13 @@ body.dark-theme .inv-confirm-btns .btn-cancel { background: #334155; }
 .status-malogrado { background: #fef2f2; color: #dc2626; }
 .status-reparado { background: #fefce8; color: #ca8a04; }
 .status-en_transito { background: #f5f3ff; color: #7c3aed; }
+.status-observacion { background: #ecfeff; color: #0891b2; }
 body.dark-theme .status-disponible { background: rgba(5,150,105,0.15); }
 body.dark-theme .status-instalado { background: rgba(37,99,235,0.15); }
 body.dark-theme .status-malogrado { background: rgba(220,38,38,0.15); }
 body.dark-theme .status-reparado { background: rgba(202,138,4,0.15); }
 body.dark-theme .status-en_transito { background: rgba(124,58,237,0.15); }
+body.dark-theme .status-observacion { background: rgba(8,145,178,0.15); }
 
 /* Status select in table */
 /* Selected row highlight */

@@ -64,6 +64,7 @@ window.addEventListener('error', function(e) {
         <button class="inv-tab" data-tab="stock"><i class="ph ph-chart-bar"></i> Control de Stock</button>
         <button class="inv-tab" data-tab="etiquetas"><i class="ph ph-tag"></i> Etiquetas</button>
         <button class="inv-tab" data-tab="escaner"><i class="ph ph-barcode"></i> Escáner</button>
+        <button class="inv-tab" data-tab="papelera"><i class="ph ph-trash"></i> Papelera</button>
     </div>
     <!-- History button -->
     <button class="inv-tab" style="margin-left:8px; background:rgba(99,102,241,0.1); color:#6366f1; border:1px solid rgba(99,102,241,0.2);" onclick="openHistoryModal()" title="Historial de inventario">
@@ -71,6 +72,11 @@ window.addEventListener('error', function(e) {
     </button>
     <!-- Filtros + Sheets (derecha) -->
     <div class="inv-toolbar-right">
+        <!-- New Product Button (moved from FAB) -->
+        <button id="btnNewProduct" style="display:flex; align-items:center; gap:6px; background:var(--primary-color); color:#fff; border:none; padding:6px 14px; border-radius:8px; font-size:0.85rem; font-weight:500; cursor:pointer; transition:all 0.2s;" title="Crear un nuevo producto">
+            <i class="ph ph-plus-circle" style="font-size:1.1rem;"></i> Nuevo Producto
+        </button>
+        
         <div class="inv-filter-search" id="toolbarSearch">
             <i class="ph ph-magnifying-glass"></i>
             <input type="text" class="form-control" id="searchProducts" placeholder="Buscar producto..." autocomplete="off">
@@ -85,6 +91,7 @@ window.addEventListener('error', function(e) {
             <option value="sin_stock">Sin Stock (Agotado)</option>
             <option value="stock_critico">Stock Crítico</option>
             <option value="con_malogrados">Con Malogrados</option>
+            <option value="con_observacion">Con Observación</option>
         </select>
         
         <!-- Stock Filters (visible only in stock tab) -->
@@ -97,6 +104,7 @@ window.addEventListener('error', function(e) {
                 <option value="malogrado">Malogrado</option>
                 <option value="reparado">Reparado</option>
                 <option value="en_transito">En Tránsito</option>
+                <option value="observacion">Observación</option>
             </select>
         </div>
 
@@ -130,6 +138,7 @@ window.addEventListener('error', function(e) {
                             <button type="button" class="inv-fp-chip" data-stat="sin_stock"><i class="ph ph-x-circle"></i> Agotado</button>
                             <button type="button" class="inv-fp-chip" data-stat="stock_critico"><i class="ph ph-warning"></i> Crítico</button>
                             <button type="button" class="inv-fp-chip" data-stat="con_malogrados"><i class="ph ph-warning-diamond"></i> Malogrados</button>
+                            <button type="button" class="inv-fp-chip" data-stat="con_observacion"><i class="ph ph-eye"></i> Observados</button>
                         </div>
                     </div>
                     <!-- Estado (Stock tab) -->
@@ -142,6 +151,7 @@ window.addEventListener('error', function(e) {
                             <button type="button" class="inv-fp-chip" data-stat="malogrado"><i class="ph ph-warning-diamond"></i> Malogrado</button>
                             <button type="button" class="inv-fp-chip" data-stat="reparado"><i class="ph ph-wrench"></i> Reparado</button>
                             <button type="button" class="inv-fp-chip" data-stat="en_transito"><i class="ph ph-truck"></i> En Tránsito</button>
+                            <button type="button" class="inv-fp-chip" data-stat="observacion"><i class="ph ph-eye"></i> Observación</button>
                         </div>
                     </div>
 
@@ -217,6 +227,10 @@ window.addEventListener('error', function(e) {
                     <th class="cf-th" data-col="malogrados">
                         <span>Malogrados</span>
                         <button class="cf-btn" onclick="ColFilter.open('malogrados', this)" title="Filtrar"><i class="ph ph-funnel-simple"></i></button>
+                    </th>
+                    <th class="cf-th" data-col="observados">
+                        <span>Observados</span>
+                        <button class="cf-btn" onclick="ColFilter.open('observados', this)" title="Filtrar"><i class="ph ph-funnel-simple"></i></button>
                     </th>
                     <th>Acciones</th>
                 </tr>
@@ -398,8 +412,41 @@ window.addEventListener('error', function(e) {
     <div id="scannerResult" class="scanner-result" style="display:none;"></div>
 </div>
 
-<!-- FAB -->
-<button class="fab" id="btnNewProduct" title="Nuevo Producto"><i class="ph ph-plus"></i></button>
+<!-- Tab: Papelera -->
+<div class="inv-tab-pane" id="tab-papelera" style="padding: 20px;">
+    <div class="scanner-header" style="margin-top: 0;">
+        <div class="scanner-header-left">
+            <div class="scanner-icon-box" style="background:rgba(239,68,68,0.1);"><i class="ph ph-trash" style="color:#ef4444;"></i></div>
+            <div>
+                <h2 style="margin:0;font-size:1.15rem;font-weight:700;">Papelera de Reciclaje</h2>
+                <p style="margin:0;font-size:0.82rem;color:rgba(255,255,255,0.7);">Restaura o elimina definitivamente productos y SKUs</p>
+            </div>
+        </div>
+        <button class="btn btn-sm" style="background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid rgba(239,68,68,0.25); font-weight:600; padding:8px 16px; border-radius:8px; cursor:pointer; display:flex; align-items:center; gap:6px;" onclick="emptyPapelera()" title="Vaciar papelera completamente">
+            <i class="ph ph-trash" style="font-size:1rem;"></i> Vaciar Papelera
+        </button>
+    </div>
+    
+    <div class="table-responsive" style="height: calc(100vh - 430px); overflow: auto; border-bottom: 1px solid var(--border-color); margin-top:20px;">
+        <table id="papeleraTable" class="inv-table">
+            <thead>
+                <tr>
+                    <th style="width:110px;">Tipo</th>
+                    <th>Código/SKU</th>
+                    <th>Producto</th>
+                    <th>Categoría</th>
+                    <th style="width:100px;">Cantidad</th>
+                    <th class="text-end" style="width:180px;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="papeleraTableBody">
+                <tr><td colspan="6" class="text-center" style="padding:30px;color:rgba(255,255,255,0.5);">Cargando papelera...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- FAB Removed (moved to toolbar) -->
 
 <!-- Modal: Selector de Tipo de Producto -->
 <div class="modal-overlay" id="productTypeModal">
@@ -932,6 +979,7 @@ window.addEventListener('error', function(e) {
                             <option value="malogrado">Malogrado</option>
                             <option value="reparado">Reparado</option>
                             <option value="en_transito">En Tránsito</option>
+                            <option value="observacion">Observación</option>
                         </select>
                     </div>
                     <hr style="border-color:var(--border-color);margin:16px 0;">
@@ -1058,6 +1106,14 @@ window.addEventListener('error', function(e) {
 
             <!-- ── NORMAL / GRANEL ── -->
             <div id="esNormalWrap">
+                <!-- Modo Toggle (Solo para productos No Granel) -->
+                <div id="esModeToggleWrap" style="display:none; margin-bottom:16px;">
+                    <div style="display:flex; background:rgba(255,255,255,0.05); border:1px solid var(--border-color); border-radius:10px; padding:4px;">
+                        <button type="button" class="inv-tab active" id="btnModeManual" onclick="esSetMode('manual')" style="flex:1; padding:8px; border-radius:6px; text-align:center; transition:all 0.2s;"><i class="ph ph-hand-pointing"></i> Manualmente</button>
+                        <button type="button" class="inv-tab" id="btnModeScan" onclick="esSetMode('scan')" style="flex:1; padding:8px; border-radius:6px; text-align:center; transition:all 0.2s;"><i class="ph ph-barcode"></i> Escanear</button>
+                    </div>
+                </div>
+
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
                     <div style="background:var(--bg-color);border:1px solid var(--border-color);border-radius:12px;padding:14px;text-align:center;">
                         <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">Stock Actual</div>
@@ -1071,23 +1127,55 @@ window.addEventListener('error', function(e) {
                     </div>
                 </div>
 
-                <div style="margin-bottom:16px;">
-                    <label class="form-label" style="font-weight:600;">Nueva cantidad total</label>
-                    <div style="display:flex;gap:8px;align-items:center;">
-                        <button type="button" onclick="esAdjust(-1)" style="width:40px;height:40px;border:1px solid var(--border-color);background:var(--bg-color);border-radius:8px;font-size:1.2rem;cursor:pointer;flex-shrink:0;color:var(--text-color);">−</button>
-                        <input type="number" id="esNewQty" class="form-control" min="0" step="1" style="text-align:center;font-size:1.1rem;font-weight:700;" oninput="esUpdatePreview()">
-                        <button type="button" onclick="esAdjust(1)" style="width:40px;height:40px;border:1px solid var(--border-color);background:var(--bg-color);border-radius:8px;font-size:1.2rem;cursor:pointer;flex-shrink:0;color:var(--text-color);">+</button>
+                <!-- MANUAL MODE -->
+                <div id="esManualSection">
+                    <div style="margin-bottom:16px;">
+                        <label class="form-label" style="font-weight:600;">Nueva cantidad total</label>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <button type="button" onclick="esAdjust(-1)" style="width:40px;height:40px;border:1px solid var(--border-color);background:var(--bg-color);border-radius:8px;font-size:1.2rem;cursor:pointer;flex-shrink:0;color:var(--text-color);">−</button>
+                            <input type="number" id="esNewQty" class="form-control" min="0" step="1" style="text-align:center;font-size:1.1rem;font-weight:700;" oninput="esUpdatePreview()">
+                            <button type="button" onclick="esAdjust(1)" style="width:40px;height:40px;border:1px solid var(--border-color);background:var(--bg-color);border-radius:8px;font-size:1.2rem;cursor:pointer;flex-shrink:0;color:var(--text-color);">+</button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Warning for SKU deletions -->
-                <div id="esDeleteWarning" style="display:none;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:0.82rem;color:#b45309;">
-                    <i class="ph ph-warning"></i> <span id="esDeleteWarningText"></span>
+                <!-- SCAN MODE -->
+                <div id="esScanSection" style="display:none; margin-bottom:16px;">
+                    <div style="background:var(--bg-color);border:1px solid var(--border-color);border-radius:10px;padding:14px;">
+                        
+                        <div style="display:flex; gap:8px; margin-bottom:12px;">
+                            <button type="button" id="btnScanActionAdd" class="btn btn-primary" style="flex:1; font-size:0.85rem;" onclick="esSetScanAction('add')"><i class="ph ph-plus-circle"></i> Añadir Stock</button>
+                            <button type="button" id="btnScanActionRemove" class="btn btn-secondary" style="flex:1; font-size:0.85rem;" onclick="esSetScanAction('remove')"><i class="ph ph-minus-circle"></i> Retirar Stock</button>
+                        </div>
+
+                        <div id="esScanAddConfig" style="margin-bottom:12px;">
+                            <label class="form-label" style="font-size:0.82rem;font-weight:600;">¿Dónde guardar los códigos escaneados?</label>
+                            <select id="esScanTargetCol" class="form-control" style="font-size:0.85rem;padding:6px 10px;height:auto;">
+                                <option value="sku_code">Código Principal (SKU)</option>
+                            </select>
+                        </div>
+
+                        <div id="esScanArea">
+                            <label class="form-label" style="margin-bottom:6px;font-size:0.82rem;font-weight:600;"><i class="ph ph-barcode"></i> <span id="esScanInputLabel">Escanea para añadir</span></label>
+                            <input type="text" id="esScanInputLive" class="form-control" placeholder="Haz clic aquí y usa tu escáner..." style="font-family:monospace;font-size:0.9rem;" autocomplete="off" onkeydown="esHandleLiveScan(event)">
+                            <div id="esScanWarning" style="margin-top:6px;font-size:0.75rem;color:#ef4444;display:none;"></div>
+                        </div>
+
+                        <div id="esScannedTableWrap" style="margin-top:14px; display:none; border:1px solid var(--border-color); border-radius:8px; overflow:hidden;">
+                            <table class="inv-table" style="margin:0; font-size:0.8rem;">
+                                <thead>
+                                    <tr>
+                                        <th style="padding:6px 10px;">Código Escaneado</th>
+                                        <th style="width:40px; text-align:center; padding:6px 10px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="esScannedList"></tbody>
+                            </table>
+                        </div>
+
+                    </div>
                 </div>
-                <!-- Info for SKU generation -->
-                <div id="esGenerateInfo" style="display:none;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:0.82rem;color:#059669;">
-                    <i class="ph ph-plus-circle"></i> <span id="esGenerateInfoText"></span>
-                </div>
+
             </div>
 
             <!-- ── AGRUPADO ── -->

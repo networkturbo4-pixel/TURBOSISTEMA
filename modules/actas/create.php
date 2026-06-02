@@ -90,6 +90,7 @@ include '../../includes/sidebar.php';
         width: 100%;
         height: 150px;
         cursor: crosshair;
+        touch-action: none;
     }
     .clear-signature {
         position: absolute;
@@ -922,6 +923,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     resizeCanvas(canvasCliente);
     resizeCanvas(canvasTecnico);
+
+    window.addEventListener("resize", () => {
+        const clienteData = clientePad ? clientePad.toDataURL() : null;
+        const tecnicoData = tecnicoPad ? tecnicoPad.toDataURL() : null;
+        resizeCanvas(canvasCliente);
+        resizeCanvas(canvasTecnico);
+        if (clientePad && clienteData) clientePad.fromDataURL(clienteData);
+        if (tecnicoPad && tecnicoData) tecnicoPad.fromDataURL(tecnicoData);
+    });
 
     clientePad = new SignaturePad(canvasCliente, { backgroundColor: 'rgb(255, 255, 255)', penColor: 'rgb(0, 0, 0)' });
     tecnicoPad = new SignaturePad(canvasTecnico, { backgroundColor: 'rgb(255, 255, 255)', penColor: 'rgb(0, 0, 0)' });
