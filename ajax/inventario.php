@@ -108,7 +108,7 @@ try {
                     (SELECT COUNT(*) FROM inventory_products ch WHERE ch.parent_product_id = p.id AND ch.is_deleted = 0) as children_count
                     FROM inventory_products p
                     LEFT JOIN inventory_categories c ON p.category_id = c.id
-                    WHERE (p.parent_product_id IS NULL OR p.parent_product_id = 0) AND (p.is_deleted = 0 OR p.is_deleted IS NULL)
+                    WHERE 1=1
                     ORDER BY p.created_at DESC";
             $stmt = $pdo->query($sql);
             $products = $stmt->fetchAll();
@@ -828,8 +828,6 @@ try {
                         FROM inventory_products p
                         LEFT JOIN inventory_categories c ON p.category_id = c.id
                         WHERE (p.is_bulk = 1 OR p.product_type = 'agrupado')
-                          AND (p.parent_product_id IS NULL OR p.parent_product_id = 0)
-                          AND (p.is_deleted = 0 OR p.is_deleted IS NULL)";
             
             $paramsBulk = [];
             if ($product_filter) {
