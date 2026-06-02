@@ -3065,6 +3065,8 @@
             if (window.showToast) window.showToast(res.message, 'error');
         }
     };
+    window.openSkuDetailModal = openSkuDetailModal;
+
 
 
     window.unassignSku = async function() {
@@ -5108,7 +5110,9 @@ window.SheetsSync = (function() {
         optionAssign.onclick = async () => {
             contextMenu.style.display = 'none';
             if (currentRightClickSkuData) {
-                if (typeof openSkuDetailModal === 'function') {
+                if (typeof window.openSkuDetailModal === 'function') {
+                    window.openSkuDetailModal(currentRightClickSkuData);
+                } else if (typeof openSkuDetailModal === 'function') {
                     openSkuDetailModal(currentRightClickSkuData);
                 }
             } else if (currentRightClickSkuCode) {
