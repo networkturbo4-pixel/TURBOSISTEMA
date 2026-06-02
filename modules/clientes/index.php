@@ -185,8 +185,8 @@ include '../../includes/sidebar.php';
     </div>
 </div>
 
-<!-- Reemplaza "YOUR_API_KEY" con tu API Key real de Google Maps -->
-<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places"></script>
+<!-- Google Maps API -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBNXLdtgdStVUGqNeDFdaHRTpCjaVHF6RE&libraries=places"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
