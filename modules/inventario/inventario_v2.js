@@ -5452,38 +5452,66 @@ window.SheetsSync = (function() {
         }
     };
 
-    window.bulkChangeSkuStatus = async function() {
+    window.bulkChangeSkuStatus = function() {
         const selected = Array.from(document.querySelectorAll('.sku-row-check:checked')).map(el => el.value);
         if (!selected.length) return;
 
-        const newStatus = prompt("Escribe el nuevo estado (disponible, instalado, malogrado, reparado, en_transito, observacion):", "disponible");
-        if (!newStatus) return;
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay active';
+        overlay.style.zIndex = '100000';
+        overlay.innerHTML = `
+            <div class="modal-content" style="max-width: 350px;">
+                <div class="modal-header">
+                    <h3><i class="ph ph-tag" style="color:#6366f1;"></i> Cambiar Estado</h3>
+                    <button class="close-modal" id="closeBulkStatus">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p style="margin-top:0;font-size:0.9rem;color:var(--text-muted);">Elige el nuevo estado para los ${selected.length} elementos:</p>
+                    <div class="inv-form-field" style="margin-bottom:20px;">
+                        <select id="bulkStatusSelect" class="form-select">
+                            <option value="disponible">Disponible</option>
+                            <option value="instalado">Instalado</option>
+                            <option value="malogrado">Malogrado</option>
+                            <option value="reparado">Reparado</option>
+                            <option value="en_transito">En Tránsito</option>
+                            <option value="observacion">Observación</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" id="btnConfirmBulkStatus" style="width:100%;"><i class="ph ph-check-circle"></i> Aplicar Estado</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
 
-        const validStatuses = ['disponible', 'instalado', 'malogrado', 'reparado', 'en_transito', 'observacion'];
-        if (!validStatuses.includes(newStatus.toLowerCase())) {
-            alert("Estado inválido.");
-            return;
-        }
+        overlay.querySelector('#closeBulkStatus').onclick = () => overlay.remove();
 
-        const fd = new FormData();
-        fd.append('action', 'bulk_change_sku_status');
-        fd.append('skus', JSON.stringify(selected));
-        fd.append('status', newStatus.toLowerCase());
+        const btnConfirm = overlay.querySelector('#btnConfirmBulkStatus');
+        btnConfirm.onclick = async () => {
+            const newStatus = overlay.querySelector('#bulkStatusSelect').value;
+            const fd = new FormData();
+            fd.append('action', 'bulk_change_sku_status');
+            fd.append('skus', JSON.stringify(selected));
+            fd.append('status', newStatus);
 
-        try {
-            const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
-            if (res.success) {
-                if (window.showToast) window.showToast(res.message, 'success');
-                const chkAll = document.getElementById('skuCheckAll');
-                if (chkAll) chkAll.checked = false;
-                if (window.loadAllSkus) window.loadAllSkus();
-                if (window.loadMetrics) window.loadMetrics();
-            } else {
-                if (window.showToast) window.showToast(res.message, 'error');
+            try {
+                btnConfirm.disabled = true;
+                btnConfirm.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Guardando...';
+                const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+                if (res.success) {
+                    if (window.showToast) window.showToast(res.message, 'success');
+                    const chkAll = document.getElementById('skuCheckAll');
+                    if (chkAll) chkAll.checked = false;
+                    if (window.loadAllSkus) window.loadAllSkus();
+                    if (window.loadMetrics) window.loadMetrics();
+                } else {
+                    if (window.showToast) window.showToast(res.message, 'error');
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                overlay.remove();
             }
-        } catch (e) {
-            console.error(e);
-        }
+        };
     };
 
     window.exportSkusToExcel = function() {
