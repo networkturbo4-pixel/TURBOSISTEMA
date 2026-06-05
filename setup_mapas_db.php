@@ -1,12 +1,8 @@
 <?php
-$host = 'localhost';
-$dbname = 'turbosaas_db';
-$user = 'root';
-$pass = '';
+require_once __DIR__ . '/config/db.php';
 
 try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $user, $pass);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    // Tabla de Proyectos
 
     // Tabla de Proyectos
     $pdo->exec("
@@ -43,6 +39,23 @@ try {
             elemento_id INT NOT NULL,
             ruta VARCHAR(255) NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (elemento_id) REFERENCES mapas_elementos(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+
+    // Tabla de Puertos
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS mapas_puertos (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            elemento_id INT NOT NULL,
+            numero_puerto INT NOT NULL,
+            estado VARCHAR(50) DEFAULT 'Libre',
+            cliente_nombre VARCHAR(255) DEFAULT '',
+            cliente_direccion TEXT,
+            potencia VARCHAR(50) DEFAULT '',
+            color_hilo VARCHAR(50) DEFAULT '',
+            notas TEXT,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             FOREIGN KEY (elemento_id) REFERENCES mapas_elementos(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");

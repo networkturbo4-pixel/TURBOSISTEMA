@@ -159,7 +159,7 @@ function crearProyecto() {
             if (res.success) {
                 window.location.href = 'view.php?id=' + res.id;
             } else {
-                alert('Error al crear proyecto');
+                alert('Error: ' + (res.message || 'No se pudo crear el proyecto'));
             }
         });
 }
