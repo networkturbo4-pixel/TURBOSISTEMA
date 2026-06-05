@@ -32,6 +32,19 @@ try {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
 
+    // Asegurar que las columnas técnicas existan (por si la tabla ya fue creada)
+    try {
+        $pdo->exec("
+            ALTER TABLE mapas_elementos 
+            ADD COLUMN capacidad_puertos INT DEFAULT 0,
+            ADD COLUMN potencia_dbm VARCHAR(50) DEFAULT '',
+            ADD COLUMN cable_origen VARCHAR(100) DEFAULT '',
+            ADD COLUMN splitter_tipo VARCHAR(50) DEFAULT '';
+        ");
+    } catch (PDOException $e) {
+        // Ignorar error si las columnas ya existen
+    }
+
     // Tabla de Imágenes
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS mapas_imagenes (
@@ -57,6 +70,18 @@ try {
             notas TEXT,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             FOREIGN KEY (elemento_id) REFERENCES mapas_elementos(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+
+    // Tabla de Historial de Puertos
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS mapas_puertos_historial (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            puerto_id INT NOT NULL,
+            accion VARCHAR(50),
+            cliente_nombre VARCHAR(255),
+            fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (puerto_id) REFERENCES mapas_puertos(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
 
