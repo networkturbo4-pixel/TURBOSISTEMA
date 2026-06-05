@@ -1,0 +1,252 @@
+<?php
+require_once '../../config/db.php';
+requireLogin();
+
+// Verificar permiso
+if (!hasAccess($pdo, 'mapas')) {
+    echo json_encode(['success' => false, 'message' => 'Acceso denegado']);
+    exit;
+}
+
+header('Content-Type: application/json');
+
+$action = $_POST['action'] ?? $_GET['action'] ?? '';
+
+try {
+    switch ($action) {
+        case 'list_projects':
+            $stmt = $pdo->query("SELECT * FROM mapas_proyectos ORDER BY updated_at DESC");
+            $projects = $stmt->fetchAll();
+            echo json_encode(['success' => true, 'data' => $projects]);
+            break;
+
+        case 'create_project':
+            $nombre = $_POST['nombre'] ?? 'Nuevo Proyecto';
+            $desc = $_POST['descripcion'] ?? '';
+            $stmt = $pdo->prepare("INSERT INTO mapas_proyectos (nombre, descripcion) VALUES (?, ?)");
+            $stmt->execute([$nombre, $desc]);
+            echo json_encode(['success' => true, 'id' => $pdo->lastInsertId()]);
+            break;
+
+        case 'import_geojson':
+            $proyecto_id = $_POST['proyecto_id'] ?? 0;
+            $features_json = $_POST['features'] ?? '[]';
+            $features = json_decode($features_json, true);
+
+            if (!$proyecto_id || !is_array($features)) {
+                echo json_encode(['success' => false, 'message' => 'Datos inválidos']);
+                exit;
+            }
+
+            $stmt = $pdo->prepare("INSERT INTO mapas_elementos (proyecto_id, tipo, nombre, descripcion, geojson, color) VALUES (?, ?, ?, ?, ?, ?)");
+            $count = 0;
+
+            foreach ($features as $f) {
+                $tipo = $f['geometry']['type'] ?? 'Point';
+                $nombre = $f['properties']['name'] ?? 'Elemento';
+                $desc = $f['properties']['description'] ?? '';
+                // Color por defecto basado en nombre
+                $color = '#a78bfa';
+                if (stripos($nombre, 'NAP') !== false) $color = '#facc15';
+                else if (stripos($nombre, 'PRINCIPAL') !== false) $color = '#ef4444';
+                else if (stripos($nombre, 'MUFA') !== false) $color = '#fb923c';
+                else if ($tipo === 'LineString') $color = '#38bdf8';
+
+                $geojson = json_encode($f['geometry']);
+
+                $stmt->execute([$proyecto_id, $tipo, $nombre, $desc, $geojson, $color]);
+                $count++;
+            }
+
+            echo json_encode(['success' => true, 'message' => "$count elementos importados"]);
+            break;
+
+        case 'create_element':
+            $proyecto_id = $_POST['proyecto_id'] ?? 0;
+            $tipo = $_POST['tipo'] ?? 'Point';
+            $nombre = $_POST['nombre'] ?? 'Nuevo Elemento';
+            $descripcion = $_POST['descripcion'] ?? '';
+            $geojson = $_POST['geojson'] ?? '{}';
+            $color = $_POST['color'] ?? '#a78bfa';
+            $icono = $_POST['icono'] ?? 'ph-map-pin';
+
+            if (!$proyecto_id) {
+                echo json_encode(['success' => false, 'message' => 'Proyecto inválido']);
+                exit;
+            }
+
+            $stmt = $pdo->prepare("INSERT INTO mapas_elementos (proyecto_id, tipo, nombre, descripcion, geojson, color, icono) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$proyecto_id, $tipo, $nombre, $descripcion, $geojson, $color, $icono]);
+            echo json_encode(['success' => true, 'id' => $pdo->lastInsertId()]);
+            break;
+
+        case 'get_elements':
+            $proyecto_id = $_GET['proyecto_id'] ?? 0;
+            $stmt = $pdo->prepare("SELECT * FROM mapas_elementos WHERE proyecto_id = ?");
+            $stmt->execute([$proyecto_id]);
+            $elementos = $stmt->fetchAll();
+            
+            // Construir GeoJSON
+            $features = [];
+            foreach ($elementos as $el) {
+                $features[] = [
+                    'type' => 'Feature',
+                    'geometry' => json_decode($el['geojson'], true),
+                    'properties' => [
+                        'id' => $el['id'],
+                        'name' => $el['nombre'],
+                        'description' => $el['descripcion'],
+                        'color' => $el['color'],
+                        'icono' => $el['icono']
+                    ]
+                ];
+            }
+            
+            echo json_encode([
+                'success' => true, 
+                'geojson' => [
+                    'type' => 'FeatureCollection',
+                    'features' => $features
+                ]
+            ]);
+            break;
+
+        case 'get_element_details':
+            $elemento_id = $_GET['id'] ?? 0;
+            $stmt = $pdo->prepare("SELECT * FROM mapas_elementos WHERE id = ?");
+            $stmt->execute([$elemento_id]);
+            $elemento = $stmt->fetch();
+
+            if ($elemento) {
+                $stmtImg = $pdo->prepare("SELECT * FROM mapas_imagenes WHERE elemento_id = ? ORDER BY created_at DESC");
+                $stmtImg->execute([$elemento_id]);
+                $elemento['imagenes'] = $stmtImg->fetchAll();
+                
+                $stmtPorts = $pdo->prepare("SELECT * FROM mapas_puertos WHERE elemento_id = ? ORDER BY numero_puerto ASC");
+                $stmtPorts->execute([$elemento_id]);
+                $elemento['puertos'] = $stmtPorts->fetchAll();
+                
+                echo json_encode(['success' => true, 'data' => $elemento]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'No encontrado']);
+            }
+            break;
+
+        case 'update_element':
+            $id = $_POST['id'] ?? 0;
+            $nombre = $_POST['nombre'] ?? '';
+            $color = $_POST['color'] ?? '';
+            $icono = $_POST['icono'] ?? '';
+            $descripcion = $_POST['descripcion'] ?? '';
+            
+            $capacidad = (int)($_POST['capacidad_puertos'] ?? 0);
+            $potencia = $_POST['potencia_dbm'] ?? '';
+            $cable = $_POST['cable_origen'] ?? '';
+            $splitter = $_POST['splitter_tipo'] ?? '';
+            
+            $stmt = $pdo->prepare("UPDATE mapas_elementos SET nombre = ?, color = ?, icono = ?, descripcion = ?, capacidad_puertos = ?, potencia_dbm = ?, cable_origen = ?, splitter_tipo = ? WHERE id = ?");
+            $stmt->execute([$nombre, $color, $icono, $descripcion, $capacidad, $potencia, $cable, $splitter, $id]);
+            
+            // Generar puertos si se indicó capacidad
+            if ($capacidad > 0) {
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM mapas_puertos WHERE elemento_id = ?");
+                $stmt->execute([$id]);
+                $count = $stmt->fetchColumn();
+                if ($count < $capacidad) {
+                    $stmtIns = $pdo->prepare("INSERT IGNORE INTO mapas_puertos (elemento_id, numero_puerto) VALUES (?, ?)");
+                    for ($i = 1; $i <= $capacidad; $i++) {
+                        $stmtIns->execute([$id, $i]);
+                    }
+                }
+            }
+            
+            echo json_encode(['success' => true]);
+            break;
+
+        case 'update_puerto':
+            $puerto_id = $_POST['puerto_id'] ?? 0;
+            $estado = $_POST['estado'] ?? 'Disponible';
+            $cliente = $_POST['cliente_nombre'] ?? '';
+            
+            $stmt = $pdo->prepare("UPDATE mapas_puertos SET estado = ?, cliente_nombre = ? WHERE id = ?");
+            $stmt->execute([$estado, $cliente, $puerto_id]);
+            
+            // Historial
+            $accion = "Cambio a " . $estado;
+            $stmt = $pdo->prepare("INSERT INTO mapas_puertos_historial (puerto_id, accion, cliente_nombre) VALUES (?, ?, ?)");
+            $stmt->execute([$puerto_id, $accion, $cliente]);
+            
+            echo json_encode(['success' => true]);
+            break;
+
+        case 'get_puerto_historial':
+            $puerto_id = $_GET['puerto_id'] ?? 0;
+            $stmt = $pdo->prepare("SELECT * FROM mapas_puertos_historial WHERE puerto_id = ? ORDER BY fecha DESC");
+            $stmt->execute([$puerto_id]);
+            $historial = $stmt->fetchAll();
+            echo json_encode(['success' => true, 'data' => $historial]);
+            break;
+
+        case 'upload_icon':
+            if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+                $ext = pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION);
+                if (strtolower($ext) !== 'png') {
+                    echo json_encode(['success' => false, 'message' => 'Solo se permiten archivos PNG']);
+                    exit;
+                }
+                
+                // Asegurar directorio icons
+                $icons_dir = '../../uploads/mapas/icons/';
+                if (!is_dir($icons_dir)) {
+                    mkdir($icons_dir, 0777, true);
+                }
+                
+                $filename = uniqid('icon_') . '.' . $ext;
+                $path = $icons_dir . $filename;
+                
+                if (move_uploaded_file($_FILES['file']['tmp_name'], $path)) {
+                    $db_path = 'uploads/mapas/icons/' . $filename;
+                    echo json_encode(['success' => true, 'ruta' => $db_path]);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Error al mover archivo']);
+                }
+            } else {
+                echo json_encode(['success' => false, 'message' => 'No se recibió archivo']);
+            }
+            break;
+
+        case 'upload_image':
+            $elemento_id = $_POST['elemento_id'] ?? 0;
+            if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+                $ext = pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION);
+                $filename = uniqid('map_') . '.' . $ext;
+                $path = '../../uploads/mapas/' . $filename;
+                
+                if (move_uploaded_file($_FILES['file']['tmp_name'], $path)) {
+                    $db_path = 'uploads/mapas/' . $filename;
+                    $stmt = $pdo->prepare("INSERT INTO mapas_imagenes (elemento_id, ruta) VALUES (?, ?)");
+                    $stmt->execute([$elemento_id, $db_path]);
+                    
+                    echo json_encode(['success' => true, 'ruta' => $db_path, 'id' => $pdo->lastInsertId()]);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Error al mover archivo']);
+                }
+            } else {
+                echo json_encode(['success' => false, 'message' => 'No se recibió archivo']);
+            }
+            break;
+            
+        case 'delete_element':
+            $id = $_POST['id'] ?? 0;
+            $stmt = $pdo->prepare("DELETE FROM mapas_elementos WHERE id = ?");
+            $stmt->execute([$id]);
+            echo json_encode(['success' => true]);
+            break;
+
+        default:
+            echo json_encode(['success' => false, 'message' => 'Acción desconocida']);
+    }
+} catch (Exception $e) {
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+}
+?>

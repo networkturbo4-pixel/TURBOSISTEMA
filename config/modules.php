@@ -56,6 +56,13 @@ $system_modules = [
         'description' => 'Gestión de perfil, EPP y mochila',
         'default_access' => true // Everyone should access their own profile
     ],
+    'mapas' => [
+        'name' => 'Red de Fibra',
+        'icon' => 'ph-map-trifold',
+        'url' => '/modules/mapas',
+        'description' => 'Visor y gestor interactivo de la red de fibra óptica',
+        'default_access' => false
+    ],
     'settings' => [
         'name' => 'Configuración',
         'icon' => 'ph-gear',
