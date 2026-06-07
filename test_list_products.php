@@ -1,4 +1,4 @@
 <?php
+$_SERVER['HTTP_HOST'] = 'localhost';
 $_POST['action'] = 'list_products';
-$_SESSION['user_id'] = 1; // fake login
-require 'C:\xampp\htdocs\TURBOSAAS\ajax\inventario.php';
+include 'c:/xampp/htdocs/TURBOSAAS/ajax/inventario.php';

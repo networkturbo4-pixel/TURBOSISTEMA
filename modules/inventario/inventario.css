@@ -1067,43 +1067,108 @@ body.dark-theme .label-preview-container {
     border-color: var(--border-color);
 }
 
-/* A4 Label Sheet */
+/* Thermal Label Sheet — 2 Column Layout */
 .label-sheet {
-    width: 210mm;
+    --label-w: 50mm;
+    --label-h: 30mm;
+    --label-cols: 2;
+    --label-gap: 1mm;
+    width: calc(var(--label-w) * var(--label-cols) + var(--label-gap) * (var(--label-cols) - 1));
     max-width: 100%;
     margin: 0 auto;
     background: #fff;
-    padding: 10mm 7mm;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 2mm;
+    padding: 2mm 0;
+    display: grid;
+    grid-template-columns: repeat(var(--label-cols), var(--label-w));
+    gap: var(--label-gap);
     justify-content: center;
 }
 .label-item {
-    width: 45mm;
-    height: 25mm;
-    border: 1px solid #d1d5db;
-    border-radius: 3mm;
+    width: var(--label-w);
+    height: var(--label-h);
+    border: 1px dashed #c7c7c7;
+    border-radius: 1.5mm;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 2mm;
+    padding: 1.5mm 2mm;
     overflow: hidden;
     background: #fff;
     page-break-inside: avoid;
+    box-sizing: border-box;
 }
 .label-item svg, .label-item canvas { max-width: 100%; height: auto; }
+.label-item .label-company-logo {
+    max-height: 4mm;
+    max-width: 100%;
+    margin-bottom: 0.5mm;
+    object-fit: contain;
+}
+.label-item .label-company-name {
+    font-size: 5pt;
+    font-weight: 800;
+    color: #333;
+    text-transform: uppercase;
+    text-align: center;
+    line-height: 1;
+    margin-bottom: 0.5mm;
+    font-family: 'Arial Narrow', Arial, sans-serif;
+}
+.label-item .label-product-name {
+    font-size: 6pt;
+    font-weight: 800;
+    color: #000;
+    text-align: center;
+    line-height: 1.15;
+    max-height: 3.5mm;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
+    margin-bottom: 0.5mm;
+    font-family: 'Arial Narrow', Arial, sans-serif;
+    letter-spacing: -0.2px;
+}
 .label-item .label-sku-text {
-    font-size: 7pt;
+    font-size: 5.5pt;
     font-weight: 700;
     color: #111;
-    margin-top: 1mm;
+    margin-top: 0.5mm;
     font-family: 'Courier New', monospace;
     letter-spacing: 0.5px;
+    text-align: center;
 }
 
-/* Empty state */
+/* Print Styles — Thermal Label Printer */
+@media print {
+    /* Hide everything except labels */
+    body, body * { visibility: hidden !important; }
+    .label-preview-container, .label-preview-container * { visibility: visible !important; }
+    .label-preview-container {
+        position: absolute !important;
+        left: 0 !important; top: 0 !important;
+        width: auto !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: #fff !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+    }
+    .label-sheet {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    .label-item {
+        border: none !important;
+        border-radius: 0 !important;
+    }
+    @page {
+        size: auto;
+        margin: 0mm;
+    }
+}
 .empty-state {
     text-align: center;
     padding: 50px 20px;
@@ -1123,18 +1188,7 @@ body.dark-theme .label-preview-container {
 }
 .fab:hover { transform: scale(1.08); box-shadow: 0 8px 25px rgba(99,102,241,0.55); }
 
-/* Print Styles */
-@media print {
-    body, body * { visibility: hidden !important; }
-    .label-preview-container, .label-preview-container * { visibility: visible !important; }
-    .label-preview-container {
-        position: absolute; left: 0; top: 0;
-        width: 210mm; border: none; padding: 0; background: #fff;
-        border-radius: 0;
-    }
-    .label-sheet { padding: 5mm; gap: 1.5mm; }
-    .label-item { border: 0.5pt solid #999; }
-}
+
 
 /* Scan Picker */
 .scan-picker-list {

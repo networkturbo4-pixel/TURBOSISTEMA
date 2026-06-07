@@ -32,10 +32,51 @@ try {
     die("Error de conexión: " . $e->getMessage());
 }
 
+// Generar CSRF Token global
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // Helper para verificar si está logueado
 function requireLogin() {
     if (!isset($_SESSION['user_id'])) {
         header("Location: " . BASE_URL . "/login.php");
+        exit;
+    }
+}
+
+// ── Seguridad Global: CSRF + Rate Limiting para peticiones AJAX ──
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['REQUEST_URI'], '/ajax/') !== false) {
+    // 1. Validación CSRF
+    $token = $_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+    // Bypass CSRF token ONLY for the public login endpoint if necessary, or enforce globally.
+    // For now, enforce globally. If no token, reject.
+    $action = $_POST['action'] ?? '';
+    if (!in_array($action, ['public_login', 'create_public_ticket']) && !hash_equals($_SESSION['csrf_token'], $token)) {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => 'CSRF Token inválido o expirado. Recarga la página.']);
+        exit;
+    }
+
+    // 2. API Rate Limiting (100 req / min) por IP
+    $ip = $_SERVER['REMOTE_ADDR'];
+    $minute = date('Y-m-d H:i');
+    $limit_key = "rate_limit_{$ip}_{$minute}";
+    
+    if (!isset($_SESSION[$limit_key])) {
+        // Limpiar keys viejos
+        foreach ($_SESSION as $k => $v) {
+            if (strpos($k, 'rate_limit_') === 0 && $k !== $limit_key) unset($_SESSION[$k]);
+        }
+        $_SESSION[$limit_key] = 1;
+    } else {
+        $_SESSION[$limit_key]++;
+    }
+
+    if ($_SESSION[$limit_key] > 100) {
+        header('Content-Type: application/json');
+        http_response_code(429);
+        echo json_encode(['success' => false, 'message' => 'Demasiadas peticiones. Por favor, espera un minuto.']);
         exit;
     }
 }

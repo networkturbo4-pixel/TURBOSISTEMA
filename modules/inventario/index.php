@@ -376,17 +376,91 @@ window.addEventListener('error', function(e) {
     <div id="skuEmpty" class="empty-state" style="display:none;">No hay SKUs registrados.</div>
 </div>
 
-<!-- Tab: Etiquetas -->
-<div class="inv-tab-pane" id="tab-etiquetas">
-    <div class="inv-filter-row">
-        <select class="form-select inv-filter-select" id="labelProduct" style="flex:1;max-width:300px;"><option value="">Seleccionar producto...</option></select>
-        <select class="form-select inv-filter-select" id="labelType">
-            <option value="barcode">Código de Barras</option>
-            <option value="qr">Código QR</option>
-        </select>
-        <button class="btn btn-primary" id="btnGenLabels"><i class="ph ph-printer"></i> Generar</button>
-        <button class="btn btn-secondary" id="btnPrint" style="display:none;" onclick="window.print()"><i class="ph ph-printer"></i> Imprimir</button>
+<!-- Tab: Etiquetas (Impresora Térmica 2 Columnas) -->
+<div class="inv-tab-pane" id="tab-etiquetas" style="padding:20px;">
+    <!-- Header -->
+    <div class="scanner-header" style="margin-top:0; margin-bottom:20px;">
+        <div class="scanner-header-left">
+            <div class="scanner-icon-box" style="background:rgba(99,102,241,0.1);"><i class="ph ph-tag" style="color:#6366f1;"></i></div>
+            <div>
+                <h2 style="margin:0;font-size:1.15rem;font-weight:700;">Etiquetas Adhesivas</h2>
+                <p style="margin:0;font-size:0.82rem;color:rgba(255,255,255,0.7);">Genera e imprime etiquetas en tu impresora térmica de 2 columnas</p>
+            </div>
+        </div>
     </div>
+
+    <!-- Config Card -->
+    <div style="background:var(--surface-color); border:1px solid var(--border-color); border-radius:14px; padding:20px; margin-bottom:20px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+            <!-- Producto -->
+            <div>
+                <label class="form-label" style="font-size:0.85rem; font-weight:700;"><i class="ph ph-package" style="margin-right:4px;"></i> Producto</label>
+                <select class="form-select" id="labelProduct" style="width:100%;"><option value="">Seleccionar producto...</option></select>
+            </div>
+            <!-- Tipo de código -->
+            <div>
+                <label class="form-label" style="font-size:0.85rem; font-weight:700;"><i class="ph ph-qr-code" style="margin-right:4px;"></i> Tipo de Código</label>
+                <select class="form-select" id="labelType">
+                    <option value="barcode">Código de Barras</option>
+                    <option value="qr">Código QR</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Dimensiones -->
+        <div style="background:var(--bg-color); border:1px solid var(--border-color); border-radius:10px; padding:14px; margin-bottom:16px;">
+            <label class="form-label" style="font-size:0.82rem; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+                <i class="ph ph-ruler" style="color:#8b5cf6;"></i> Dimensiones de Etiqueta
+            </label>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+                <div>
+                    <label class="form-label" style="font-size:0.75rem; color:var(--text-muted);">Ancho (mm)</label>
+                    <input type="number" class="form-control" id="labelWidth" value="50" min="20" max="100" style="font-size:0.9rem;">
+                </div>
+                <div>
+                    <label class="form-label" style="font-size:0.75rem; color:var(--text-muted);">Alto (mm)</label>
+                    <input type="number" class="form-control" id="labelHeight" value="30" min="15" max="80" style="font-size:0.9rem;">
+                </div>
+                <div>
+                    <label class="form-label" style="font-size:0.75rem; color:var(--text-muted);">Columnas</label>
+                    <select class="form-select" id="labelCols" style="font-size:0.9rem;">
+                        <option value="1">1 columna</option>
+                        <option value="2" selected>2 columnas</option>
+                        <option value="3">3 columnas</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenido a mostrar -->
+        <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap; margin-bottom:16px;">
+            <span style="font-size:0.82rem; font-weight:700; color:var(--text-color);"><i class="ph ph-text-aa" style="margin-right:4px;"></i> Mostrar en etiqueta:</span>
+            <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer;">
+                <input type="checkbox" class="form-check-input" id="labelShowLogo"> Logo de empresa
+            </label>
+            <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer;">
+                <input type="checkbox" class="form-check-input" id="labelShowCompanyName"> Nombre de empresa
+            </label>
+            <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer;">
+                <input type="checkbox" class="form-check-input" id="labelShowName" checked> Nombre del producto
+            </label>
+            <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer;">
+                <input type="checkbox" class="form-check-input" id="labelShowSku" checked> Código SKU
+            </label>
+        </div>
+
+        <!-- Botones -->
+        <div style="display:flex; gap:10px;">
+            <button class="btn btn-primary" id="btnGenLabels" style="flex:1; height:44px; font-weight:700;">
+                <i class="ph ph-barcode" style="font-size:1.1rem;"></i> Generar Etiquetas
+            </button>
+            <button class="btn btn-secondary" id="btnPrint" style="display:none; height:44px; font-weight:700;" onclick="window.print()">
+                <i class="ph ph-printer" style="font-size:1.1rem;"></i> Imprimir
+            </button>
+        </div>
+    </div>
+
+    <!-- Preview -->
     <div id="labelPreview" class="label-preview-container"></div>
 </div>
 

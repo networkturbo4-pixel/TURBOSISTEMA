@@ -388,6 +388,7 @@ $primaryColor = $globalSettings['primary_color_light'] ?? '#064e3b';
 
             <form id="loginForm" novalidate>
                 <input type="hidden" name="login_type" id="login_type" value="email">
+                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
 
                 <div id="viewEmail">
                     <div class="form-group">

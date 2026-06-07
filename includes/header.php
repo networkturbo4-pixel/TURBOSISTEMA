@@ -14,6 +14,11 @@ if (isset($_SESSION['user_role']) && strtolower(trim($_SESSION['user_role'])) ==
     exit;
 }
 
+// Generar CSRF token
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 $appName = $globalSettings['app_name'] ?? 'Turbo SaaS';
 $favicon = $globalSettings['favicon'] ?? '';
 $bgColor = $globalSettings['bg_color'] ?? '#f4f6f9';
@@ -27,6 +32,7 @@ $fontLink = "https://fonts.googleapis.com/css2?family=" . urlencode($typography)
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="base-url" content="<?php echo BASE_URL; ?>">
+    <meta name="csrf-token" content="<?php echo $_SESSION['csrf_token']; ?>">
     <title><?php echo htmlspecialchars($appName); ?></title>
     <?php if ($favicon): ?>
     <link rel="icon" href="<?php echo BASE_URL . '/' . $favicon; ?>">
@@ -55,6 +61,36 @@ $fontLink = "https://fonts.googleapis.com/css2?family=" . urlencode($typography)
         window.AppConfig = {
             toastPosition: '<?php echo htmlspecialchars($globalSettings['toast_position'] ?? "top-right"); ?>',
             toastStyle: '<?php echo htmlspecialchars($globalSettings['toast_style'] ?? "card"); ?>'
+        };
+        window.appSettings = <?php echo json_encode($globalSettings); ?>;
+
+        // CSRF Fetch Interceptor
+        const originalFetch = window.fetch;
+        window.fetch = async function() {
+            let [resource, config] = arguments;
+            if (!config) config = {};
+            if (config.method && config.method.toUpperCase() === 'POST') {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                if (csrfToken) {
+                    if (config.body instanceof FormData) {
+                        if(!config.body.has('csrf_token')) config.body.append('csrf_token', csrfToken);
+                    } else if (typeof config.body === 'string') {
+                        if (config.headers && config.headers['Content-Type'] === 'application/json') {
+                            try {
+                                let json = JSON.parse(config.body);
+                                json.csrf_token = csrfToken;
+                                config.body = JSON.stringify(json);
+                            } catch(e) {}
+                        } else if (config.headers && config.headers['Content-Type'] === 'application/x-www-form-urlencoded') {
+                            config.body += config.body ? '&csrf_token=' + encodeURIComponent(csrfToken) : 'csrf_token=' + encodeURIComponent(csrfToken);
+                        }
+                    } else if (!config.body) {
+                        config.body = new FormData();
+                        config.body.append('csrf_token', csrfToken);
+                    }
+                }
+            }
+            return originalFetch(resource, config);
         };
     </script>
 </head>

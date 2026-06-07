@@ -2120,27 +2120,95 @@
         const productId = document.getElementById('labelProduct').value;
         const labelType = document.getElementById('labelType').value;
         const preview = document.getElementById('labelPreview');
+        const labelW = parseInt(document.getElementById('labelWidth').value) || 50;
+        const labelH = parseInt(document.getElementById('labelHeight').value) || 30;
+        const labelCols = parseInt(document.getElementById('labelCols').value) || 2;
+        const showLogo = document.getElementById('labelShowLogo') ? document.getElementById('labelShowLogo').checked : false;
+        const showCompanyName = document.getElementById('labelShowCompanyName') ? document.getElementById('labelShowCompanyName').checked : false;
+        const showName = document.getElementById('labelShowName').checked;
+        const showSku = document.getElementById('labelShowSku').checked;
+
         if (!productId) { if (window.showToast) window.showToast('Selecciona un producto', 'error'); return; }
+
         const fd = new FormData(); fd.append('action', 'get_product_skus'); fd.append('product_id', productId);
         const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
-        if (!res.success || !res.data.length) { preview.innerHTML = '<div class="empty-state">No hay SKUs.</div>'; return; }
+        if (!res.success || !res.data.length) { preview.innerHTML = '<div class="empty-state"><i class="ph ph-tag" style="font-size:2.5rem;display:block;margin-bottom:10px;opacity:0.4;"></i>No hay SKUs para este producto.</div>'; return; }
 
-        let html = '<div class="label-sheet">';
+        // Get product name from the select option text
+        const productSelect = document.getElementById('labelProduct');
+        const productName = productSelect.options[productSelect.selectedIndex].text.replace(/\s*\(.*\)\s*$/, '');
+
+        // Retrieve global settings if available
+        const appName = window.appSettings ? (window.appSettings.app_name || 'TURBO SAAS') : 'TURBO SAAS';
+        const appLogo = window.appSettings ? (window.appSettings.logo_dark || window.appSettings.logo_light || '') : '';
+
+        // Build label sheet with CSS custom properties
+        let html = `<div class="label-sheet" style="--label-w:${labelW}mm; --label-h:${labelH}mm; --label-cols:${labelCols};">`;
+
+        // Calculate barcode dimensions based on label size and what's shown
+        let textLinesHeight = 0;
+        if (showLogo && appLogo) textLinesHeight += 4;
+        if (showCompanyName) textLinesHeight += 3;
+        if (showName) textLinesHeight += 4;
+        if (showSku) textLinesHeight += 4;
+        
+        const barcodeHeight = Math.max(12, Math.min(40, (labelH - textLinesHeight - 2) * 1.2));
+        const barcodeWidth = Math.max(0.8, Math.min(1.5, labelW / 45));
+        const qrSize = Math.max(20, Math.min(60, Math.min(labelW, labelH) * 1.2));
+
         res.data.forEach(s => {
             const id = 'lbl-' + s.id;
-            html += labelType === 'barcode'
-                ? `<div class="label-item"><svg id="${id}"></svg><div class="label-sku-text">${s.sku_code}</div></div>`
-                : `<div class="label-item"><div id="${id}" style="margin:0 auto;"></div><div class="label-sku-text">${s.sku_code}</div></div>`;
+            const logoHtml = (showLogo && appLogo) ? `<img src="${BASE}/${appLogo}" class="label-company-logo" alt="Logo">` : '';
+            const companyHtml = showCompanyName ? `<div class="label-company-name">${esc(appName)}</div>` : '';
+            const nameHtml = showName ? `<div class="label-product-name">${esc(productName)}</div>` : '';
+            const skuHtml = showSku ? `<div class="label-sku-text">${s.sku_code}</div>` : '';
+
+            if (labelType === 'barcode') {
+                html += `<div class="label-item">${logoHtml}${companyHtml}${nameHtml}<svg id="${id}"></svg>${skuHtml}</div>`;
+            } else {
+                html += `<div class="label-item">${logoHtml}${companyHtml}${nameHtml}<div id="${id}" style="margin:0 auto;"></div>${skuHtml}</div>`;
+            }
         });
         html += '</div>';
+
+        // Count info
+        const totalLabels = res.data.length;
+        const totalRows = Math.ceil(totalLabels / labelCols);
+        html += `<div style="text-align:center; margin-top:12px; font-size:0.82rem; color:var(--text-muted);">
+            <i class="ph ph-info" style="margin-right:4px;"></i>
+            ${totalLabels} etiqueta${totalLabels !== 1 ? 's' : ''} · ${totalRows} fila${totalRows !== 1 ? 's' : ''} · ${labelCols} columna${labelCols !== 1 ? 's' : ''} · ${labelW}×${labelH}mm
+        </div>`;
+
         preview.innerHTML = html;
 
+        // Render barcodes/QR codes
         requestAnimationFrame(() => {
             res.data.forEach(s => {
                 const id = 'lbl-' + s.id, el = document.getElementById(id);
                 if (!el) return;
-                if (labelType === 'barcode') { try { JsBarcode('#'+id, s.sku_code, { format:'CODE128', width:1.2, height:35, displayValue:false, margin:2 }); } catch(e){} }
-                else { try { new QRCode(el, { text: s.sku_code, width:60, height:60, colorDark:'#000', colorLight:'#fff', correctLevel: QRCode.CorrectLevel.M }); } catch(e){} }
+                if (labelType === 'barcode') {
+                    try {
+                        JsBarcode('#' + id, s.sku_code, {
+                            format: 'CODE128',
+                            width: barcodeWidth,
+                            height: barcodeHeight,
+                            displayValue: false,
+                            margin: 1,
+                            background: '#ffffff'
+                        });
+                    } catch(e) { console.warn('Barcode error:', e); }
+                } else {
+                    try {
+                        new QRCode(el, {
+                            text: s.sku_code,
+                            width: qrSize,
+                            height: qrSize,
+                            colorDark: '#000',
+                            colorLight: '#fff',
+                            correctLevel: QRCode.CorrectLevel.M
+                        });
+                    } catch(e) { console.warn('QR error:', e); }
+                }
             });
         });
         document.getElementById('btnPrint').style.display = '';
