@@ -541,6 +541,7 @@ try {
         case 'get_product_skus':
             $product_id = intval($_POST['product_id'] ?? $_GET['product_id'] ?? 0);
             $status_filter = $_POST['status'] ?? $_GET['status'] ?? '';
+            $print_status = $_POST['print_status'] ?? $_GET['print_status'] ?? '';
 
             // Revisar si el producto es a granel
             $stmtProd = $pdo->prepare("SELECT * FROM inventory_products WHERE id = ?");
@@ -554,7 +555,9 @@ try {
                         'product_id' => $prod['id'],
                         'sku_code' => $prod['master_sku'] ?? ('BLK-' . $prod['id']),
                         'product_name' => $prod['name'],
-                        'status' => 'disponible'
+                        'status' => 'disponible',
+                        'created_at' => $prod['created_at'],
+                        'is_printed' => 0
                     ]
                 ]]);
                 break;
@@ -575,10 +578,36 @@ try {
                 $params[] = $status_filter;
             }
 
+            if ($print_status === '0') {
+                $sql .= " AND s.is_printed = 0";
+            } elseif ($print_status === '1') {
+                $sql .= " AND s.is_printed = 1";
+            }
+
             $sql .= " ORDER BY s.id ASC";
             $stmt = $pdo->prepare($sql);
             $stmt->execute($params);
             echo json_encode(['success' => true, 'data' => $stmt->fetchAll()]);
+            break;
+
+        case 'mark_skus_printed':
+            $sku_ids_raw = $_POST['sku_ids'] ?? '';
+            $sku_ids = json_decode($sku_ids_raw, true);
+            if (!is_array($sku_ids) || empty($sku_ids)) {
+                echo json_encode(['success' => false, 'message' => 'No hay SKUs seleccionados.']);
+                break;
+            }
+            
+            // Generate placeholders for IN clause
+            $placeholders = implode(',', array_fill(0, count($sku_ids), '?'));
+            
+            $sql = "UPDATE inventory_skus SET is_printed = 1 WHERE id IN ($placeholders)";
+            $stmt = $pdo->prepare($sql);
+            if ($stmt->execute($sku_ids)) {
+                echo json_encode(['success' => true, 'message' => 'Etiquetas marcadas como impresas.']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Error al marcar como impresas.']);
+            }
             break;
 
         case 'update_sku_status':

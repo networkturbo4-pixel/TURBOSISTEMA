@@ -397,9 +397,19 @@ window.addEventListener('error', function(e) {
     <div style="background:var(--surface-color); border:1px solid var(--border-color); border-radius:14px; padding:20px; margin-bottom:20px;">
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
             <!-- Producto -->
-            <div>
-                <label class="form-label" style="font-size:0.85rem; font-weight:700;"><i class="ph ph-package" style="margin-right:4px;"></i> Producto</label>
-                <select class="form-select" id="labelProduct" style="width:100%;"><option value="">Seleccionar producto...</option></select>
+            <div style="display:flex; gap:12px; width:100%;">
+                <div style="flex:1;">
+                    <label class="form-label" style="font-size:0.85rem; font-weight:700;"><i class="ph ph-package" style="margin-right:4px;"></i> Producto</label>
+                    <select class="form-select" id="labelProduct" style="width:100%;"><option value="">Seleccionar producto...</option></select>
+                </div>
+                <div style="flex:1;">
+                    <label class="form-label" style="font-size:0.85rem; font-weight:700;"><i class="ph ph-funnel" style="margin-right:4px;"></i> Filtro de Impresión</label>
+                    <select class="form-select" id="labelPrintStatus" style="width:100%;">
+                        <option value="">Todos los SKUs</option>
+                        <option value="0">Solo NO Impresos</option>
+                        <option value="1">Solo ya Impresos</option>
+                    </select>
+                </div>
             </div>
             <!-- Tipo de código -->
             <div>
@@ -451,6 +461,9 @@ window.addEventListener('error', function(e) {
             <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer;">
                 <input type="checkbox" class="form-check-input" id="labelShowSku" checked> Código SKU
             </label>
+            <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer;">
+                <input type="checkbox" class="form-check-input" id="labelShowDate"> Fecha de registro
+            </label>
         </div>
 
         <!-- Botones -->
@@ -460,6 +473,9 @@ window.addEventListener('error', function(e) {
             </button>
             <button class="btn btn-secondary" id="btnPrint" style="display:none; height:44px; font-weight:700;" onclick="window.print()">
                 <i class="ph ph-printer" style="font-size:1.1rem;"></i> Imprimir
+            </button>
+            <button class="btn" id="btnMarkPrinted" style="display:none; height:44px; font-weight:700; background-color:#10b981; color:white; border:none;" onclick="markGeneratedAsPrinted()">
+                <i class="ph ph-check-circle" style="font-size:1.1rem;"></i> Marcar como impresas
             </button>
         </div>
     </div>

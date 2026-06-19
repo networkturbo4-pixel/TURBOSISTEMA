@@ -2784,8 +2784,11 @@
     }
     function initLabelsTab() { document.getElementById('btnGenLabels').addEventListener('click', generateLabels); }
 
+    window.lastGeneratedSkuIds = [];
+
     async function generateLabels() {
         const productId = document.getElementById('labelProduct').value;
+        const printStatus = document.getElementById('labelPrintStatus').value;
         const labelType = document.getElementById('labelType').value;
         const preview = document.getElementById('labelPreview');
         const labelW = parseInt(document.getElementById('labelWidth').value) || 50;
@@ -2796,10 +2799,16 @@
         const showCompanyName = document.getElementById('labelShowCompanyName') ? document.getElementById('labelShowCompanyName').checked : false;
         const showName = document.getElementById('labelShowName').checked;
         const showSku = document.getElementById('labelShowSku').checked;
+        const showDate = document.getElementById('labelShowDate') ? document.getElementById('labelShowDate').checked : false;
 
         if (!productId) { if (window.showToast) window.showToast('Selecciona un producto', 'error'); return; }
 
-        const fd = new FormData(); fd.append('action', 'get_product_skus'); fd.append('product_id', productId);
+        const fd = new FormData(); 
+        fd.append('action', 'get_product_skus'); 
+        fd.append('product_id', productId);
+        if (printStatus !== '') {
+            fd.append('print_status', printStatus);
+        }
         const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
         if (!res.success || !res.data.length) { preview.innerHTML = '<div class="empty-state"><i class="ph ph-tag" style="font-size:2.5rem;display:block;margin-bottom:10px;opacity:0.4;"></i>No hay SKUs para este producto.</div>'; return; }
 
@@ -2820,12 +2829,16 @@
         if (showCompanyName) textLinesHeight += 3;
         if (showName) textLinesHeight += 4;
         if (showSku) textLinesHeight += 4;
+        if (showDate) textLinesHeight += 3;
         
         const barcodeHeight = Math.max(12, Math.min(40, (labelH - textLinesHeight - 2) * 1.2));
         const barcodeWidth = Math.max(0.8, Math.min(1.5, labelW / 45));
         const qrSize = Math.max(20, Math.min(60, Math.min(labelW, labelH) * 1.2));
 
+        window.lastGeneratedSkuIds = [];
+
         res.data.forEach(s => {
+            window.lastGeneratedSkuIds.push(s.id);
             for (let c = 0; c < labelCopies; c++) {
                 // Ensure unique ID if multiple copies exist to render barcodes correctly
                 const copySuffix = labelCopies > 1 ? `-${c}` : '';
@@ -2834,11 +2847,18 @@
                 const companyHtml = showCompanyName ? `<div class="label-company-name">${esc(appName)}</div>` : '';
                 const nameHtml = showName ? `<div class="label-product-name">${esc(productName)}</div>` : '';
                 const skuHtml = showSku ? `<div class="label-sku-text">${s.sku_code}</div>` : '';
+                
+                let dateHtml = '';
+                if (showDate && s.created_at) {
+                    const d = new Date(s.created_at);
+                    const formattedDate = d.toLocaleDateString(); // e.g. 18/06/2026
+                    dateHtml = `<div class="label-date-text" style="font-size:0.65rem; color:var(--text-muted); margin-top:2px;">Reg: ${formattedDate}</div>`;
+                }
 
                 if (labelType === 'barcode') {
-                    html += `<div class="label-item">${logoHtml}${companyHtml}${nameHtml}<svg id="${id}" data-sku="${s.sku_code}"></svg>${skuHtml}</div>`;
+                    html += `<div class="label-item">${logoHtml}${companyHtml}${nameHtml}<svg id="${id}" data-sku="${s.sku_code}"></svg>${skuHtml}${dateHtml}</div>`;
                 } else {
-                    html += `<div class="label-item">${logoHtml}${companyHtml}${nameHtml}<div id="${id}" data-sku="${s.sku_code}" style="margin:0 auto;"></div>${skuHtml}</div>`;
+                    html += `<div class="label-item">${logoHtml}${companyHtml}${nameHtml}<div id="${id}" data-sku="${s.sku_code}" style="margin:0 auto;"></div>${skuHtml}${dateHtml}</div>`;
                 }
             }
         });
@@ -2889,6 +2909,35 @@
             });
         }, 100);
         document.getElementById('btnPrint').style.display = '';
+        if (document.getElementById('btnMarkPrinted')) document.getElementById('btnMarkPrinted').style.display = '';
+    }
+
+    window.markGeneratedAsPrinted = async function() {
+        if (!window.lastGeneratedSkuIds || window.lastGeneratedSkuIds.length === 0) return;
+        const btn = document.getElementById('btnMarkPrinted');
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i>';
+        btn.disabled = true;
+
+        const fd = new FormData();
+        fd.append('action', 'mark_skus_printed');
+        fd.append('sku_ids', JSON.stringify(window.lastGeneratedSkuIds));
+        
+        try {
+            const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+            if (res.success) {
+                if (window.showToast) window.showToast('Se marcaron como impresas exitosamente', 'success');
+                // Re-trigger generation to update list based on filter
+                document.getElementById('btnGenLabels').click();
+            } else {
+                if (window.showToast) window.showToast(res.message || 'Error al marcar como impresas', 'error');
+            }
+        } catch(e) {
+            if (window.showToast) window.showToast('Error de red', 'error');
+        }
+
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
     }
     // ── SKU Detail Modal ──────────────────────────────────
     let currentSkuData = null;
