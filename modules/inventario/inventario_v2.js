@@ -2829,7 +2829,7 @@
         if (showCompanyName) textLinesHeight += 3;
         if (showName) textLinesHeight += 4;
         if (showSku) textLinesHeight += 4;
-        if (showDate) textLinesHeight += 3;
+        if (showDate) textLinesHeight += 4; // Increased from 3 to 4 to leave more room
         
         const barcodeHeight = Math.max(12, Math.min(40, (labelH - textLinesHeight - 2) * 1.2));
         const barcodeWidth = Math.max(0.8, Math.min(1.5, labelW / 45));
@@ -2850,9 +2850,10 @@
                 
                 let dateHtml = '';
                 if (showDate && s.created_at) {
-                    const d = new Date(s.created_at);
-                    const formattedDate = d.toLocaleDateString(); // e.g. 18/06/2026
-                    dateHtml = `<div class="label-date-text" style="font-size:0.65rem; color:var(--text-muted); margin-top:2px;">Reg: ${formattedDate}</div>`;
+                    const onlyDate = s.created_at.split(' ')[0]; // Gets 'YYYY-MM-DD'
+                    const parts = onlyDate.split('-');
+                    const formattedDate = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : onlyDate;
+                    dateHtml = `<div class="label-date-text" style="font-size:0.6rem; font-weight:600; color:var(--text-muted); margin-top:2px; line-height:1;">Reg: ${formattedDate}</div>`;
                 }
 
                 if (labelType === 'barcode') {
