@@ -2254,6 +2254,20 @@
         // Edit tab info
         const info = document.getElementById('skuEditInfo');
         let bulkExtra = data.is_bulk == 1 ? `<div class="sku-info-item"><div class="sii-label">Stock Almacén</div><div class="sii-value" style="font-weight:bold; color:var(--primary-color);">${data.stock} ${data.unit_type||''}</div></div>` : '';
+        let customColsHtml = '';
+        try {
+            const cd = data.custom_data ? (typeof data.custom_data === 'string' ? JSON.parse(data.custom_data) : data.custom_data) : {};
+            if (Object.keys(cd).length > 0) {
+                for (const [k, v] of Object.entries(cd)) {
+                    customColsHtml += `<div class="sku-info-item"><div class="sii-label">${esc(k)}</div><div class="sii-value">${esc(v || '—')}</div></div>`;
+                }
+            } else {
+                customColsHtml = `<div class="sku-info-item"><div class="sii-label">Descripción</div><div class="sii-value">${esc(data.product_description || '—')}</div></div>`;
+            }
+        } catch(e) {
+            customColsHtml = `<div class="sku-info-item"><div class="sii-label">Descripción</div><div class="sii-value">${esc(data.product_description || '—')}</div></div>`;
+        }
+
         info.innerHTML = `
             <div class="sku-info-item"><div class="sii-label">SKU Code</div><div class="sii-value"><code>${esc(data.sku_code)}</code></div></div>
             <div class="sku-info-item"><div class="sii-label">Producto</div><div class="sii-value">${esc(data.product_name)}</div></div>
@@ -2261,7 +2275,7 @@
             ${data.is_bulk == 1 ? '' : `<div class="sku-info-item"><div class="sii-label">Estado</div><div class="sii-value"><span class="status-badge status-${data.status}">${data.status.toUpperCase()}</span></div></div>`}
             ${data.is_bulk == 1 ? '' : `<div class="sku-info-item"><div class="sii-label">Asignado a</div><div class="sii-value">${data.assigned_user_name ? esc(data.assigned_user_name) : '<span style="color:var(--text-muted)">Sin asignar</span>'}</div></div>`}
             ${bulkExtra}
-            <div class="sku-info-item"><div class="sii-label">Descripción</div><div class="sii-value">${esc(data.product_description || '—')}</div></div>`;
+            ${customColsHtml}`;
 
         if (data.is_bulk == 1) {
             document.getElementById('skuDetailStatus').parentElement.style.display = 'none';
