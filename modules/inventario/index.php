@@ -36,6 +36,10 @@ window.addEventListener('error', function(e) {
 <!-- Metric Cards -->
 <div id="metricCards">
     <div class="inv-metric-card">
+        <div class="inv-metric-icon" style="background:rgba(236,72,153,0.1);"><i class="ph ph-list-numbers" style="color:#ec4899;"></i></div>
+        <div class="text-end"><p class="inv-metric-value" id="metricProductos" style="color:#ec4899;">0</p><h3 class="inv-metric-title">Productos Registrados</h3></div>
+    </div>
+    <div class="inv-metric-card">
         <div class="inv-metric-icon" style="background:rgba(99,102,241,0.1);"><i class="ph ph-cube" style="color:#6366f1;"></i></div>
         <div class="text-end"><p class="inv-metric-value" id="metricTotal" style="color:#6366f1;">0</p><h3 class="inv-metric-title">Total Unidades</h3></div>
     </div>
@@ -199,7 +203,7 @@ window.addEventListener('error', function(e) {
         </div>
     </div>
 
-    <div class="table-responsive" id="productsTableWrap" style="display:none; height: calc(100vh - 420px); overflow: auto; border-bottom: 1px solid var(--border-color);">
+    <div class="table-responsive" id="productsTableWrap" style="display:none; height: calc(100vh - 280px); overflow: auto; border-bottom: 1px solid var(--border-color);">
         <table class="inv-table">
             <thead>
                 <tr>
@@ -284,7 +288,7 @@ window.addEventListener('error', function(e) {
         <button onclick="SkuColFilter.clearAll()" style="margin-left:auto; background:transparent; border:1px solid var(--border-color); border-radius:8px; padding:4px 10px; font-size:0.78rem; color:var(--text-muted); cursor:pointer; display:flex; align-items:center; gap:4px;"><i class="ph ph-x"></i> Limpiar todo</button>
     </div>
 
-    <div class="table-responsive" style="height: calc(100vh - 430px); overflow: auto; border-bottom: 1px solid var(--border-color);">
+    <div class="table-responsive" style="height: calc(100vh - 290px); overflow: auto; border-bottom: 1px solid var(--border-color);">
         <table id="skuTable" class="inv-table">
             <thead>
                 <tr>
@@ -422,12 +426,12 @@ window.addEventListener('error', function(e) {
                     <input type="number" class="form-control" id="labelHeight" value="30" min="15" max="80" style="font-size:0.9rem;">
                 </div>
                 <div>
-                    <label class="form-label" style="font-size:0.75rem; color:var(--text-muted);">Columnas</label>
-                    <select class="form-select" id="labelCols" style="font-size:0.9rem;">
-                        <option value="1">1 columna</option>
-                        <option value="2" selected>2 columnas</option>
-                        <option value="3">3 columnas</option>
-                    </select>
+                    <label style="font-size:0.8rem; font-weight:600; margin-bottom:4px; display:block;">Columnas</label>
+                    <input type="number" id="labelCols" class="form-control" value="2" min="1" max="5">
+                </div>
+                <div>
+                    <label style="font-size:0.8rem; font-weight:600; margin-bottom:4px; display:block;">Copias c/u</label>
+                    <input type="number" id="labelCopies" class="form-control" value="1" min="1" max="100" title="Número de copias por cada código">
                 </div>
             </div>
         </div>
@@ -477,7 +481,7 @@ window.addEventListener('error', function(e) {
         </div>
         <div class="scanner-input-wrap">
             <i class="ph ph-magnifying-glass"></i>
-            <input type="text" id="scannerInput" class="form-control" placeholder="Buscar por SKU o nombre..." autofocus>
+            <input type="text" id="scannerInput" class="form-control" placeholder="Buscar por SKU o nombre..." autocomplete="off" autofocus>
             <button type="button" class="btn-scan-camera" id="btnScanCamera" title="Escanear con cámara"><i class="ph ph-camera"></i></button>
         </div>
     </div>
@@ -501,7 +505,7 @@ window.addEventListener('error', function(e) {
         </button>
     </div>
     
-    <div class="table-responsive" style="height: calc(100vh - 430px); overflow: auto; border-bottom: 1px solid var(--border-color); margin-top:20px;">
+    <div class="table-responsive" style="height: calc(100vh - 290px); overflow: auto; border-bottom: 1px solid var(--border-color); margin-top:20px;">
         <table id="papeleraTable" class="inv-table">
             <thead>
                 <tr>
@@ -562,22 +566,17 @@ window.addEventListener('error', function(e) {
 
 <!-- Modal: New Product -->
 <div class="modal-overlay" id="newProductModal">
-    <div class="modal-content" style="max-width:900px; width:95%;">
+    <div class="modal-content" style="max-width:1300px; width:98%;">
         <div class="modal-header">
             <h3><i class="ph ph-package"></i> Nuevo Producto <span id="productTypeBadge" class="product-type-header-badge"></span></h3>
             <button class="close-modal" onclick="closeProductModal()">&times;</button>
-        </div>
-        <!-- Tab Bar -->
-        <div class="inv-tabs-bar" style="margin-bottom:0;border-radius:0;border:none;border-bottom:1px solid var(--border-color);">
-            <button class="inv-tab active" data-nptab="datos" onclick="switchNewProductTab('datos')"><i class="ph ph-list-dashes"></i> Datos</button>
-            <button class="inv-tab" data-nptab="fotos" onclick="switchNewProductTab('fotos')"><i class="ph ph-camera"></i> Fotos</button>
         </div>
         <div class="modal-body" style="padding:0;">
             <!-- ═══ Tab: Datos ═══ -->
             <div class="np-pane active" id="nptab-datos" style="padding:20px;">
 
-                <!-- Two-column layout -->
-                <div id="newProductGrid" style="display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start;">
+                <!-- Grid layout (1, 2, or 3 columns depending on type) -->
+                <div id="newProductGrid" class="np-dynamic-grid" style="display:grid; gap:24px; align-items:start;">
 
                     <!-- ── Columna Izquierda ── -->
                     <div>
@@ -620,10 +619,26 @@ window.addEventListener('error', function(e) {
                             </div>
                         </div>
 
-                        <!-- Descripción -->
-                        <div class="inv-form-field" style="margin-bottom:14px;">
-                            <label class="form-label">Descripción</label>
-                            <input type="text" class="form-control" id="prodDesc" placeholder="Descripción breve del producto...">
+                        <!-- Foto Principal -->
+                        <div style="margin-bottom:14px;">
+                            <label class="form-label" style="font-weight:700; display:flex; align-items:center; gap:6px; margin-bottom:10px;">
+                                <i class="ph ph-images" style="color:#8b5cf6; font-size:1.1rem;"></i> Foto Principal
+                            </label>
+                            <div style="display:flex; gap:8px; margin-bottom:12px;">
+                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('prodMultiPhotoInput').click()" style="flex:1;"><i class="ph ph-upload-simple"></i> Subir</button>
+                                <button type="button" class="btn btn-secondary" onclick="captureProductPhoto('create')" style="flex:1;"><i class="ph ph-camera"></i> Cámara</button>
+                            </div>
+                            <div class="prod-photo-dropzone" id="prodPhotoDropzone" style="padding:20px;"
+                                 onclick="document.getElementById('prodMultiPhotoInput').click()"
+                                 ondrop="handleProductPhotoDrop(event, 'create')"
+                                 ondragover="event.preventDefault(); this.classList.add('dragover')"
+                                 ondragleave="this.classList.remove('dragover')">
+                                <i class="ph ph-cloud-arrow-up" style="font-size:2rem; color:var(--text-muted); opacity:0.4;"></i>
+                                <p style="margin:4px 0 0; font-size:0.8rem; color:var(--text-muted);">Arrastra o haz clic</p>
+                            </div>
+                            <input type="file" id="prodMultiPhotoInput" class="no-dropzone" multiple accept="image/*" style="position:absolute; left:-9999px; width:1px; height:1px;" onchange="handleProductPhotoSelect(event, 'create')">
+                            <input type="file" id="prodPhotoInput" class="no-dropzone" accept="image/*" style="position:absolute; left:-9999px; width:1px; height:1px;" onchange="handleProductPhotoSelect(event, 'create')">
+                            <div id="prodPhotoGallery" class="prod-photo-gallery" style="margin-top:12px;"></div>
                         </div>
 
                         <!-- Bulk (hidden checkbox, auto-set by product type) -->
@@ -766,52 +781,41 @@ window.addEventListener('error', function(e) {
                         </div>
                     </div><!-- end right col -->
 
-                </div><!-- end grid -->
-            </div>
-
-            <!-- ═══ Tab: Fotos ═══ -->
-            <div class="np-pane" id="nptab-fotos" style="padding:20px;">
-                <!-- Two-column layout -->
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start;">
-
-                    <!-- ── Columna Izquierda: Foto principal del producto ── -->
-                    <div>
-                        <label class="form-label" style="font-weight:700; display:flex; align-items:center; gap:6px; margin-bottom:10px;">
-                            <i class="ph ph-images" style="color:#8b5cf6; font-size:1.1rem;"></i> Foto Principal del Producto
-                        </label>
-                        <div style="display:flex; gap:8px; margin-bottom:12px;">
-                            <button type="button" class="btn btn-secondary" onclick="document.getElementById('prodMultiPhotoInput').click()" style="flex:1;"><i class="ph ph-upload-simple"></i> Subir fotos</button>
-                            <button type="button" class="btn btn-secondary" onclick="captureProductPhoto('create')" style="flex:1;"><i class="ph ph-camera"></i> Tomar foto</button>
-                        </div>
-                        <div class="prod-photo-dropzone" id="prodPhotoDropzone"
-                             onclick="document.getElementById('prodMultiPhotoInput').click()"
-                             ondrop="handleProductPhotoDrop(event, 'create')"
-                             ondragover="event.preventDefault(); this.classList.add('dragover')"
-                             ondragleave="this.classList.remove('dragover')">
-                            <i class="ph ph-cloud-arrow-up" style="font-size:2.5rem; color:var(--text-muted); opacity:0.4;"></i>
-                            <p style="margin:4px 0 0; font-size:0.85rem; color:var(--text-muted);">Arrastra fotos aquí o <strong style="color:var(--primary-color);">haz clic</strong></p>
-                            <span style="font-size:0.75rem; color:var(--text-muted);">JPG, PNG o WebP</span>
-                        </div>
-                        <input type="file" id="prodMultiPhotoInput" class="no-dropzone" multiple accept="image/*" style="position:absolute; left:-9999px; width:1px; height:1px;" onchange="handleProductPhotoSelect(event, 'create')">
-                        <input type="file" id="prodPhotoInput" class="no-dropzone" accept="image/*" style="position:absolute; left:-9999px; width:1px; height:1px;" onchange="handleProductPhotoSelect(event, 'create')">
-                        <div id="prodPhotoGallery" class="prod-photo-gallery" style="margin-top:12px;"></div>
-                    </div>
-
-                    <!-- ── Columna Derecha: Fotos individuales por SKU ── -->
-                    <div>
-                        <label class="form-label" style="font-weight:700; display:flex; align-items:center; gap:6px; margin-bottom:10px;">
-                            <i class="ph ph-identification-badge" style="color:#8b5cf6; font-size:1.1rem;"></i> Fotos por SKU
-                        </label>
-                        <div style="background:linear-gradient(135deg, rgba(139,92,246,0.07), rgba(99,102,241,0.04)); padding:20px; border-radius:14px; border:1px solid rgba(139,92,246,0.25);">
-                            <div class="form-check" style="margin-bottom:0;">
-                                <input class="form-check-input" type="checkbox" id="prodRequiresPhotos" style="border-color:#8b5cf6; width:18px; height:18px;">
-                                <label class="form-check-label" for="prodRequiresPhotos" style="font-weight:700; font-size:0.95rem; padding-left:4px;">
-                                    <i class="ph ph-camera" style="color:#8b5cf6; margin-right:4px;"></i> Fotos individuales por SKU
-                                </label>
+                    <!-- ── Columna Derecha: Escáner Continuo (Solo Normal) ── -->
+                    <div id="skuScannerCol" data-show-for="normal" style="display:flex; flex-direction:column;">
+                        <div style="background:var(--bg-color); border:1px solid var(--border-color); border-radius:12px; padding:16px; flex:1;">
+                            <label class="form-label"><i class="ph ph-qr-code"></i> Escaneo Continuo</label>
+                            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px; line-height:1.4;">
+                                Selecciona una columna personalizada y escanea los códigos. El sistema los asignará automáticamente a los SKUs generados.
+                            </p>
+                            
+                            <div class="inv-form-field" style="margin-bottom:12px;">
+                                <label class="form-label" style="font-size:0.8rem;">Columna destino</label>
+                                <select class="form-select" id="continuousScanColumn">
+                                    <option value="">Selecciona una columna...</option>
+                                </select>
                             </div>
-                            <small style="color:var(--text-muted);display:block;margin-top:10px;line-height:1.6;">Al activar, cada SKU tendrá su propia galería de fotos en el módulo Mochila.</small>
+
+                            <div class="inv-form-field" style="margin-bottom:16px;">
+                                <label class="form-label" style="font-size:0.8rem;">Escanear Código</label>
+                                <div style="display:flex; gap:8px;">
+                                    <input type="text" class="form-control" id="continuousScanInput" placeholder="Escanea o escribe aquí..." autocomplete="off">
+                                </div>
+                            </div>
+
+                            <div style="background:var(--surface-color); border-radius:8px; padding:12px; border:1px solid var(--border-color);">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                    <span style="font-size:0.85rem; font-weight:600;">Progreso de escaneo</span>
+                                    <span id="scanProgressCount" style="font-size:0.85rem; font-weight:700; color:var(--primary-color);">0 / 0</span>
+                                </div>
+                                <div style="width:100%; height:6px; background:var(--bg-color); border-radius:3px; overflow:hidden;">
+                                    <div id="scanProgressBar" style="height:100%; width:0%; background:var(--primary-color); transition:width 0.3s ease;"></div>
+                                </div>
+                                <p id="scanProgressText" style="font-size:0.75rem; color:var(--text-muted); margin:8px 0 0; text-align:center;">Genera SKUs primero</p>
+                            </div>
                         </div>
-                    </div>
+                        <input type="checkbox" id="prodRequiresPhotos" style="display:none;" value="0">
+                    </div><!-- end scanner col -->
 
                 </div><!-- end grid -->
             </div>
@@ -1674,6 +1678,30 @@ window.addEventListener('error', function(e) {
       </div>
     </div>
     
+  </div>
+</div>
+
+<!-- Modal Escáner QR para Campos Custom -->
+<div class="modal-overlay" id="scanPickerModal" style="display:none; align-items:center; justify-content:center; z-index:9999;">
+  <div class="modal-content" style="max-width:400px; width:90%; padding:20px; border-radius:16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+      <h3 style="margin:0; font-size:1.1rem; display:flex; align-items:center; gap:8px;"><i class="ph ph-qr-code" style="color:var(--primary-color);"></i> Escanear Código</h3>
+      <button class="btn-icon" onclick="if(window.stopScanPicker) window.stopScanPicker(); else { document.getElementById('scanPickerModal').classList.remove('active'); document.getElementById('scanPickerModal').style.display='none'; }"><i class="ph ph-x"></i></button>
+    </div>
+    
+    <div style="background:#000; border-radius:12px; overflow:hidden; position:relative; aspect-ratio:1; margin-bottom:15px; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+      <div id="scanPickerReader" style="width:100%; height:100%;"></div>
+      <div id="scanPickerStatus" style="position:absolute; bottom:10px; left:10px; right:10px; background:rgba(0,0,0,0.7); color:#fff; padding:6px 10px; border-radius:8px; font-size:0.85rem; text-align:center; z-index:10;"><i class="ph ph-camera"></i> Iniciando cámara...</div>
+    </div>
+    
+    <div style="display:flex; gap:8px; margin-bottom:15px;">
+      <input type="text" id="scanPickerManual" class="form-control" placeholder="Ingreso manual..." autocomplete="off" style="flex:1;">
+      <button class="btn-primary" style="padding:0 15px;" onclick="if(typeof scanPickerCallback === 'function' && document.getElementById('scanPickerManual').value.trim()) { scanPickerCallback(document.getElementById('scanPickerManual').value.trim()); if(window.stopScanPicker) window.stopScanPicker(); }">OK</button>
+    </div>
+    
+    <div id="scanPickerResults" style="display:none; max-height:150px; overflow-y:auto; border:1px solid var(--border-color); border-radius:8px;">
+      <div id="scanPickerList" style="display:flex; flex-direction:column;"></div>
+    </div>
   </div>
 </div>
 

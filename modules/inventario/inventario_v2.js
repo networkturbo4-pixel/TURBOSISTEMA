@@ -86,6 +86,7 @@
                 document.getElementById('metricDisponible').textContent = res.data.disponible;
                 document.getElementById('metricInstalado').textContent = res.data.instalado;
                 document.getElementById('metricLowStock').textContent = res.data.low_stock;
+                if(document.getElementById('metricProductos')) document.getElementById('metricProductos').textContent = res.data.productos_registrados;
             }
         } catch (e) { console.error(e); }
     }
@@ -642,6 +643,16 @@
         const badge = document.getElementById('colCountBadge');
         if (!list) return;
         if (badge) badge.textContent = customColumns.length + (customColumns.length === 1 ? ' columna' : ' columnas');
+        
+        // Sync scanner dropdown
+        const scanSelect = document.getElementById('continuousScanColumn');
+        if (scanSelect) {
+            const currentVal = scanSelect.value;
+            scanSelect.innerHTML = '<option value="">Selecciona una columna...</option>' + 
+                customColumns.map(c => `<option value="${esc(colObj(c).name)}">${esc(colObj(c).name)}</option>`).join('');
+            if (customColumns.find(c => colObj(c).name === currentVal)) scanSelect.value = currentVal;
+        }
+
         if (customColumns.length === 0) {
             list.innerHTML = `<div style="text-align:center;padding:14px;color:var(--text-muted);font-size:0.82rem;border:1px dashed var(--border-color);border-radius:8px;"><i class="ph ph-columns" style="font-size:1.4rem;display:block;margin-bottom:4px;opacity:0.3;"></i>Sin columnas — añade una abajo</div>`;
             return;
@@ -860,6 +871,7 @@
         initEditAliasInput();
         loadSuggestions('new');
         loadSuggestions('edit');
+        initContinuousScanner();
 
         // FAB → open product type selector
         document.getElementById('btnNewProduct').addEventListener('click', () => {
@@ -876,7 +888,7 @@
             const name = document.getElementById('prodName').value.trim();
             const category_id = document.getElementById('prodCategory').value;
             const quantity = previewSkuCodes.length;
-            let description = document.getElementById('prodDesc').value.trim();
+            let description = document.getElementById('prodDesc') ? document.getElementById('prodDesc').value.trim() : '';
             const aliases = document.getElementById('prodAliases') ? document.getElementById('prodAliases').value.trim() : '';
             if (aliases) { description = description ? description + '\nNombres alternativos: ' + aliases : 'Nombres alternativos: ' + aliases; }
             const stock_minimo = parseInt(document.getElementById('prodStockMin').value) || 0;
@@ -891,6 +903,29 @@
                 if (variants.length === 0) { if (window.showToast) window.showToast('Agrega al menos una variante', 'error'); return; }
             } else if (!is_bulk && quantity < 1) {
                 if (window.showToast) window.showToast('Agrega al menos 1 SKU', 'error'); return;
+            }
+
+            // Normal Product - Continuous Scanning Validation
+            if (selectedProductType === 'normal' && !is_bulk && customColumns.length > 0) {
+                let validScan = false;
+                // At least one custom column must be completely filled for all SKUs
+                for (let c of customColumns) {
+                    const colName = colObj(c).name;
+                    let filledCount = 0;
+                    for (let i = 0; i < quantity; i++) {
+                        if (previewCustomData[i] && previewCustomData[i][colName] && previewCustomData[i][colName].trim() !== '') {
+                            filledCount++;
+                        }
+                    }
+                    if (filledCount === quantity) {
+                        validScan = true;
+                        break;
+                    }
+                }
+                if (!validScan) {
+                    if (window.showToast) window.showToast('Debes escanear completamente al menos una columna personalizada', 'error');
+                    return;
+                }
             }
             const btn = document.getElementById('btnSaveProduct');
             btn.disabled = true; btn.innerHTML = '<i class="ph ph-spinner"></i> Guardando...';
@@ -947,13 +982,13 @@
             if (aliasWrap.previousElementSibling) aliasWrap.previousElementSibling.style.display = 'inline-block';
         }
         document.getElementById('prodQty').value = 1;
-        document.getElementById('prodDesc').value = '';
+        document.getElementById('prodDesc') ? document.getElementById('prodDesc').value = '' : null;
         document.getElementById('prodStockMin').value = 10;
         document.getElementById('prodStockCrit').value = 3;
-        document.getElementById('prodRequiresPhotos').checked = false;
+        document.getElementById('prodRequiresPhotos') ? document.getElementById('prodRequiresPhotos').checked = false : null;
         createProductPhotos = [];
         renderProductPhotoGallery('create');
-        switchNewProductTab('datos');
+        // Removed tab switch
         document.getElementById('skuPreviewWrap').style.display = 'none';
         previewCustomData = [];
         previewSkuCodes = [];
@@ -986,6 +1021,7 @@
         const granelFieldsWrap = document.getElementById('granelFieldsWrap');
         const agrupadoSection = document.getElementById('agrupadoVariantsSection');
         const badge = document.getElementById('productTypeBadge');
+        const skuScannerCol = document.getElementById('skuScannerCol');
 
         // Update header badge
         const typeLabels = { normal: 'Normal', granel: 'A Granel', agrupado: 'Agrupado' };
@@ -996,8 +1032,9 @@
         document.getElementById('prodIsBulk').value = type === 'granel' ? '1' : '0';
 
         if (type === 'normal') {
-            grid.style.gridTemplateColumns = '1fr 1fr';
+            grid.style.gridTemplateColumns = '1fr 1fr 1fr';
             skuRightCol.style.display = 'block';
+            if (skuScannerCol) skuScannerCol.style.display = 'flex';
             customColsSection.style.display = 'block';
             granelFieldsWrap.style.display = 'none';
             agrupadoSection.style.display = 'none';
@@ -1011,6 +1048,7 @@
         } else if (type === 'granel') {
             grid.style.gridTemplateColumns = '1fr';
             skuRightCol.style.display = 'none';
+            if (skuScannerCol) skuScannerCol.style.display = 'none';
             customColsSection.style.display = 'none';
             granelFieldsWrap.style.display = 'block';
             agrupadoSection.style.display = 'none';
@@ -1018,6 +1056,7 @@
         } else if (type === 'agrupado') {
             grid.style.gridTemplateColumns = '1fr';
             skuRightCol.style.display = 'none';
+            if (skuScannerCol) skuScannerCol.style.display = 'none';
             customColsSection.style.display = 'none';
             granelFieldsWrap.style.display = 'none';
             agrupadoSection.style.display = 'block';
@@ -1470,6 +1509,7 @@
             rowsHtml += `<td data-label=""><button type="button" class="btn-delete-row" onclick="deleteSkuRow(${i})" title="Eliminar"><i class="ph ph-trash"></i></button></td></tr>`;
         }
         body.innerHTML = rowsHtml;
+        updateContinuousScanProgress();
     }
 
     window.editPreviewCell = function(rowIdx, col, el) {
@@ -1494,9 +1534,101 @@
         openSysBarcodeScanner(value => {
             previewCustomData[rowIdx][col] = value;
             renderPreviewSkuTable();
-            if (window.showToast) window.showToast('Codigo asignado: ' + value, 'success');
         });
     };
+
+    // ── Continuous Scanning ──
+    window.updateContinuousScanProgress = function() {
+        const select = document.getElementById('continuousScanColumn');
+        const countEl = document.getElementById('scanProgressCount');
+        const barEl = document.getElementById('scanProgressBar');
+        const textEl = document.getElementById('scanProgressText');
+        
+        if (!select || !countEl) return;
+        
+        const col = select.value;
+        const total = previewSkuCodes.length;
+        
+        if (total === 0) {
+            countEl.textContent = '0 / 0';
+            barEl.style.width = '0%';
+            textEl.textContent = 'Genera SKUs primero';
+            return;
+        }
+        
+        if (!col) {
+            countEl.textContent = `0 / ${total}`;
+            barEl.style.width = '0%';
+            textEl.textContent = 'Selecciona una columna';
+            return;
+        }
+        
+        let scanned = 0;
+        for (let i = 0; i < total; i++) {
+            if (previewCustomData[i] && previewCustomData[i][col] && previewCustomData[i][col].trim() !== '') {
+                scanned++;
+            }
+        }
+        
+        countEl.textContent = `${scanned} / ${total}`;
+        const pct = total > 0 ? Math.round((scanned / total) * 100) : 0;
+        barEl.style.width = `${pct}%`;
+        
+        if (scanned === total) {
+            textEl.textContent = '¡Completado!';
+            textEl.style.color = '#10b981';
+            barEl.style.background = '#10b981';
+        } else {
+            textEl.textContent = `Faltan ${total - scanned} por escanear`;
+            textEl.style.color = 'var(--text-muted)';
+            barEl.style.background = 'var(--primary-color)';
+        }
+    };
+
+    function initContinuousScanner() {
+        const select = document.getElementById('continuousScanColumn');
+        const input = document.getElementById('continuousScanInput');
+        if (!select || !input) return;
+
+        select.addEventListener('change', updateContinuousScanProgress);
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const val = input.value.trim();
+                if (!val) return;
+                
+                const col = select.value;
+                if (!col) {
+                    if (window.showToast) window.showToast('Selecciona una columna primero', 'error');
+                    return;
+                }
+                
+                const total = previewSkuCodes.length;
+                if (total === 0) {
+                    if (window.showToast) window.showToast('Genera SKUs primero', 'error');
+                    return;
+                }
+                
+                // Find first empty row for this column
+                let assigned = false;
+                for (let i = 0; i < total; i++) {
+                    if (!previewCustomData[i][col] || previewCustomData[i][col].trim() === '') {
+                        previewCustomData[i][col] = val;
+                        assigned = true;
+                        break;
+                    }
+                }
+                
+                if (assigned) {
+                    input.value = '';
+                    renderPreviewSkuTable(); // This will also call updateContinuousScanProgress
+                } else {
+                    if (window.showToast) window.showToast('Todos los SKUs ya tienen valor en esta columna', 'info');
+                }
+            }
+        });
+    }
 
     window.closeProductModal = function() { document.getElementById('newProductModal').classList.remove('active'); };
     window.closeEditProductModal = function() { document.getElementById('editProductModal').classList.remove('active'); };
@@ -2013,7 +2145,7 @@
             }
 
             let cellMap = {
-                '#': s.is_bulk ? `<td></td>` : `<td><input type="checkbox" class="sku-row-check form-check-input" value="${s.id}" onchange="updateSkuSelection()" ${s.status !== 'disponible' ? 'disabled title="Solo se pueden eliminar SKUs disponibles"' : ''}></td>`,
+                '#': s.is_bulk ? `<td></td>` : `<td><input type="checkbox" class="sku-row-check form-check-input" value="${s.id}" onchange="updateSkuSelection()"></td>`,
                 'SKU': s.is_bulk ? `<td><code style=\"font-weight:700;\">${s.sku_code}</code></td>` : `<td><span class=\"inv-editable\" onclick=\"editSkuCode(${s.id}, this)\" title=\"Clic para editar\"><code style=\"font-weight:700;\">${s.sku_code}</code></span></td>`,
                 'Producto': `<td><div style="display:flex;align-items:center;gap:8px;">${
                     s.product_type === 'agrupado'
@@ -2452,6 +2584,42 @@
         startScanPicker();
     };
 
+    window.html5QrcodeScannerPicker = null;
+    
+    window.startScanPicker = function() {
+        if (window.html5QrcodeScannerPicker) return;
+        try {
+            window.html5QrcodeScannerPicker = new Html5Qrcode("scanPickerReader");
+            window.html5QrcodeScannerPicker.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText, decodedResult) => {
+                    if (typeof window.scanPickerCallback === 'function') {
+                        window.scanPickerCallback(decodedText);
+                    }
+                    window.stopScanPicker();
+                },
+                (errorMessage) => { /* ignore */ }
+            ).catch((err) => {
+                document.getElementById('scanPickerStatus').innerHTML = '<i class="ph ph-warning" style="color:#ef4444;"></i> Error de cámara';
+            });
+            document.getElementById('scanPickerModal').style.display = 'flex';
+        } catch (e) {
+            console.error("No se pudo iniciar el escáner:", e);
+        }
+    };
+
+    window.stopScanPicker = function() {
+        if (window.html5QrcodeScannerPicker) {
+            window.html5QrcodeScannerPicker.stop().then(() => {
+                window.html5QrcodeScannerPicker.clear();
+                window.html5QrcodeScannerPicker = null;
+            }).catch(e => console.error(e));
+        }
+        document.getElementById('scanPickerModal').classList.remove('active');
+        document.getElementById('scanPickerModal').style.display = 'none';
+    };
+
     // ── Inline Edit BULK Product Custom Data (floating popover with ✓/✗ buttons) ──
     window.editBulkCustom = function(productId, key, el) {
         // Remove any existing popover first
@@ -2623,6 +2791,7 @@
         const labelW = parseInt(document.getElementById('labelWidth').value) || 50;
         const labelH = parseInt(document.getElementById('labelHeight').value) || 30;
         const labelCols = parseInt(document.getElementById('labelCols').value) || 2;
+        const labelCopies = document.getElementById('labelCopies') ? (parseInt(document.getElementById('labelCopies').value) || 1) : 1;
         const showLogo = document.getElementById('labelShowLogo') ? document.getElementById('labelShowLogo').checked : false;
         const showCompanyName = document.getElementById('labelShowCompanyName') ? document.getElementById('labelShowCompanyName').checked : false;
         const showName = document.getElementById('labelShowName').checked;
@@ -2657,22 +2826,26 @@
         const qrSize = Math.max(20, Math.min(60, Math.min(labelW, labelH) * 1.2));
 
         res.data.forEach(s => {
-            const id = 'lbl-' + s.id;
-            const logoHtml = (showLogo && appLogo) ? `<img src="${BASE}/${appLogo}" class="label-company-logo" alt="Logo">` : '';
-            const companyHtml = showCompanyName ? `<div class="label-company-name">${esc(appName)}</div>` : '';
-            const nameHtml = showName ? `<div class="label-product-name">${esc(productName)}</div>` : '';
-            const skuHtml = showSku ? `<div class="label-sku-text">${s.sku_code}</div>` : '';
+            for (let c = 0; c < labelCopies; c++) {
+                // Ensure unique ID if multiple copies exist to render barcodes correctly
+                const copySuffix = labelCopies > 1 ? `-${c}` : '';
+                const id = 'lbl-' + s.id + copySuffix;
+                const logoHtml = (showLogo && appLogo) ? `<img src="${BASE}/${appLogo}" class="label-company-logo" alt="Logo">` : '';
+                const companyHtml = showCompanyName ? `<div class="label-company-name">${esc(appName)}</div>` : '';
+                const nameHtml = showName ? `<div class="label-product-name">${esc(productName)}</div>` : '';
+                const skuHtml = showSku ? `<div class="label-sku-text">${s.sku_code}</div>` : '';
 
-            if (labelType === 'barcode') {
-                html += `<div class="label-item">${logoHtml}${companyHtml}${nameHtml}<svg id="${id}"></svg>${skuHtml}</div>`;
-            } else {
-                html += `<div class="label-item">${logoHtml}${companyHtml}${nameHtml}<div id="${id}" style="margin:0 auto;"></div>${skuHtml}</div>`;
+                if (labelType === 'barcode') {
+                    html += `<div class="label-item">${logoHtml}${companyHtml}${nameHtml}<svg id="${id}" data-sku="${s.sku_code}"></svg>${skuHtml}</div>`;
+                } else {
+                    html += `<div class="label-item">${logoHtml}${companyHtml}${nameHtml}<div id="${id}" data-sku="${s.sku_code}" style="margin:0 auto;"></div>${skuHtml}</div>`;
+                }
             }
         });
         html += '</div>';
 
         // Count info
-        const totalLabels = res.data.length;
+        const totalLabels = res.data.length * labelCopies;
         const totalRows = Math.ceil(totalLabels / labelCols);
         html += `<div style="text-align:center; margin-top:12px; font-size:0.82rem; color:var(--text-muted);">
             <i class="ph ph-info" style="margin-right:4px;"></i>
@@ -2682,35 +2855,39 @@
         preview.innerHTML = html;
 
         // Render barcodes/QR codes
-        requestAnimationFrame(() => {
+        setTimeout(() => {
             res.data.forEach(s => {
-                const id = 'lbl-' + s.id, el = document.getElementById(id);
-                if (!el) return;
-                if (labelType === 'barcode') {
-                    try {
-                        JsBarcode('#' + id, s.sku_code, {
-                            format: 'CODE128',
-                            width: barcodeWidth,
-                            height: barcodeHeight,
-                            displayValue: false,
-                            margin: 1,
-                            background: '#ffffff'
-                        });
-                    } catch(e) { console.warn('Barcode error:', e); }
-                } else {
-                    try {
-                        new QRCode(el, {
-                            text: s.sku_code,
-                            width: qrSize,
-                            height: qrSize,
-                            colorDark: '#000',
-                            colorLight: '#fff',
-                            correctLevel: QRCode.CorrectLevel.M
-                        });
-                    } catch(e) { console.warn('QR error:', e); }
+                for (let c = 0; c < labelCopies; c++) {
+                    const copySuffix = labelCopies > 1 ? `-${c}` : '';
+                    const id = 'lbl-' + s.id + copySuffix;
+                    const el = document.getElementById(id);
+                    if (!el) continue;
+                    
+                    if (labelType === 'barcode') {
+                        try {
+                            JsBarcode("#" + id, s.sku_code, {
+                                format: "CODE128",
+                                width: barcodeWidth,
+                                height: barcodeHeight,
+                                displayValue: false,
+                                margin: 0
+                            });
+                        } catch(e) { console.error("Error JSBarcode", e); }
+                    } else {
+                        try {
+                            new QRCode(el, {
+                                text: s.sku_code,
+                                width: qrSize,
+                                height: qrSize,
+                                colorDark : "#000000",
+                                colorLight : "#ffffff",
+                                correctLevel : QRCode.CorrectLevel.L
+                            });
+                        } catch(e) { console.error("Error QRCode", e); }
+                    }
                 }
             });
-        });
+        }, 100);
         document.getElementById('btnPrint').style.display = '';
     }
     // ── SKU Detail Modal ──────────────────────────────────

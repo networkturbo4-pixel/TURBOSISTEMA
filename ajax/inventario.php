@@ -749,12 +749,13 @@ try {
             $malogrado = $pdo->query("SELECT COUNT(*) FROM inventory_skus s JOIN inventory_products p ON s.product_id = p.id WHERE s.status = 'malogrado' AND s.is_deleted = 0 AND p.is_deleted = 0")->fetchColumn();
             $reparado = $pdo->query("SELECT COUNT(*) FROM inventory_skus s JOIN inventory_products p ON s.product_id = p.id WHERE s.status = 'reparado' AND s.is_deleted = 0 AND p.is_deleted = 0")->fetchColumn();
 
-            // Sumar también productos bulk (no eliminados)
             $bulk_total = $pdo->query("SELECT COALESCE(SUM(total_quantity), 0) FROM inventory_products WHERE is_bulk = 1 AND is_deleted = 0")->fetchColumn();
 
             $low_stock = $pdo->query("SELECT COUNT(*) FROM (
                 SELECT s.product_id, COUNT(*) as cnt FROM inventory_skus s JOIN inventory_products p ON s.product_id = p.id WHERE s.status = 'disponible' AND s.is_deleted = 0 AND p.is_deleted = 0 GROUP BY s.product_id HAVING cnt <= (SELECT stock_minimo FROM inventory_products WHERE id = s.product_id)
             ) as low")->fetchColumn();
+
+            $productos_registrados = $pdo->query("SELECT COUNT(*) FROM inventory_products WHERE is_deleted = 0")->fetchColumn();
 
             echo json_encode(['success' => true, 'data' => [
                 'total' => intval($total) + intval($bulk_total),
@@ -762,7 +763,8 @@ try {
                 'instalado' => intval($instalado),
                 'malogrado' => intval($malogrado),
                 'reparado' => intval($reparado),
-                'low_stock' => intval($low_stock)
+                'low_stock' => intval($low_stock),
+                'productos_registrados' => intval($productos_registrados)
             ]]);
             break;
 

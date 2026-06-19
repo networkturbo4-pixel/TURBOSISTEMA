@@ -76,6 +76,7 @@
                 document.getElementById('metricDisponible').textContent = res.data.disponible;
                 document.getElementById('metricInstalado').textContent = res.data.instalado;
                 document.getElementById('metricLowStock').textContent = res.data.low_stock;
+                if(document.getElementById('metricProductos')) document.getElementById('metricProductos').textContent = res.data.productos_registrados;
             }
         } catch (e) { console.error(e); }
     }
@@ -2123,6 +2124,7 @@
         const labelW = parseInt(document.getElementById('labelWidth').value) || 50;
         const labelH = parseInt(document.getElementById('labelHeight').value) || 30;
         const labelCols = parseInt(document.getElementById('labelCols').value) || 2;
+        const labelCopies = document.getElementById('labelCopies') ? (parseInt(document.getElementById('labelCopies').value) || 1) : 1;
         const showLogo = document.getElementById('labelShowLogo') ? document.getElementById('labelShowLogo').checked : false;
         const showCompanyName = document.getElementById('labelShowCompanyName') ? document.getElementById('labelShowCompanyName').checked : false;
         const showName = document.getElementById('labelShowName').checked;
@@ -2157,22 +2159,25 @@
         const qrSize = Math.max(20, Math.min(60, Math.min(labelW, labelH) * 1.2));
 
         res.data.forEach(s => {
-            const id = 'lbl-' + s.id;
-            const logoHtml = (showLogo && appLogo) ? `<img src="${BASE}/${appLogo}" class="label-company-logo" alt="Logo">` : '';
-            const companyHtml = showCompanyName ? `<div class="label-company-name">${esc(appName)}</div>` : '';
-            const nameHtml = showName ? `<div class="label-product-name">${esc(productName)}</div>` : '';
-            const skuHtml = showSku ? `<div class="label-sku-text">${s.sku_code}</div>` : '';
+            for (let c = 0; c < labelCopies; c++) {
+                const copySuffix = labelCopies > 1 ? `-${c}` : '';
+                const id = 'lbl-' + s.id + copySuffix;
+                const logoHtml = (showLogo && appLogo) ? `<img src="${BASE}/${appLogo}" class="label-company-logo" alt="Logo">` : '';
+                const companyHtml = showCompanyName ? `<div class="label-company-name">${esc(appName)}</div>` : '';
+                const nameHtml = showName ? `<div class="label-product-name">${esc(productName)}</div>` : '';
+                const skuHtml = showSku ? `<div class="label-sku-text">${s.sku_code}</div>` : '';
 
-            if (labelType === 'barcode') {
-                html += `<div class="label-item">${logoHtml}${companyHtml}${nameHtml}<svg id="${id}"></svg>${skuHtml}</div>`;
-            } else {
-                html += `<div class="label-item">${logoHtml}${companyHtml}${nameHtml}<div id="${id}" style="margin:0 auto;"></div>${skuHtml}</div>`;
+                if (labelType === 'barcode') {
+                    html += `<div class="label-item">${logoHtml}${companyHtml}${nameHtml}<svg id="${id}"></svg>${skuHtml}</div>`;
+                } else {
+                    html += `<div class="label-item">${logoHtml}${companyHtml}${nameHtml}<div id="${id}" style="margin:0 auto;"></div>${skuHtml}</div>`;
+                }
             }
         });
         html += '</div>';
 
         // Count info
-        const totalLabels = res.data.length;
+        const totalLabels = res.data.length * labelCopies;
         const totalRows = Math.ceil(totalLabels / labelCols);
         html += `<div style="text-align:center; margin-top:12px; font-size:0.82rem; color:var(--text-muted);">
             <i class="ph ph-info" style="margin-right:4px;"></i>
@@ -2182,35 +2187,39 @@
         preview.innerHTML = html;
 
         // Render barcodes/QR codes
-        requestAnimationFrame(() => {
+        setTimeout(() => {
             res.data.forEach(s => {
-                const id = 'lbl-' + s.id, el = document.getElementById(id);
-                if (!el) return;
-                if (labelType === 'barcode') {
-                    try {
-                        JsBarcode('#' + id, s.sku_code, {
-                            format: 'CODE128',
-                            width: barcodeWidth,
-                            height: barcodeHeight,
-                            displayValue: false,
-                            margin: 1,
-                            background: '#ffffff'
-                        });
-                    } catch(e) { console.warn('Barcode error:', e); }
-                } else {
-                    try {
-                        new QRCode(el, {
-                            text: s.sku_code,
-                            width: qrSize,
-                            height: qrSize,
-                            colorDark: '#000',
-                            colorLight: '#fff',
-                            correctLevel: QRCode.CorrectLevel.M
-                        });
-                    } catch(e) { console.warn('QR error:', e); }
+                for (let c = 0; c < labelCopies; c++) {
+                    const copySuffix = labelCopies > 1 ? `-${c}` : '';
+                    const id = 'lbl-' + s.id + copySuffix;
+                    const el = document.getElementById(id);
+                    if (!el) continue;
+
+                    if (labelType === 'barcode') {
+                        try {
+                            JsBarcode("#" + id, s.sku_code, {
+                                format: "CODE128",
+                                width: barcodeWidth,
+                                height: barcodeHeight,
+                                displayValue: false,
+                                margin: 0
+                            });
+                        } catch(e) { console.warn('Barcode error:', e); }
+                    } else {
+                        try {
+                            new QRCode(el, {
+                                text: s.sku_code,
+                                width: qrSize,
+                                height: qrSize,
+                                colorDark: '#000',
+                                colorLight: '#fff',
+                                correctLevel: QRCode.CorrectLevel.M
+                            });
+                        } catch(e) { console.warn('QR error:', e); }
+                    }
                 }
             });
-        });
+        }, 100);
         document.getElementById('btnPrint').style.display = '';
     }
     // ── SKU Detail Modal ──────────────────────────────────

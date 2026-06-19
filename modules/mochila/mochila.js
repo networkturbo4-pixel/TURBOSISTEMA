@@ -65,6 +65,8 @@ async function loadUsers() {
             }
 
             filterUsers();
+        } else {
+            grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:40px;"><i class="ph ph-warning" style="font-size:2rem;margin-bottom:10px;display:block;"></i>${escapeHtml(data.message || data.error || 'Error al cargar usuarios')}</div>`;
         }
     } catch (e) {
         grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:40px;">Error al cargar usuarios</div>';
