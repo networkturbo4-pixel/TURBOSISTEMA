@@ -1,5 +1,7 @@
 <?php
-$_SERVER['HTTP_HOST'] = 'localhost';
+if (php_sapi_name() === 'cli') {
+    $_SERVER['HTTP_HOST'] = 'localhost';
+}
 require_once 'config/db.php';
 
 try {
@@ -15,7 +17,7 @@ try {
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
         type ENUM('entrada', 'salida') NOT NULL,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );");
     echo "Table 'attendance_logs' created.\n";
