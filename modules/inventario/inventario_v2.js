@@ -2853,13 +2853,13 @@
                     const onlyDate = s.created_at.split(' ')[0]; // Gets 'YYYY-MM-DD'
                     const parts = onlyDate.split('-');
                     const formattedDate = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : onlyDate;
-                    dateHtml = `<div class="label-date-text" style="font-size:0.6rem; font-weight:600; color:var(--text-muted); margin-top:2px; line-height:1;">Reg: ${formattedDate}</div>`;
+                    dateHtml = `<div class="label-date-text" style="font-size:4.5pt; font-weight:600; color:#555; margin-top:0.5mm; line-height:1;">Reg: ${formattedDate}</div>`;
                 }
 
                 if (labelType === 'barcode') {
-                    html += `<div class="label-item">${logoHtml}${companyHtml}${nameHtml}<svg id="${id}" data-sku="${s.sku_code}"></svg>${skuHtml}${dateHtml}</div>`;
+                    html += `<div class="label-item">${logoHtml}${companyHtml}${nameHtml}<svg id="${id}" data-sku="${s.sku_code}" style="max-height: calc(100% - ${textLinesHeight + 2}mm); width:auto;"></svg>${skuHtml}${dateHtml}</div>`;
                 } else {
-                    html += `<div class="label-item">${logoHtml}${companyHtml}${nameHtml}<div id="${id}" data-sku="${s.sku_code}" style="margin:0 auto;"></div>${skuHtml}${dateHtml}</div>`;
+                    html += `<div class="label-item">${logoHtml}${companyHtml}${nameHtml}<div id="${id}" data-sku="${s.sku_code}" style="margin:0 auto; max-height: calc(100% - ${textLinesHeight + 2}mm); display:flex; justify-content:center; align-items:center;"></div>${skuHtml}${dateHtml}</div>`;
                 }
             }
         });
