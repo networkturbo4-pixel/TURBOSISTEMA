@@ -217,7 +217,6 @@ window.updateSysScannerZoom = function(val, readerId) {
             const p = scanner.applyVideoConstraints({ advanced: [{ zoom: parseFloat(val) }] });
             if (p && p.catch) {
                 p.catch(e => {
-                    // Ignorar errores de restricciones de hardware
                     console.warn("Zoom no soportado en este dispositivo");
                 });
             }
@@ -226,3 +225,146 @@ window.updateSysScannerZoom = function(val, readerId) {
         }
     }
 };
+
+/* ==========================
+   GLOBAL HARDWARE BARCODE SCANNER LOGIC
+   ========================== */
+(function() {
+    let barcodeBuffer = '';
+    let barcodeTimeout = null;
+
+    document.addEventListener('keydown', function(e) {
+        // Ignorar teclas modificadoras (Shift, Ctrl, etc)
+        if (e.key.length > 1 && e.key !== 'Enter') return;
+        
+        if (e.key === 'Enter') {
+            if (barcodeBuffer.startsWith('USR-')) {
+                e.preventDefault();
+                handleUserBarcodeScanned(barcodeBuffer);
+            } else if (document.getElementById('globalUserActionModal')?.classList.contains('active')) {
+                // Si el modal global de usuario está activo y escaneamos algo, intentamos asignarlo
+                const input = document.getElementById('globalSkuAssignInput');
+                if (document.activeElement !== input && barcodeBuffer.length > 2) {
+                    e.preventDefault();
+                    input.value = barcodeBuffer;
+                    handleAssignSkuToUser(barcodeBuffer);
+                } else if (document.activeElement === input && input.value.trim().length > 2) {
+                    e.preventDefault();
+                    handleAssignSkuToUser(input.value.trim());
+                }
+            }
+            barcodeBuffer = '';
+            return;
+        }
+        
+        barcodeBuffer += e.key;
+        
+        if (barcodeTimeout) clearTimeout(barcodeTimeout);
+        // El escáner de hardware escribe muy rápido (< 20ms entre teclas)
+        barcodeTimeout = setTimeout(() => {
+            barcodeBuffer = ''; 
+        }, 50);
+    });
+
+    // Agregar evento para el input explícito
+    document.getElementById('globalSkuAssignInput')?.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && this.value.trim().length > 2) {
+            e.preventDefault();
+            handleAssignSkuToUser(this.value.trim());
+        }
+    });
+
+    async function handleUserBarcodeScanned(barcode) {
+        try {
+            const fd = new FormData();
+            fd.append('action', 'lookup');
+            fd.append('barcode', barcode);
+            
+            const baseUrl = document.querySelector('meta[name="base-url"]')?.getAttribute('content') || '';
+            const res = await fetch(`${baseUrl}/ajax/user_barcode_ops.php`, {
+                method: 'POST', body: fd
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                document.getElementById('globalUserActionName').textContent = data.user.name;
+                document.getElementById('globalUserActionId').value = data.user.id;
+                document.getElementById('globalSkuAssignInput').value = '';
+                
+                const modal = document.getElementById('globalUserActionModal');
+                modal.classList.add('active');
+                
+                // Autofocus el input
+                setTimeout(() => {
+                    document.getElementById('globalSkuAssignInput').focus();
+                }, 100);
+                
+                window.showToast(`Usuario ${data.user.name} detectado.`);
+            } else {
+                window.showToast(data.message || 'Código de usuario no reconocido.', 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            window.showToast('Error de conexión', 'error');
+        }
+    }
+
+    window.submitGlobalAttendance = async function(type) {
+        const userId = document.getElementById('globalUserActionId').value;
+        if (!userId) return;
+        
+        try {
+            const fd = new FormData();
+            fd.append('action', 'attendance');
+            fd.append('user_id', userId);
+            fd.append('type', type);
+            
+            const baseUrl = document.querySelector('meta[name="base-url"]')?.getAttribute('content') || '';
+            const res = await fetch(`${baseUrl}/ajax/user_barcode_ops.php`, {
+                method: 'POST', body: fd
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                window.showToast(data.message, 'success');
+                document.getElementById('globalUserActionModal').classList.remove('active');
+            } else {
+                window.showToast(data.message, 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            window.showToast('Error de conexión', 'error');
+        }
+    };
+
+    async function handleAssignSkuToUser(skuCode) {
+        const userId = document.getElementById('globalUserActionId').value;
+        if (!userId || !skuCode) return;
+        
+        try {
+            const fd = new FormData();
+            fd.append('action', 'assign_sku');
+            fd.append('user_id', userId);
+            fd.append('sku_code', skuCode);
+            
+            const baseUrl = document.querySelector('meta[name="base-url"]')?.getAttribute('content') || '';
+            const res = await fetch(`${baseUrl}/ajax/user_barcode_ops.php`, {
+                method: 'POST', body: fd
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                window.showToast(`✅ ${data.product_name} asignado a la mochila.`, 'success');
+                document.getElementById('globalSkuAssignInput').value = '';
+                document.getElementById('globalSkuAssignInput').focus();
+            } else {
+                window.showToast(data.message, 'error');
+                document.getElementById('globalSkuAssignInput').value = '';
+                document.getElementById('globalSkuAssignInput').focus();
+            }
+        } catch (e) {
+            console.error(e);
+            window.showToast('Error de conexión', 'error');
+        }
+    }
+})();

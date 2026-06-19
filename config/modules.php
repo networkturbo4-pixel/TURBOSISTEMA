@@ -56,6 +56,13 @@ $system_modules = [
         'description' => 'Gestión de perfil, EPP y mochila',
         'default_access' => true // Everyone should access their own profile
     ],
+    'asistencia' => [
+        'name' => 'Asistencia',
+        'icon' => 'ph-clock',
+        'url' => '/modules/asistencia',
+        'description' => 'Control de tiempos, entradas y salidas del personal',
+        'default_access' => false
+    ],
     'mapas' => [
         'name' => 'Red de Fibra',
         'icon' => 'ph-map-trifold',

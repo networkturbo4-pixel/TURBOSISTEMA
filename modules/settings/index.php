@@ -438,6 +438,48 @@ include '../../includes/sidebar.php';
     </div>
 </div>
 
+<!-- Modal Barcode de Usuario -->
+<div class="modal-overlay" id="userBarcodeModal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3>Fotocheck: <span id="userBarcodeName"></span></h3>
+            <button class="btn close-modal" style="background:transparent; border:none; font-size:1.5rem; cursor:pointer; color: var(--text-color);" onclick="document.getElementById('userBarcodeModal').classList.remove('active')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <!-- Barcode Section -->
+                <div style="background: var(--bg-color, #f8f9fa); border: 1px solid var(--border-color, #e5e7eb); border-radius: 12px; padding: 20px; text-align: center;">
+                    <h5 style="margin-bottom: 15px; color: var(--text-color);">Código de Barras</h5>
+                    <div style="background: #ffffff; padding: 15px; border-radius: 8px; display: inline-flex; justify-content: center; align-items: center; width: 100%; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                        <svg id="barcodeSVG" style="max-width: 100%; height: auto;"></svg>
+                    </div>
+                    <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;">
+                        <button type="button" class="btn btn-outline-primary" style="flex: 1;" id="btnDownloadBarcodePNG"><i class="ph ph-image"></i> PNG</button>
+                        <button type="button" class="btn btn-outline-primary" style="flex: 1;" id="btnDownloadBarcodeSVG"><i class="ph ph-vector-curve"></i> SVG</button>
+                    </div>
+                </div>
+                
+                <!-- QR Section -->
+                <div style="background: var(--bg-color, #f8f9fa); border: 1px solid var(--border-color, #e5e7eb); border-radius: 12px; padding: 20px; text-align: center;">
+                    <h5 style="margin-bottom: 15px; color: var(--text-color);">Código QR</h5>
+                    <div style="background: #ffffff; padding: 15px; border-radius: 8px; display: inline-flex; justify-content: center; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);" id="qrContainer"></div>
+                    <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;">
+                        <button type="button" class="btn btn-outline-primary" style="flex: 1;" id="btnDownloadQrPNG"><i class="ph ph-image"></i> PNG</button>
+                        <button type="button" class="btn btn-outline-primary" style="flex: 1;" id="btnDownloadQrSVG"><i class="ph ph-vector-curve"></i> SVG</button>
+                    </div>
+                </div>
+            </div>
+            
+            <p class="text-muted mt-4 mb-0 text-center" style="font-size: 0.9rem;">
+                <i class="ph ph-info"></i> Este código es único y sirve para registrar asistencia y añadir productos rápidamente.
+            </p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary close-modal" onclick="document.getElementById('userBarcodeModal').classList.remove('active')">Cerrar</button>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     // Lógica para pestañas (Tabs)
@@ -718,6 +760,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <td data-label="PIN">${user.pin || 'Sin PIN'}</td>
                                 <td data-label="Acciones">
                                     <button type="button" class="btn btn-sm btn-outline-primary" style="padding: 2px 8px; font-size: 0.8rem;" onclick="editUser(${user.id})">Editar</button>
+                                    <button type="button" class="btn btn-sm btn-outline-dark" style="padding: 2px 8px; font-size: 0.8rem;" onclick="showUserBarcode(${user.id}, '${user.name.replace(/'/g, "\\'")}')"><i class="ph ph-barcode"></i></button>
                                     <button type="button" class="table-btn-danger" onclick="deleteUser(${user.id})">Eliminar</button>
                                 </td>
                             </tr>
@@ -816,6 +859,103 @@ document.addEventListener('DOMContentLoaded', () => {
             window.showToast('Error en el servidor', 'error');
         }
     });
+
+    window.showUserBarcode = async function(userId, userName) {
+        try {
+            const fd = new FormData();
+            fd.append('action', 'generate');
+            fd.append('user_id', userId);
+            const baseUrl = document.querySelector('meta[name="base-url"]')?.getAttribute('content') || '';
+            const res = await fetch(`${baseUrl}/ajax/user_barcode_ops.php`, {
+                method: 'POST',
+                body: fd
+            });
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('userBarcodeName').textContent = userName;
+                
+                // --- Barcode ---
+                const barcodeSvg = document.getElementById('barcodeSVG');
+                JsBarcode(barcodeSvg, data.barcode, {
+                    format: "CODE128",
+                    displayValue: true,
+                    fontSize: 20,
+                    margin: 10
+                });
+                
+                // Create a hidden canvas to get the PNG for Barcode
+                const hiddenCanvas = document.createElement('canvas');
+                JsBarcode(hiddenCanvas, data.barcode, { format: "CODE128", displayValue: true, fontSize: 20, margin: 10 });
+                
+                // --- QR Code ---
+                const qrContainer = document.getElementById('qrContainer');
+                qrContainer.innerHTML = ''; // clear previous
+                
+                // Create a canvas for PNG
+                const qrCanvas = document.createElement('canvas');
+                QRCode.toCanvas(qrCanvas, data.barcode, {
+                    width: 128,
+                    margin: 1,
+                    color: { dark: '#000000', light: '#ffffff' }
+                });
+                qrContainer.appendChild(qrCanvas);
+                
+                // Generate SVG string
+                let qrSvgStr = '';
+                QRCode.toString(data.barcode, {
+                    type: 'svg',
+                    width: 128,
+                    margin: 1,
+                    color: { dark: '#000000', light: '#ffffff' }
+                }, function (err, string) {
+                    if (!err) qrSvgStr = string;
+                });
+                
+                document.getElementById('userBarcodeModal').classList.add('active');
+                
+                const safeName = userName.replace(/\s+/g, '_');
+                
+                // Button Events
+                document.getElementById('btnDownloadBarcodePNG').onclick = function() {
+                    const link = document.createElement('a');
+                    link.download = `barcode_${safeName}_${data.barcode}.png`;
+                    link.href = hiddenCanvas.toDataURL('image/png');
+                    link.click();
+                };
+                
+                document.getElementById('btnDownloadBarcodeSVG').onclick = function() {
+                    const svgData = new XMLSerializer().serializeToString(barcodeSvg);
+                    const blob = new Blob([svgData], {type: "image/svg+xml;charset=utf-8"});
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.download = `barcode_${safeName}_${data.barcode}.svg`;
+                    link.href = url;
+                    link.click();
+                };
+                
+                document.getElementById('btnDownloadQrPNG').onclick = function() {
+                    const link = document.createElement('a');
+                    link.download = `qr_${safeName}_${data.barcode}.png`;
+                    link.href = qrCanvas.toDataURL('image/png');
+                    link.click();
+                };
+
+                document.getElementById('btnDownloadQrSVG').onclick = function() {
+                    const blob = new Blob([qrSvgStr], {type: "image/svg+xml;charset=utf-8"});
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.download = `qr_${safeName}_${data.barcode}.svg`;
+                    link.href = url;
+                    link.click();
+                };
+            } else {
+                window.showToast(data.message || 'Error al generar código', 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            window.showToast('Error de conexión', 'error');
+        }
+    };
 
     // Load initial data
     loadRoles();

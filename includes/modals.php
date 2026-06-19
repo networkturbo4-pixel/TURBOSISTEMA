@@ -383,3 +383,43 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de Acción Global de Usuario (Escáner de Fotocheck) -->
+<div class="modal-overlay" id="globalUserActionModal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3><i class="ph ph-user-focus"></i> Acción Rápida: <span id="globalUserActionName">Usuario</span></h3>
+            <button class="btn close-modal" style="background:transparent; border:none; font-size:1.5rem; cursor:pointer;" onclick="document.getElementById('globalUserActionModal').classList.remove('active')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="globalUserActionId" value="">
+            
+            <div class="row g-2 mb-4">
+                <div class="col-6">
+                    <button class="btn btn-outline-success w-100 py-3 d-flex flex-column align-items-center" onclick="submitGlobalAttendance('entrada')" style="height: 100%;">
+                        <i class="ph ph-sign-in" style="font-size: 2rem;"></i>
+                        <span class="mt-2">Marcar Entrada</span>
+                    </button>
+                </div>
+                <div class="col-6">
+                    <button class="btn btn-outline-danger w-100 py-3 d-flex flex-column align-items-center" onclick="submitGlobalAttendance('salida')" style="height: 100%;">
+                        <i class="ph ph-sign-out" style="font-size: 2rem;"></i>
+                        <span class="mt-2">Marcar Salida</span>
+                    </button>
+                </div>
+            </div>
+
+            <hr class="my-4">
+
+            <div class="text-center mb-3">
+                <h5>Añadir a Mochila</h5>
+                <p class="text-muted" style="font-size: 0.85rem;">Para asignar un producto o material a este usuario, escanea el código (SKU) del producto ahora.</p>
+            </div>
+            
+            <div class="form-group mb-0 position-relative">
+                <i class="ph ph-barcode position-absolute" style="left: 15px; top: 50%; transform: translateY(-50%); font-size: 1.2rem; color: var(--text-muted);"></i>
+                <input type="text" id="globalSkuAssignInput" class="form-control form-control-lg text-center" placeholder="Escanea código del producto..." style="padding-left: 45px; letter-spacing: 2px;" autocomplete="off">
+            </div>
+        </div>
+    </div>
+</div>
