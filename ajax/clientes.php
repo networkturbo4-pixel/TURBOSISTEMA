@@ -58,6 +58,11 @@ if ($action === 'save') {
     $fecha_servicio_contratado = !empty($_POST['fecha_servicio_contratado']) ? $_POST['fecha_servicio_contratado'] : null;
     $inicio_servicio = !empty($_POST['inicio_servicio']) ? $_POST['inicio_servicio'] : null;
 
+    $router_os = $_POST['router_os'] ?? 'mock';
+    $router_ip = $_POST['router_ip'] ?? null;
+    $router_user = $_POST['router_user'] ?? null;
+    $router_pass = $_POST['router_pass'] ?? null;
+
     if (empty($nombre_completo) || empty($dni)) {
         echo json_encode(['success' => false, 'message' => 'Nombre completo y DNI son requeridos.']);
         exit;
@@ -78,12 +83,16 @@ if ($action === 'save') {
                 latitud = ?,
                 longitud = ?,
                 fecha_servicio_contratado = ?, 
-                inicio_servicio = ?
+                inicio_servicio = ?,
+                router_os = ?,
+                router_ip = ?,
+                router_user = ?,
+                router_pass = ?
                 WHERE id = ?");
             $stmt->execute([
                 $nombre_completo, $dni, $celular, $correo, $direccion, 
                 $referencia, $detalles_plan, $servicio_id, $latitud, $longitud, $fecha_servicio_contratado, 
-                $inicio_servicio, $id
+                $inicio_servicio, $router_os, $router_ip, $router_user, $router_pass, $id
             ]);
             
             // Actualizar o crear PIN de usuario si se envió o si se quiere generar
@@ -136,12 +145,12 @@ if ($action === 'save') {
 
             // Insert Cliente
             $stmt = $pdo->prepare("INSERT INTO clientes (
-                user_id, nombre_completo, dni, celular, correo, direccion, referencia, detalles_plan, servicio_id, latitud, longitud, fecha_servicio_contratado, inicio_servicio
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                user_id, nombre_completo, dni, celular, correo, direccion, referencia, detalles_plan, servicio_id, latitud, longitud, fecha_servicio_contratado, inicio_servicio, router_os, router_ip, router_user, router_pass
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $user_id, $nombre_completo, $dni, $celular, $correo, $direccion, 
                 $referencia, $detalles_plan, $servicio_id, $latitud, $longitud, $fecha_servicio_contratado, 
-                $inicio_servicio
+                $inicio_servicio, $router_os, $router_ip, $router_user, $router_pass
             ]);
             echo json_encode(['success' => true, 'message' => 'Cliente creado correctamente.', 'pin' => $pin]);
         }

@@ -15,9 +15,70 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 try {
     switch ($action) {
         case 'list_projects':
-            $stmt = $pdo->query("SELECT * FROM mapas_proyectos ORDER BY updated_at DESC");
+            // Intentar añadir la columna archivado si no existe (falla silenciosamente si ya existe)
+            try { $pdo->exec("ALTER TABLE mapas_proyectos ADD COLUMN archivado TINYINT(1) DEFAULT 0"); } catch (Exception $e) {}
+
+            $show_archived = $_GET['show_archived'] ?? 0;
+            $where_clause = $show_archived ? "p.archivado = 1" : "(p.archivado = 0 OR p.archivado IS NULL)";
+
+            $stmt = $pdo->query("
+                SELECT p.*, 
+                (SELECT geojson FROM mapas_elementos e WHERE e.proyecto_id = p.id AND e.tipo = 'Point' LIMIT 1) as preview_geojson
+                FROM mapas_proyectos p 
+                WHERE $where_clause
+                ORDER BY p.updated_at DESC
+            ");
             $projects = $stmt->fetchAll();
             echo json_encode(['success' => true, 'data' => $projects]);
+            break;
+
+        case 'edit_project':
+            $id = $_POST['id'] ?? 0;
+            $nombre = $_POST['nombre'] ?? '';
+            if ($id && $nombre) {
+                $stmt = $pdo->prepare("UPDATE mapas_proyectos SET nombre = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+                $stmt->execute([$nombre, $id]);
+                echo json_encode(['success' => true]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Datos incompletos']);
+            }
+            break;
+
+        case 'archive_project':
+            $id = $_POST['id'] ?? 0;
+            if ($id) {
+                try { $pdo->exec("ALTER TABLE mapas_proyectos ADD COLUMN archivado TINYINT(1) DEFAULT 0"); } catch (Exception $e) {}
+                $stmt = $pdo->prepare("UPDATE mapas_proyectos SET archivado = 1 WHERE id = ?");
+                $stmt->execute([$id]);
+                echo json_encode(['success' => true]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'ID no proporcionado']);
+            }
+            break;
+
+        case 'unarchive_project':
+            $id = $_POST['id'] ?? 0;
+            if ($id) {
+                $stmt = $pdo->prepare("UPDATE mapas_proyectos SET archivado = 0 WHERE id = ?");
+                $stmt->execute([$id]);
+                echo json_encode(['success' => true]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'ID no proporcionado']);
+            }
+            break;
+
+        case 'delete_project':
+            $id = $_POST['id'] ?? 0;
+            if ($id) {
+                // Borrar dependencias manualmente por si no hay ON DELETE CASCADE
+                $pdo->prepare("DELETE FROM mapas_fotos WHERE elemento_id IN (SELECT id FROM mapas_elementos WHERE proyecto_id = ?)")->execute([$id]);
+                $pdo->prepare("DELETE FROM mapas_hilos WHERE elemento_id IN (SELECT id FROM mapas_elementos WHERE proyecto_id = ?)")->execute([$id]);
+                $pdo->prepare("DELETE FROM mapas_elementos WHERE proyecto_id = ?")->execute([$id]);
+                $pdo->prepare("DELETE FROM mapas_proyectos WHERE id = ?")->execute([$id]);
+                echo json_encode(['success' => true]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'ID no proporcionado']);
+            }
             break;
 
         case 'create_project':

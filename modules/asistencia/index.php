@@ -7,34 +7,36 @@ include '../../includes/sidebar.php';
 ?>
 
 <div class="main-content">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
         <div>
             <h2 class="mb-1"><i class="ph ph-clock"></i> Control de Asistencia</h2>
-            <p class="text-muted mb-0">Visualiza y exporta los registros de entradas y salidas del personal.</p>
+            <p class="text-muted mb-0">Visualiza y sincroniza los registros del reloj biométrico (Entradas, Salidas, Refrigerios).</p>
         </div>
-        <div>
+        <div style="display:flex; gap:10px; flex-wrap: wrap;">
+            <button class="btn btn-outline-primary" onclick="openZkModal()"><i class="ph ph-gear"></i> Config. ZKTeco</button>
+            <button class="btn btn-primary" onclick="syncZkteco()" id="btnSync"><i class="ph ph-arrows-clockwise"></i> Sincronizar ZKTeco</button>
             <button class="btn btn-success" onclick="exportToCSV()"><i class="ph ph-download-simple"></i> Exportar CSV</button>
         </div>
     </div>
 
     <div class="card mb-4">
         <div class="card-body">
-            <form id="filterForm" class="row g-3 align-items-end">
-                <div class="col-md-3">
+            <form id="filterForm" style="display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 150px;">
                     <label class="form-label">Fecha Inicio</label>
                     <input type="date" class="form-control" id="startDate" name="start_date" value="<?php echo date('Y-m-01'); ?>">
                 </div>
-                <div class="col-md-3">
+                <div style="flex: 1; min-width: 150px;">
                     <label class="form-label">Fecha Fin</label>
                     <input type="date" class="form-control" id="endDate" name="end_date" value="<?php echo date('Y-m-t'); ?>">
                 </div>
-                <div class="col-md-4">
+                <div style="flex: 2; min-width: 200px;">
                     <label class="form-label">Usuario</label>
                     <select class="form-select" id="userId" name="user_id">
                         <option value="">Todos los usuarios</option>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div style="min-width: 130px;">
                     <button type="submit" class="btn btn-primary w-100"><i class="ph ph-funnel"></i> Filtrar</button>
                 </div>
             </form>
@@ -66,6 +68,31 @@ include '../../includes/sidebar.php';
             <div id="noDataMessage" class="text-center p-4 text-muted" style="display: none;">
                 No se encontraron registros en este rango de fechas.
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Config ZKTeco -->
+<div class="modal-overlay" id="zkModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Configurar Conexión ZKTeco</h3>
+            <button class="btn close-modal" style="background:transparent; border:none; font-size:1.5rem; cursor:pointer;" onclick="document.getElementById('zkModal').classList.remove('active')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p class="text-muted mb-3" style="font-size:0.9rem;">Ingresa la IP local o pública de tu reloj biométrico ZKTeco. Asegúrate de que el puerto (usualmente 4370) esté abierto o sea accesible desde este servidor.</p>
+            <div class="form-group mb-3">
+                <label>Dirección IP del Reloj</label>
+                <input type="text" id="zk_ip" class="form-control" placeholder="Ej: 192.168.1.201 o tu IP Pública">
+            </div>
+            <div class="form-group mb-3">
+                <label>Puerto (UDP/TCP)</label>
+                <input type="text" id="zk_port" class="form-control" placeholder="Ej: 4370" value="4370">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('zkModal').classList.remove('active')">Cancelar</button>
+            <button type="button" class="btn btn-primary" onclick="saveZkSettings()">Guardar Configuración</button>
         </div>
     </div>
 </div>
@@ -131,9 +158,15 @@ async function loadAttendance() {
                 
                 let typeBadge = '';
                 if (row.type === 'entrada') {
-                    typeBadge = '<span class="badge bg-success-subtle text-success"><i class="ph ph-sign-in"></i> Entrada</span>';
+                    typeBadge = '<span class="badge bg-success-subtle text-success" style="padding: 6px 10px; font-size:0.85rem;"><i class="ph-bold ph-sign-in"></i> Entrada</span>';
+                } else if (row.type === 'salida') {
+                    typeBadge = '<span class="badge bg-danger-subtle text-danger" style="padding: 6px 10px; font-size:0.85rem;"><i class="ph-bold ph-sign-out"></i> Salida</span>';
+                } else if (row.type === 'inicio_refrigerio') {
+                    typeBadge = '<span class="badge bg-warning-subtle text-warning" style="padding: 6px 10px; font-size:0.85rem;"><i class="ph-bold ph-coffee"></i> Inic. Refrigerio</span>';
+                } else if (row.type === 'fin_refrigerio') {
+                    typeBadge = '<span class="badge bg-info-subtle text-info" style="padding: 6px 10px; font-size:0.85rem;"><i class="ph-bold ph-arrow-u-down-left"></i> Fin Refrigerio</span>';
                 } else {
-                    typeBadge = '<span class="badge bg-danger-subtle text-danger"><i class="ph ph-sign-out"></i> Salida</span>';
+                    typeBadge = '<span class="badge bg-secondary-subtle text-secondary" style="padding: 6px 10px; font-size:0.85rem;"><i class="ph-bold ph-question"></i> Desconocido</span>';
                 }
                 
                 // Format date nicely
@@ -192,6 +225,66 @@ function exportToCSV() {
     document.body.appendChild(downloadLink);
     downloadLink.click();
     document.body.removeChild(downloadLink);
+}
+
+function openZkModal() {
+    // Optionally fetch current settings
+    document.getElementById('zkModal').classList.add('active');
+}
+
+async function saveZkSettings() {
+    const ip = document.getElementById('zk_ip').value;
+    const port = document.getElementById('zk_port').value;
+    if (!ip || !port) {
+        window.showToast('IP y Puerto son requeridos', 'error');
+        return;
+    }
+    const fd = new FormData();
+    fd.append('action', 'save_settings');
+    fd.append('ip', ip);
+    fd.append('port', port);
+    try {
+        const baseUrl = document.querySelector('meta[name="base-url"]')?.getAttribute('content') || '';
+        const res = await fetch(`${baseUrl}/ajax/zkteco_sync.php`, { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.success) {
+            window.showToast('Configuración guardada', 'success');
+            document.getElementById('zkModal').classList.remove('active');
+        } else {
+            window.showToast(data.message || 'Error', 'error');
+        }
+    } catch(e) {
+        console.error(e);
+        window.showToast('Error de red', 'error');
+    }
+}
+
+async function syncZkteco() {
+    const btn = document.getElementById('btnSync');
+    btn.disabled = true;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Sincronizando...';
+    
+    try {
+        const fd = new FormData();
+        fd.append('action', 'sync');
+        const baseUrl = document.querySelector('meta[name="base-url"]')?.getAttribute('content') || '';
+        const res = await fetch(`${baseUrl}/ajax/zkteco_sync.php`, { method: 'POST', body: fd });
+        const data = await res.json();
+        
+        if (data.success) {
+            window.showToast(data.message, 'success');
+            loadAttendance();
+        } else {
+            window.showToast(data.message || 'Error al conectar al dispositivo', 'error');
+        }
+    } catch (e) {
+        console.error(e);
+        window.showToast('Error de red o timeout intentando conectar al dispositivo ZKTeco', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
 }
 </script>
 

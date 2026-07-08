@@ -116,6 +116,33 @@ include '../../includes/sidebar.php';
                         <label class="form-label">Inicio de Servicio</label>
                         <input type="datetime-local" name="inicio_servicio" class="form-control">
                     </div>
+
+                    <!-- Configuración del Router -->
+                    <div class="col-12 mt-3 mb-2">
+                        <h5 style="border-bottom: 1px solid var(--border-color); padding-bottom: 8px;"><i class="ph ph-router"></i> Configuración del Equipo (ONT/Router)</h5>
+                        <small class="text-muted">Necesario para que el cliente gestione su Wi-Fi desde el portal.</small>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Marca/Modelo (OS)</label>
+                        <select name="router_os" class="form-select">
+                            <option value="mock">Simulado (Pruebas)</option>
+                            <option value="zte_f6600p">ZTE F6600P</option>
+                            <option value="bdcom">BDCOM</option>
+                            <option value="mikrotik">MikroTik</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Dirección IP (LAN/WAN)</label>
+                        <input type="text" name="router_ip" class="form-control" placeholder="Ej: 192.168.1.1">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Usuario Admin</label>
+                        <input type="text" name="router_user" class="form-control" placeholder="Ej: admin">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Contraseña Admin</label>
+                        <input type="text" name="router_pass" class="form-control" placeholder="Ej: Zte521">
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -263,6 +290,10 @@ document.addEventListener('DOMContentLoaded', () => {
         form.querySelector('[name="servicio_id"]').value = cliente.servicio_id || '';
         form.querySelector('[name="latitud"]').value = cliente.latitud || '';
         form.querySelector('[name="longitud"]').value = cliente.longitud || '';
+        form.querySelector('[name="router_os"]').value = cliente.router_os || 'mock';
+        form.querySelector('[name="router_ip"]').value = cliente.router_ip || '';
+        form.querySelector('[name="router_user"]').value = cliente.router_user || '';
+        form.querySelector('[name="router_pass"]').value = cliente.router_pass || '';
         
         // Ajustar el formato de datetime-local a YYYY-MM-DDTHH:MM
         const formatForInput = (dateStr) => {

@@ -429,6 +429,11 @@ include '../../includes/sidebar.php';
                     <input type="text" name="pin" id="userPinInput" class="form-control" placeholder="Ej: 1234">
                     <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="document.getElementById('userPinInput').value = Math.floor(1000 + Math.random() * 9000);">Generar PIN Aleatorio</button>
                 </div>
+                <div class="form-group">
+                    <label class="form-label">ID Biométrico (ZKTeco, Opcional)</label>
+                    <input type="number" name="biometric_id" id="userBiometricIdInput" class="form-control" placeholder="Ej: 5">
+                    <small class="text-muted">El ID que tiene asignado este usuario en el reloj físico de huellas.</small>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="document.getElementById('userModal').classList.remove('active')">Cancelar</button>
@@ -802,6 +807,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('#userForm [name="email"]').value = user.email;
         document.querySelector('#userForm [name="role"]').value = user.role;
         document.querySelector('#userForm [name="pin"]').value = user.pin || '';
+        document.querySelector('#userForm [name="biometric_id"]').value = user.biometric_id || '';
         
         document.getElementById('userModal').classList.add('active');
     };

@@ -33,7 +33,7 @@ if ($action === 'delete') {
 if ($action === 'list') {
     try {
         $stmt = $pdo->query("
-            SELECT u.id, u.name, u.email, u.role, u.pin, u.created_at, c.dni 
+            SELECT u.id, u.name, u.email, u.role, u.pin, u.biometric_id, u.created_at, c.dni 
             FROM users u 
             LEFT JOIN clientes c ON u.id = c.user_id 
             ORDER BY u.id DESC
@@ -52,6 +52,7 @@ if ($action === 'update') {
     $email = trim($_POST['email'] ?? '');
     $role = trim($_POST['role'] ?? '');
     $pin = trim($_POST['pin'] ?? '');
+    $biometric_id = trim($_POST['biometric_id'] ?? '');
 
     if (!$id || empty($name) || empty($email) || empty($role)) {
         echo json_encode(['success' => false, 'message' => 'Faltan campos obligatorios']);
@@ -69,8 +70,8 @@ if ($action === 'update') {
             }
         }
 
-        $stmt = $pdo->prepare("UPDATE users SET name = ?, email = ?, role = ?, pin = ? WHERE id = ?");
-        $stmt->execute([$name, $email, $role, empty($pin) ? null : $pin, $id]);
+        $stmt = $pdo->prepare("UPDATE users SET name = ?, email = ?, role = ?, pin = ?, biometric_id = ? WHERE id = ?");
+        $stmt->execute([$name, $email, $role, empty($pin) ? null : $pin, empty($biometric_id) ? null : $biometric_id, $id]);
         echo json_encode(['success' => true, 'message' => 'Usuario actualizado correctamente']);
     } catch (PDOException $e) {
         if ($e->getCode() == 23000) {
@@ -87,6 +88,7 @@ if ($action === 'create') {
     $email = trim($_POST['email'] ?? '');
     $role = trim($_POST['role'] ?? '');
     $pin = trim($_POST['pin'] ?? '');
+    $biometric_id = trim($_POST['biometric_id'] ?? '');
     // Asignamos una contraseña por defecto si se crea desde aquí
     $password = password_hash('12345678', PASSWORD_DEFAULT); 
 
@@ -106,8 +108,8 @@ if ($action === 'create') {
             }
         }
 
-        $stmt = $pdo->prepare("INSERT INTO users (name, email, pin, password, role) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([$name, $email, empty($pin) ? null : $pin, $password, $role]);
+        $stmt = $pdo->prepare("INSERT INTO users (name, email, pin, password, role, biometric_id) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$name, $email, empty($pin) ? null : $pin, $password, $role, empty($biometric_id) ? null : $biometric_id]);
         echo json_encode(['success' => true, 'message' => 'Usuario creado correctamente']);
     } catch (PDOException $e) {
         if ($e->getCode() == 23000) { // Constraint violation (Duplicate entry)
