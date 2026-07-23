@@ -234,8 +234,8 @@ window.updateSysScannerZoom = function(val, readerId) {
     let barcodeTimeout = null;
 
     document.addEventListener('keydown', function(e) {
-        // Ignorar teclas modificadoras (Shift, Ctrl, etc)
-        if (e.key.length > 1 && e.key !== 'Enter') return;
+        // Ignorar eventos sin tecla o teclas modificadoras (Shift, Ctrl, etc)
+        if (!e || typeof e.key !== 'string' || (e.key.length > 1 && e.key !== 'Enter')) return;
         
         if (e.key === 'Enter') {
             if (barcodeBuffer.startsWith('USR-')) {
@@ -244,13 +244,15 @@ window.updateSysScannerZoom = function(val, readerId) {
             } else if (document.getElementById('globalUserActionModal')?.classList.contains('active')) {
                 // Si el modal global de usuario está activo y escaneamos algo, intentamos asignarlo
                 const input = document.getElementById('globalSkuAssignInput');
-                if (document.activeElement !== input && barcodeBuffer.length > 2) {
-                    e.preventDefault();
-                    input.value = barcodeBuffer;
-                    handleAssignSkuToUser(barcodeBuffer);
-                } else if (document.activeElement === input && input.value.trim().length > 2) {
-                    e.preventDefault();
-                    handleAssignSkuToUser(input.value.trim());
+                if (input) {
+                    if (document.activeElement !== input && barcodeBuffer.length > 2) {
+                        e.preventDefault();
+                        input.value = barcodeBuffer;
+                        handleAssignSkuToUser(barcodeBuffer);
+                    } else if (document.activeElement === input && input.value && input.value.trim().length > 2) {
+                        e.preventDefault();
+                        handleAssignSkuToUser(input.value.trim());
+                    }
                 }
             }
             barcodeBuffer = '';
@@ -268,7 +270,7 @@ window.updateSysScannerZoom = function(val, readerId) {
 
     // Agregar evento para el input explícito
     document.getElementById('globalSkuAssignInput')?.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && this.value.trim().length > 2) {
+        if (e && e.key === 'Enter' && this.value && this.value.trim().length > 2) {
             e.preventDefault();
             handleAssignSkuToUser(this.value.trim());
         }

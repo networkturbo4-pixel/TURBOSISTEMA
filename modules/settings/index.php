@@ -8,6 +8,65 @@ include '../../includes/sidebar.php';
 ?>
 
 <style>
+    /* Builder Styles */
+    .blocks-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .builder-block {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: grab;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .builder-block:active {
+        cursor: grabbing;
+        transform: scale(0.98);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .builder-block.dragging {
+        opacity: 0.5;
+    }
+    .block-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .block-icon {
+        color: #64748b;
+        font-size: 1.2rem;
+    }
+    .a4-preview-wrapper {
+        background: #e2e8f0;
+        padding: 20px;
+        border-radius: 12px;
+        display: flex;
+        justify-content: center;
+        overflow-x: auto;
+    }
+    .a4-preview {
+        background: white;
+        width: 210mm;
+        min-height: 297mm;
+        padding: 20mm;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        font-family: 'Arial', sans-serif;
+        color: #333;
+        transform: scale(0.7);
+        transform-origin: top center;
+        margin-bottom: -80mm; /* Adjust for scaling */
+    }
+    .preview-block {
+        margin-bottom: 20px;
+    }
+    
     /* App-like Tabs */
     .nav-tabs {
         background-color: var(--bg-color, #f4f6f9);
@@ -100,6 +159,9 @@ include '../../includes/sidebar.php';
     </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="clients-tab" data-bs-toggle="tab" data-bs-target="#clients" type="button" role="tab">Clientes</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="receipts-tab" data-bs-toggle="tab" data-bs-target="#receipts" type="button" role="tab">Diseño de Recibos</button>
     </li>
 </ul>
 
@@ -350,6 +412,93 @@ include '../../includes/sidebar.php';
                         <tr><td colspan="5" class="text-center">Cargando clientes...</td></tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- PESTAÑA DISEÑO DE RECIBOS -->
+        <div class="tab-pane fade settings-section" id="receipts" role="tabpanel">
+            <div class="d-flex justify-content-between mb-3">
+                <h4>Constructor Visual de Recibos (A4)</h4>
+            </div>
+            
+            <input type="hidden" name="settings[receipt_template_json]" id="receipt_template_json">
+
+            <div class="row">
+                <!-- Columna Izquierda: Controles -->
+                <div class="col-md-5">
+                    <div class="builder-controls">
+                        <h5 class="mb-3">Bloques Disponibles</h5>
+                        <p class="text-muted small mb-3">Arrastra y suelta los bloques (desde el ícono) para reordenarlos, o haz clic en el interruptor para mostrarlos/ocultarlos.</p>
+                        
+                        <div id="blocks-list" class="blocks-container">
+                            <!-- Los bloques se renderizarán vía JS -->
+                        </div>
+                        
+                        <h5 class="mt-4 mb-3">Diseño Global</h5>
+                        <div class="mb-3">
+                            <label class="form-label">Plantilla Visual</label>
+                            <select class="form-select builder-input" id="builder_template">
+                                <option value="default">Clásica (Bordes simples)</option>
+                                <option value="modern">Moderna (Colores de acento)</option>
+                                <option value="minimal">Minimalista (Limpia)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Logo del Recibo</label>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-outline-primary flex-grow-1" id="btnSelectLogoGDrive">
+                                    <i class="ph-fill ph-google-drive-logo"></i> Elegir Logo en Drive
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" id="btnRemoveLogo" style="display:none;">
+                                    <i class="ph ph-trash"></i>
+                                </button>
+                            </div>
+                            <input type="hidden" class="builder-input" id="builder_logo_url">
+                        </div>
+
+                        <h5 class="mt-4 mb-3">Configuración de Textos y Filtros</h5>
+                        <div class="mb-3">
+                            <label class="form-label">Título del Recibo</label>
+                            <input type="text" class="form-control builder-input" id="builder_title" placeholder="Ej: Comprobante de Pago">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Mensaje de Encabezado</label>
+                            <textarea class="form-control builder-input" id="builder_header" rows="2" placeholder="Ej: Gracias por su preferencia..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Mensaje al Pie (Notas)</label>
+                            <textarea class="form-control builder-input" id="builder_footer" rows="2" placeholder="Ej: Conservar este recibo para cualquier reclamo..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Filtro de Historial (Mes)</label>
+                            <select class="form-select builder-input" id="builder_history_month">
+                                <option value="current">Mes Actual</option>
+                                <option value="last">Mes Anterior</option>
+                                <option value="all">Todos los meses</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Filtro de Historial (Año)</label>
+                            <select class="form-select builder-input" id="builder_history_year">
+                                <option value="current">Año Actual</option>
+                                <option value="last">Año Anterior</option>
+                                <option value="all">Todos los años</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Columna Derecha: Live Preview A4 -->
+                <div class="col-md-7">
+                    <div class="preview-container">
+                        <h5 class="mb-3">Vista Previa (Formato A4)</h5>
+                        <div class="a4-preview-wrapper">
+                            <div class="a4-preview" id="a4-preview-content">
+                                <!-- Contenido A4 renderizado por JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -604,6 +753,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!document.getElementById('global_notification_push').checked) {
             formData.append('settings[global_notification_push]', '0');
         }
+        if (!document.getElementById('receipt_show_history').checked) {
+            formData.append('settings[receipt_show_history]', '0');
+        }
 
         try {
             const res = await fetch('<?php echo BASE_URL; ?>/ajax/settings.php', {
@@ -741,31 +893,34 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===== LÓGICA DE USUARIOS =====
     window.usersData = [];
     const loadUsers = async () => {
+        const tbodyUsers = document.querySelector('#usersTable tbody');
+        const tbodyClients = document.querySelector('#clientsTable tbody');
         try {
             const res = await fetch('<?php echo BASE_URL; ?>/ajax/users.php?action=list').then(r => r.json());
-            const tbodyUsers = document.querySelector('#usersTable tbody');
-            const tbodyClients = document.querySelector('#clientsTable tbody');
-            if (res.success) {
+            if (res.success && Array.isArray(res.data)) {
                 window.usersData = res.data;
                 tbodyUsers.innerHTML = '';
                 tbodyClients.innerHTML = '';
                 
-                const systemUsers = res.data.filter(u => u.role.toLowerCase() !== 'cliente');
-                const clientUsers = res.data.filter(u => u.role.toLowerCase() === 'cliente');
+                const systemUsers = res.data.filter(u => (u.role || '').toLowerCase() !== 'cliente');
+                const clientUsers = res.data.filter(u => (u.role || '').toLowerCase() === 'cliente');
 
                 if (systemUsers.length === 0) {
                     tbodyUsers.innerHTML = '<tr><td colspan="5" class="text-center">No hay usuarios del sistema.</td></tr>';
                 } else {
                     systemUsers.forEach(user => {
+                        const safeName = (user.name || '').replace(/'/g, "\\'");
+                        const safeRole = user.role || 'Sin rol';
+                        const safeEmail = user.email || '';
                         tbodyUsers.innerHTML += `
                             <tr>
-                                <td data-label="Nombre">${user.name}</td>
-                                <td data-label="Email">${user.email}</td>
-                                <td data-label="Rol"><span class="table-badge-dark">${user.role}</span></td>
+                                <td data-label="Nombre">${user.name || ''}</td>
+                                <td data-label="Email">${safeEmail}</td>
+                                <td data-label="Rol"><span class="table-badge-dark">${safeRole}</span></td>
                                 <td data-label="PIN">${user.pin || 'Sin PIN'}</td>
                                 <td data-label="Acciones">
                                     <button type="button" class="btn btn-sm btn-outline-primary" style="padding: 2px 8px; font-size: 0.8rem;" onclick="editUser(${user.id})">Editar</button>
-                                    <button type="button" class="btn btn-sm btn-outline-dark" style="padding: 2px 8px; font-size: 0.8rem;" onclick="showUserBarcode(${user.id}, '${user.name.replace(/'/g, "\\'")}')"><i class="ph ph-barcode"></i></button>
+                                    <button type="button" class="btn btn-sm btn-outline-dark" style="padding: 2px 8px; font-size: 0.8rem;" onclick="showUserBarcode(${user.id}, '${safeName}')"><i class="ph ph-barcode"></i></button>
                                     <button type="button" class="table-btn-danger" onclick="deleteUser(${user.id})">Eliminar</button>
                                 </td>
                             </tr>
@@ -777,11 +932,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     tbodyClients.innerHTML = '<tr><td colspan="5" class="text-center">No hay clientes con acceso al sistema.</td></tr>';
                 } else {
                     clientUsers.forEach(user => {
+                        const safeRole = user.role || 'Cliente';
                         tbodyClients.innerHTML += `
                             <tr>
-                                <td data-label="Nombre">${user.name}</td>
-                                <td data-label="Email">${user.email}</td>
-                                <td data-label="Rol"><span class="table-badge-dark">${user.role}</span></td>
+                                <td data-label="Nombre">${user.name || ''}</td>
+                                <td data-label="Email">${user.email || ''}</td>
+                                <td data-label="Rol"><span class="table-badge-dark">${safeRole}</span></td>
                                 <td data-label="DNI">${user.dni || 'Sin DNI'}</td>
                                 <td data-label="Acciones">
                                     <button type="button" class="btn btn-sm btn-outline-primary" style="padding: 2px 8px; font-size: 0.8rem;" onclick="editUser(${user.id})">Editar</button>
@@ -791,9 +947,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         `;
                     });
                 }
+            } else {
+                tbodyUsers.innerHTML = `<tr><td colspan="5" class="text-center text-danger">${(res && res.message) || 'Error al cargar usuarios'}</td></tr>`;
+                tbodyClients.innerHTML = `<tr><td colspan="5" class="text-center text-danger">${(res && res.message) || 'Error al cargar clientes'}</td></tr>`;
             }
         } catch (e) {
-            console.error(e);
+            console.error('Error en loadUsers:', e);
+            if (tbodyUsers) tbodyUsers.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error al cargar usuarios.</td></tr>';
+            if (tbodyClients) tbodyClients.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error al cargar clientes.</td></tr>';
         }
     };
 
@@ -803,9 +964,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         document.getElementById('userModalTitle').innerText = 'Editar Usuario';
         document.getElementById('user_id_input').value = user.id;
-        document.querySelector('#userForm [name="name"]').value = user.name;
-        document.querySelector('#userForm [name="email"]').value = user.email;
-        document.querySelector('#userForm [name="role"]').value = user.role;
+        document.querySelector('#userForm [name="name"]').value = user.name || '';
+        document.querySelector('#userForm [name="email"]').value = user.email || '';
+        document.querySelector('#userForm [name="role"]').value = user.role || '';
         document.querySelector('#userForm [name="pin"]').value = user.pin || '';
         document.querySelector('#userForm [name="biometric_id"]').value = user.biometric_id || '';
         
@@ -966,6 +1127,320 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load initial data
     loadRoles();
     loadUsers();
+    // ===== CONSTRUCTOR DE RECIBOS (RECEIPT BUILDER) =====
+    const builderState = {
+        blocks: [
+            { id: 'logo', title: 'Logo de la Empresa', visible: true, icon: 'ph-image' },
+            { id: 'header_text', title: 'Texto de Encabezado', visible: true, icon: 'ph-text-align-center' },
+            { id: 'client_data', title: 'Datos del Cliente', visible: true, icon: 'ph-user' },
+            { id: 'services_table', title: 'Tabla de Servicios Cobrados', visible: true, icon: 'ph-table' },
+            { id: 'history_table', title: 'Historial de Pagos', visible: true, icon: 'ph-clock-counter-clockwise' },
+            { id: 'footer_text', title: 'Mensaje al Pie (Notas)', visible: true, icon: 'ph-text-align-justify' }
+        ],
+        texts: {
+            title: '',
+            header: '',
+            footer: '',
+            history_month: 'current',
+            history_year: 'current',
+            template: 'default',
+            logo_url: ''
+        }
+    };
+
+    const renderBuilderBlocks = () => {
+        const container = document.getElementById('blocks-list');
+        container.innerHTML = '';
+        builderState.blocks.forEach((block, index) => {
+            const blockEl = document.createElement('div');
+            blockEl.className = 'builder-block';
+            blockEl.draggable = true;
+            blockEl.dataset.index = index;
+            
+            blockEl.innerHTML = `
+                <div class="block-info">
+                    <i class="ph ${block.icon} block-icon" style="cursor: grab;"></i>
+                    <span style="font-weight: 500;">${block.title}</span>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input block-toggle" type="checkbox" data-index="${index}" ${block.visible ? 'checked' : ''}>
+                </div>
+            `;
+            
+            // Drag Events
+            blockEl.addEventListener('dragstart', (e) => {
+                blockEl.classList.add('dragging');
+                e.dataTransfer.setData('text/plain', index);
+            });
+            blockEl.addEventListener('dragend', () => {
+                blockEl.classList.remove('dragging');
+                updateBuilderPreview();
+            });
+            
+            container.appendChild(blockEl);
+        });
+
+        // Toggle Event
+        document.querySelectorAll('.block-toggle').forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+                const idx = e.target.dataset.index;
+                builderState.blocks[idx].visible = e.target.checked;
+                updateBuilderPreview();
+            });
+        });
+
+        setupDragAndDrop();
+    };
+
+    const setupDragAndDrop = () => {
+        const container = document.getElementById('blocks-list');
+        container.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            const afterElement = getDragAfterElement(container, e.clientY);
+            const draggable = document.querySelector('.dragging');
+            if (draggable) {
+                if (afterElement == null) {
+                    container.appendChild(draggable);
+                } else {
+                    container.insertBefore(draggable, afterElement);
+                }
+            }
+        });
+        
+        container.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const draggableNodes = [...container.querySelectorAll('.builder-block')];
+            // Reconstruir el array de blocks
+            const newBlocks = [];
+            draggableNodes.forEach(node => {
+                const originalIndex = parseInt(node.dataset.index);
+                newBlocks.push(builderState.blocks[originalIndex]);
+            });
+            builderState.blocks = newBlocks;
+            renderBuilderBlocks();
+            updateBuilderPreview();
+        });
+    };
+
+    const getDragAfterElement = (container, y) => {
+        const draggableElements = [...container.querySelectorAll('.builder-block:not(.dragging)')];
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    };
+
+    const updateBuilderPreview = () => {
+        // Actualizar variables de textos desde inputs
+        document.querySelectorAll('.builder-input').forEach(input => {
+            const key = input.id.replace('builder_', '');
+            if(builderState.texts[key] !== undefined) {
+                builderState.texts[key] = input.value;
+            }
+        });
+
+        const previewContainer = document.getElementById('a4-preview-content');
+        previewContainer.innerHTML = '';
+        
+        const title = builderState.texts.title || 'COMPROBANTE DE PAGO';
+        const headerText = builderState.texts.header || 'Gracias por su preferencia.';
+        const footerText = builderState.texts.footer || 'Conserve este documento.';
+        const template = builderState.texts.template || 'default';
+        const logoUrl = builderState.texts.logo_url || '';
+        const appName = document.getElementById('app_name')?.value || 'Mi Empresa SAC';
+
+        // Definir variables de estilo basadas en la plantilla
+        let st = {
+            titleColor: '#1e293b',
+            accentBg: '#f1f5f9',
+            accentBorder: '#cbd5e1',
+            boxBg: '#f8fafc',
+            boxBorder: '#e2e8f0'
+        };
+        
+        if (template === 'modern') {
+            st.titleColor = '#2563eb';
+            st.accentBg = '#eff6ff';
+            st.accentBorder = '#bfdbfe';
+            st.boxBg = '#ffffff';
+            st.boxBorder = '#bfdbfe';
+        } else if (template === 'minimal') {
+            st.titleColor = '#000000';
+            st.accentBg = '#ffffff';
+            st.accentBorder = '#000000';
+            st.boxBg = '#ffffff';
+            st.boxBorder = '#000000';
+        }
+
+        // Título del preview
+        previewContainer.innerHTML += `<div style="text-align: center; margin-bottom: 20px;"><h2 style="margin:0; font-size: 24px; color: ${st.titleColor};">${title}</h2></div>`;
+        
+        // Contenedor principal de bloques
+        const blocksContent = document.createElement('div');
+        
+        builderState.blocks.forEach(block => {
+            if(!block.visible) return;
+            
+            const div = document.createElement('div');
+            div.className = 'preview-block';
+            
+            if(block.id === 'logo') {
+                if (logoUrl) {
+                    div.innerHTML = `<div style="text-align: center; margin-bottom: 20px;"><img src="${logoUrl}" style="max-height:100px; max-width:200px; object-fit:contain; border-radius:8px;"></div>`;
+                } else {
+                    div.innerHTML = `<div style="text-align: center; margin-bottom: 20px;"><div style="display:inline-block; width:100px; height:100px; background:#f1f5f9; border-radius:12px; display:flex; align-items:center; justify-content:center; color:#94a3b8;"><i class="ph-bold ph-image" style="font-size:3rem;"></i></div></div>`;
+                }
+            } else if(block.id === 'header_text') {
+                div.innerHTML = `<div style="text-align: center; margin-bottom: 20px; font-size: 14px; color: #475569;">${headerText.replace(/\\n/g, '<br>')}</div>`;
+            } else if(block.id === 'client_data') {
+                div.innerHTML = `
+                    <div style="border: 1px solid ${st.boxBorder}; border-radius: 8px; padding: 15px; margin-bottom: 20px; background: ${st.boxBg};">
+                        <h4 style="margin: 0 0 10px 0; font-size: 14px; color: ${st.titleColor}; border-bottom: 1px solid ${st.boxBorder}; padding-bottom: 5px;">Datos del Cliente</h4>
+                        <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                            <div><strong>Nombre:</strong> Juan Pérez</div>
+                            <div><strong>Fecha:</strong> ${new Date().toLocaleDateString()}</div>
+                        </div>
+                        <div style="font-size: 13px; margin-top: 5px;"><strong>Dirección:</strong> Av. Principal 123</div>
+                    </div>`;
+            } else if(block.id === 'services_table') {
+                div.innerHTML = `
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px;">
+                        <thead>
+                            <tr style="background: ${st.accentBg}; border-bottom: 2px solid ${st.accentBorder}; color: ${st.titleColor};">
+                                <th style="text-align: left; padding: 8px;">Descripción</th>
+                                <th style="text-align: center; padding: 8px;">Cant</th>
+                                <th style="text-align: right; padding: 8px;">Precio</th>
+                                <th style="text-align: right; padding: 8px;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid ${st.boxBorder};">
+                                <td style="padding: 8px;">Plan de Internet Fibra 100Mbps</td>
+                                <td style="text-align: center; padding: 8px;">1</td>
+                                <td style="text-align: right; padding: 8px;">$ 30.00</td>
+                                <td style="text-align: right; padding: 8px;">$ 30.00</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" style="text-align: right; padding: 8px; font-weight: bold; color: ${st.titleColor};">TOTAL:</td>
+                                <td style="text-align: right; padding: 8px; font-weight: bold; color: ${st.titleColor};">$ 30.00</td>
+                            </tr>
+                        </tfoot>
+                    </table>`;
+            } else if(block.id === 'history_table') {
+                div.innerHTML = `
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="margin: 0 0 10px 0; font-size: 14px; color: ${st.titleColor};">Historial de Pagos (Mes/Año filtrado)</h4>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                            <thead>
+                                <tr style="background: ${st.boxBg}; border-bottom: 1px solid ${st.boxBorder};">
+                                    <th style="text-align: left; padding: 6px;">Fecha</th>
+                                    <th style="text-align: left; padding: 6px;">Concepto</th>
+                                    <th style="text-align: right; padding: 6px;">Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="border-bottom: 1px dashed ${st.boxBorder};">
+                                    <td style="padding: 6px;">15/05/2026</td>
+                                    <td style="padding: 6px;">Mensualidad Mayo</td>
+                                    <td style="text-align: right; padding: 6px;">$ 30.00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>`;
+            } else if(block.id === 'footer_text') {
+                div.innerHTML = `<div style="text-align: center; margin-top: 30px; padding-top: 15px; border-top: 1px dashed ${st.accentBorder}; font-size: 12px; color: #64748b;">${footerText.replace(/\\n/g, '<br>')}</div>`;
+            }
+            
+            blocksContent.appendChild(div);
+        });
+        
+        previewContainer.appendChild(blocksContent);
+        
+        // Guardar JSON actualizado en el input hidden
+        document.getElementById('receipt_template_json').value = JSON.stringify(builderState);
+    };
+
+    // Eventos de input para actualizar el preview en vivo
+    document.querySelectorAll('.builder-input').forEach(input => {
+        input.addEventListener('input', updateBuilderPreview);
+        input.addEventListener('change', updateBuilderPreview);
+    });
+
+    // Lógica para Logo con GDrive
+    const btnSelectLogo = document.getElementById('btnSelectLogoGDrive');
+    const btnRemoveLogo = document.getElementById('btnRemoveLogo');
+    const logoInput = document.getElementById('builder_logo_url');
+
+    const updateLogoButtons = () => {
+        if (logoInput.value) {
+            btnRemoveLogo.style.display = 'block';
+            btnSelectLogo.innerHTML = '<i class="ph-fill ph-image"></i> Cambiar Logo de Drive';
+        } else {
+            btnRemoveLogo.style.display = 'none';
+            btnSelectLogo.innerHTML = '<i class="ph-fill ph-google-drive-logo"></i> Elegir Logo en Drive';
+        }
+    };
+
+    if (btnSelectLogo) {
+        btnSelectLogo.addEventListener('click', () => {
+            if (typeof window.GDriveManager !== 'undefined') {
+                window.GDriveManager.openModal((file) => {
+                    // file.url_publica if exists, else we can use base_url + file.ruta_archivo
+                    let url = file.url_publica || file.ruta_archivo;
+                    if (url && !url.startsWith('http')) {
+                        url = '<?php echo BASE_URL; ?>/' + url;
+                    }
+                    logoInput.value = url;
+                    updateLogoButtons();
+                    updateBuilderPreview(); // Esto lanzará input event
+                });
+            } else {
+                alert('El componente GDriveManager no está disponible.');
+            }
+        });
+    }
+
+    if (btnRemoveLogo) {
+        btnRemoveLogo.addEventListener('click', () => {
+            logoInput.value = '';
+            updateLogoButtons();
+            updateBuilderPreview();
+        });
+    }
+
+    // Inicializar builder y cargar estado guardado
+    (async () => {
+        try {
+            const formData = new FormData();
+            formData.append('action', 'get_settings');
+            const res = await fetch('<?php echo BASE_URL; ?>/ajax/settings.php', { method: 'POST', body: formData }).then(r => r.json());
+            if (res.success && res.data && res.data.receipt_template_json) {
+                const savedState = JSON.parse(res.data.receipt_template_json);
+                if(savedState.blocks && savedState.texts) {
+                    builderState.blocks = savedState.blocks;
+                    builderState.texts = savedState.texts;
+                    // Poblar inputs visuales
+                    for (const [k, v] of Object.entries(builderState.texts)) {
+                        const el = document.getElementById('builder_' + k);
+                        if(el) {
+                            el.value = v;
+                        }
+                    }
+                    updateLogoButtons();
+                }
+            }
+        } catch (e) {}
+        renderBuilderBlocks();
+        updateBuilderPreview();
+    })();
+
 });
 </script>
 

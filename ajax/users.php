@@ -7,6 +7,31 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+// Auto-migrate missing columns if they don't exist yet
+try {
+    $colsRes = $pdo->query("SHOW COLUMNS FROM users");
+    $cols = $colsRes ? $colsRes->fetchAll(PDO::FETCH_COLUMN) : [];
+    
+    if (!in_array('pin', $cols)) {
+        @$pdo->exec("ALTER TABLE users ADD COLUMN pin VARCHAR(10) NULL");
+    }
+    if (!in_array('biometric_id', $cols)) {
+        @$pdo->exec("ALTER TABLE users ADD COLUMN biometric_id INT NULL");
+    }
+} catch (Exception $e) {
+    // Fail silently if ALTER TABLE is not permitted
+}
+
+// Check current available columns
+try {
+    $colsRes = $pdo->query("SHOW COLUMNS FROM users");
+    $cols = $colsRes ? $colsRes->fetchAll(PDO::FETCH_COLUMN) : [];
+} catch (Exception $e) {
+    $cols = [];
+}
+$hasBiometric = in_array('biometric_id', $cols);
+$hasPin = in_array('pin', $cols);
+
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 if ($action === 'delete') {
@@ -32,8 +57,11 @@ if ($action === 'delete') {
 
 if ($action === 'list') {
     try {
+        $biometricCol = $hasBiometric ? "u.biometric_id" : "NULL AS biometric_id";
+        $pinCol = $hasPin ? "u.pin" : "NULL AS pin";
+
         $stmt = $pdo->query("
-            SELECT u.id, u.name, u.email, u.role, u.pin, u.biometric_id, u.created_at, c.dni 
+            SELECT u.id, u.name, u.email, u.role, {$pinCol}, {$biometricCol}, u.created_at, c.dni 
             FROM users u 
             LEFT JOIN clientes c ON u.id = c.user_id 
             ORDER BY u.id DESC
@@ -61,7 +89,7 @@ if ($action === 'update') {
 
     try {
         // Verificar PIN único, exceptuando el propio usuario
-        if (!empty($pin)) {
+        if ($hasPin && !empty($pin)) {
             $checkPin = $pdo->prepare("SELECT id FROM users WHERE pin = ? AND id != ?");
             $checkPin->execute([$pin, $id]);
             if ($checkPin->fetch()) {
@@ -70,8 +98,22 @@ if ($action === 'update') {
             }
         }
 
-        $stmt = $pdo->prepare("UPDATE users SET name = ?, email = ?, role = ?, pin = ?, biometric_id = ? WHERE id = ?");
-        $stmt->execute([$name, $email, $role, empty($pin) ? null : $pin, empty($biometric_id) ? null : $biometric_id, $id]);
+        $updateFields = ["name = ?", "email = ?", "role = ?"];
+        $params = [$name, $email, $role];
+
+        if ($hasPin) {
+            $updateFields[] = "pin = ?";
+            $params[] = empty($pin) ? null : $pin;
+        }
+        if ($hasBiometric) {
+            $updateFields[] = "biometric_id = ?";
+            $params[] = empty($biometric_id) ? null : $biometric_id;
+        }
+
+        $params[] = $id;
+        $sql = "UPDATE users SET " . implode(', ', $updateFields) . " WHERE id = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
         echo json_encode(['success' => true, 'message' => 'Usuario actualizado correctamente']);
     } catch (PDOException $e) {
         if ($e->getCode() == 23000) {
@@ -99,7 +141,7 @@ if ($action === 'create') {
 
     try {
         // Verificar PIN único
-        if (!empty($pin)) {
+        if ($hasPin && !empty($pin)) {
             $checkPin = $pdo->prepare("SELECT id FROM users WHERE pin = ?");
             $checkPin->execute([$pin]);
             if ($checkPin->fetch()) {
@@ -108,8 +150,24 @@ if ($action === 'create') {
             }
         }
 
-        $stmt = $pdo->prepare("INSERT INTO users (name, email, pin, password, role, biometric_id) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$name, $email, empty($pin) ? null : $pin, $password, $role, empty($biometric_id) ? null : $biometric_id]);
+        $fields = ["name", "email", "password", "role"];
+        $placeholders = ["?", "?", "?", "?"];
+        $params = [$name, $email, $password, $role];
+
+        if ($hasPin) {
+            $fields[] = "pin";
+            $placeholders[] = "?";
+            $params[] = empty($pin) ? null : $pin;
+        }
+        if ($hasBiometric) {
+            $fields[] = "biometric_id";
+            $placeholders[] = "?";
+            $params[] = empty($biometric_id) ? null : $biometric_id;
+        }
+
+        $sql = "INSERT INTO users (" . implode(', ', $fields) . ") VALUES (" . implode(', ', $placeholders) . ")";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
         echo json_encode(['success' => true, 'message' => 'Usuario creado correctamente']);
     } catch (PDOException $e) {
         if ($e->getCode() == 23000) { // Constraint violation (Duplicate entry)

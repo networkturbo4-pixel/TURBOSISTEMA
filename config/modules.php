@@ -76,6 +76,13 @@ $system_modules = [
         'url' => '/modules/settings',
         'description' => 'Ajustes globales, roles, usuarios y apariencia',
         'default_access' => false
+    ],
+    'gdrive' => [
+        'name' => 'Google Drive',
+        'icon' => 'ph-google-drive-logo',
+        'url' => '/modules/gdrive',
+        'description' => 'Gestión de archivos, carpetas y almacenamiento en la nube',
+        'default_access' => false
     ]
 ];
 

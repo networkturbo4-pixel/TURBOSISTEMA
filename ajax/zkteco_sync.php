@@ -51,11 +51,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 5 => 'fin_refrigerio'
             ];
 
-            // Get users with biometric_id
-            $stmt = $pdo->query("SELECT id, biometric_id FROM users WHERE biometric_id IS NOT NULL");
+            // Get users with biometric_id safely
             $usersMap = [];
-            while ($u = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                $usersMap[(string)$u['biometric_id']] = $u['id'];
+            try {
+                $stmt = $pdo->query("SELECT id, biometric_id FROM users WHERE biometric_id IS NOT NULL");
+                while ($u = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                    if (!empty($u['biometric_id'])) {
+                        $usersMap[(string)$u['biometric_id']] = $u['id'];
+                    }
+                }
+            } catch (Exception $e) {
+                // Ignore if biometric_id column does not exist
             }
 
             $insertedCount = 0;

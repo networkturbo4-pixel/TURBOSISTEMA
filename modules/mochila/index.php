@@ -274,4 +274,6 @@ include '../../includes/sidebar.php';
 
 <script src="mochila.js?v=<?php echo time(); ?>"></script>
 
+
+
 <?php include '../../includes/footer.php'; ?>

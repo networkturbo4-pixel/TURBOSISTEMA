@@ -195,7 +195,11 @@ function initModals() {
 
     closeBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            btn.closest('.modal-overlay').classList.remove('active');
+            const overlay = btn.closest('.modal-overlay') || btn.closest('.modal') || btn.closest('.modal-backdrop');
+            if (overlay) {
+                overlay.classList.remove('active');
+                overlay.style.display = 'none';
+            }
         });
     });
 

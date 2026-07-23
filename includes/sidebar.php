@@ -1,4 +1,7 @@
 <?php
+if (isset($_GET['embedded']) || isset($_GET['portal'])) {
+    return;
+}
 $logoLight = $globalSettings['logo_light'] ?? '';
 $logoDark = $globalSettings['logo_dark'] ?? '';
 $logoCollapsedLight = $globalSettings['logo_collapsed_light'] ?? '';

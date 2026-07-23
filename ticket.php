@@ -209,6 +209,94 @@ $primaryColor = '#064e3b'; // Default
         }
         .loc-card:hover { background: #f1f5f9; }
         
+        .chat-upload-banner {
+            position: absolute;
+            bottom: 105%;
+            left: 15px;
+            right: 15px;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            border-radius: 12px;
+            padding: 10px 14px;
+            z-index: 150;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 0 0 15px rgba(59, 130, 246, 0.2);
+            animation: slideUpFade 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .chat-upload-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .chat-upload-spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(59, 130, 246, 0.2);
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            flex-shrink: 0;
+        }
+        .chat-upload-text {
+            flex: 1;
+            overflow: hidden;
+        }
+        .chat-upload-text .upload-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #3b82f6;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .chat-upload-text .upload-filename {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .chat-upload-progress {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+        .progress-bar-inner {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+            background-size: 200% 100%;
+            animation: gradientMove 1.5s linear infinite;
+            border-radius: 2px;
+            transition: width 0.15s ease;
+        }
+        .message-bubble.sending-optimistic {
+            opacity: 0.75;
+            position: relative;
+            border: 1px dashed rgba(255, 255, 255, 0.4);
+        }
+        .sending-status-tag {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 4px;
+        }
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+        @keyframes slideUpFade {
+            from { transform: translateY(10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
         @keyframes pulse-red {
             0% { transform: scale(1); opacity: 1; }
             50% { transform: scale(1.5); opacity: 0.5; }
@@ -262,12 +350,15 @@ $primaryColor = '#064e3b'; // Default
     <?php else: ?>
     <div class="chat-input-area" style="position: relative;">
         <!-- Menú de Acciones Flotante -->
-        <div id="chatActionMenu" style="display: none; position: absolute; bottom: 100%; left: 15px; margin-bottom: 10px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; padding: 10px; z-index: 100;">
-            <button onclick="chatFileInput.click(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.9rem;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
-                <i class="ph-fill ph-camera" style="font-size: 1.2rem; color: #3b82f6;"></i> Enviar Foto
+        <div id="chatActionMenu" style="display: none; position: absolute; bottom: 100%; left: 15px; margin-bottom: 10px; background: #fff; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); border: 1px solid #e2e8f0; padding: 8px; z-index: 100; min-width: 220px;">
+            <button type="button" onclick="openCameraInput(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: #1e293b;" onmouseover="this.style.background='rgba(16,185,129,0.1)'" onmouseout="this.style.background='transparent'">
+                <i class="ph-fill ph-camera" style="font-size: 1.3rem; color: #10b981;"></i> Tomar Foto con Cámara
             </button>
-            <button onclick="sendLocation(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.9rem;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
-                <i class="ph-fill ph-map-pin" style="font-size: 1.2rem; color: #ef4444;"></i> Enviar Ubicación
+            <button type="button" onclick="openGalleryInput(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: #1e293b;" onmouseover="this.style.background='rgba(59,130,246,0.1)'" onmouseout="this.style.background='transparent'">
+                <i class="ph-fill ph-image" style="font-size: 1.3rem; color: #3b82f6;"></i> Enviar Foto / Archivo
+            </button>
+            <button type="button" onclick="sendLocation(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: #1e293b;" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='transparent'">
+                <i class="ph-fill ph-map-pin" style="font-size: 1.3rem; color: #ef4444;"></i> Enviar Ubicación
             </button>
         </div>
 
@@ -275,6 +366,21 @@ $primaryColor = '#064e3b'; // Default
             <i class="ph ph-plus-circle"></i>
         </button>
         
+        <!-- Banner de Animación de Subida Moderno -->
+        <div id="chatUploadingBanner" class="chat-upload-banner" style="display: none;">
+            <div class="chat-upload-content">
+                <div class="chat-upload-spinner"></div>
+                <div class="chat-upload-text">
+                    <div class="upload-title"><i class="ph-bold ph-cloud-arrow-up"></i> Subiendo a Google Drive...</div>
+                    <div class="upload-filename" id="chatUploadFilename">archivo.png</div>
+                </div>
+                <span id="chatUploadPercentText" style="font-size: 0.8rem; font-weight: 700; color: #3b82f6;">0%</span>
+            </div>
+            <div class="chat-upload-progress">
+                <div class="progress-bar-inner" id="chatUploadProgressFill" style="width: 0%;"></div>
+            </div>
+        </div>
+
         <div id="filePreviewContainer" style="display: none; position: absolute; bottom: 100%; left: 50px; margin-bottom: 8px; background: #3b82f6; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(59,130,246,0.3); z-index: 50;">
             <i class="ph-fill ph-image"></i>
             <span id="filePreviewName" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500;"></span>
@@ -312,11 +418,16 @@ $primaryColor = '#064e3b'; // Default
     <img id="lightboxImg" style="max-width:90%; max-height:90%; border-radius:12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); object-fit: contain;">
 </div>
 
+<!-- Modal de Ubicación Tipo Uber / InDrive y Cámara Webcam -->
+<?php require_once __DIR__ . '/includes/location_modal.php'; ?>
+<?php require_once __DIR__ . '/includes/webcam_modal.php'; ?>
+
 <script>
     const currentTicketId = <?php echo $ticket_id; ?>;
     const token = '<?php echo $token; ?>';
     let lastMessageId = 0;
     let isPollingMessages = false;
+    const escapeHtml = (str) => String(str || '').replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
 
     const formatTime = (dateStr) => {
         const d = new Date(dateStr);
@@ -350,13 +461,13 @@ $primaryColor = '#064e3b'; // Default
                         if (msgContent.startsWith('[LOCATION:') && msgContent.endsWith(']')) {
                             const coords = msgContent.replace('[LOCATION:', '').replace(']', '');
                             msgContent = `
-                                <a href="https://maps.google.com/?q=${coords}" target="_blank" class="loc-card">
-                                    <div style="background: #ef4444; color: white; padding: 10px; border-radius: 8px;"><i class="ph-fill ph-map-pin" style="font-size: 1.5rem;"></i></div>
+                                <div onclick="openLocationViewer('${coords}')" class="loc-card" style="cursor: pointer;">
+                                    <div style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 10px; border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(16,185,129,0.3);"><i class="ph-fill ph-navigation-arrow" style="font-size: 1.3rem;"></i></div>
                                     <div>
-                                        <div style="font-weight: 600; font-size: 0.9rem;">Ubicación compartida</div>
-                                        <div style="font-size: 0.75rem; color: #64748b;">Toca para abrir el mapa</div>
+                                        <div style="font-weight: 700; font-size: 0.88rem; color: #0f172a;">Ubicación compartida</div>
+                                        <div style="font-size: 0.75rem; color: #10b981; font-weight: 600; display: flex; align-items: center; gap: 4px; margin-top: 2px;"><i class="ph-fill ph-map-pin"></i> Ver en Mapa App Interactivo</div>
                                     </div>
-                                </a>
+                                </div>
                             `;
                         }
 
@@ -364,12 +475,15 @@ $primaryColor = '#064e3b'; // Default
                         let attHtml = '';
                         if (msg.attachments && msg.attachments.length > 0) {
                             msg.attachments.forEach(att => {
-                                const url = `${'<?php echo BASE_URL; ?>/'}${att.file_path}`;
+                                let url = att.file_path;
+                                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                                    url = `<?php echo BASE_URL; ?>/` + url;
+                                }
                                 const ext = att.file_name.split('.').pop().toLowerCase();
                                 if (['webm', 'mp3', 'ogg', 'wav', 'm4a'].includes(ext)) {
                                     attHtml += `<audio controls src="${url}" style="max-width: 100%; margin-top: 5px; outline: none; height: 35px;"></audio>`;
                                 } else {
-                                    attHtml += `<img src="${url}" onclick="openLightbox('${url}')" style="cursor: pointer; max-width: 100%; border-radius: 8px; margin-top: 5px; border: 1px solid rgba(0,0,0,0.1); transition: opacity 0.2s;" onmouseover="this.style.opacity=0.9" onmouseout="this.style.opacity=1">`;
+                                    attHtml += `<img src="${url}" referrerpolicy="no-referrer" onclick="openLightbox('${url}')" style="cursor: pointer; max-width: 100%; border-radius: 8px; margin-top: 5px; border: 1px solid rgba(0,0,0,0.1); transition: opacity 0.2s;" onmouseover="this.style.opacity=0.9" onmouseout="this.style.opacity=1">`;
                                 }
                             });
                         }
@@ -391,6 +505,78 @@ $primaryColor = '#064e3b'; // Default
         isPollingMessages = false;
     };
 
+    const showUploadBanner = (filename) => {
+        const banner = document.getElementById('chatUploadingBanner');
+        const filenameEl = document.getElementById('chatUploadFilename');
+        const fillEl = document.getElementById('chatUploadProgressFill');
+        const percentEl = document.getElementById('chatUploadPercentText');
+        if (banner) {
+            filenameEl.textContent = filename || 'Archivo multimedia';
+            fillEl.style.width = '10%';
+            if (percentEl) percentEl.textContent = '10%';
+            banner.style.display = 'block';
+        }
+    };
+
+    const updateUploadProgress = (percent) => {
+        const fillEl = document.getElementById('chatUploadProgressFill');
+        const percentEl = document.getElementById('chatUploadPercentText');
+        const p = Math.min(100, Math.max(10, Math.round(percent)));
+        if (fillEl) fillEl.style.width = p + '%';
+        if (percentEl) percentEl.textContent = p + '%';
+    };
+
+    const hideUploadBanner = () => {
+        const banner = document.getElementById('chatUploadingBanner');
+        if (banner) banner.style.display = 'none';
+    };
+
+    const sendChatAjaxWithProgress = (formData, filename = null) => {
+        return new Promise((resolve, reject) => {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            if (csrfToken && !formData.has('csrf_token')) {
+                formData.append('csrf_token', csrfToken);
+            }
+
+            if (filename) showUploadBanner(filename);
+            
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '<?php echo BASE_URL; ?>/ajax/soporte.php', true);
+            if (csrfToken) {
+                xhr.setRequestHeader('X-CSRF-Token', csrfToken);
+            }
+
+            if (filename && xhr.upload) {
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const percent = (e.loaded / e.total) * 100;
+                        updateUploadProgress(percent);
+                    }
+                };
+            }
+
+            xhr.onload = () => {
+                hideUploadBanner();
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        resolve(JSON.parse(xhr.responseText));
+                    } catch (err) {
+                        reject(err);
+                    }
+                } else {
+                    reject(new Error('Error en el servidor'));
+                }
+            };
+
+            xhr.onerror = () => {
+                hideUploadBanner();
+                reject(new Error('Error de red'));
+            };
+
+            xhr.send(formData);
+        });
+    };
+
     // Lightbox handling
     const openLightbox = (src) => {
         document.getElementById('lightboxImg').src = src;
@@ -399,12 +585,21 @@ $primaryColor = '#064e3b'; // Default
 
     let selectedFile = null;
 
-    // Create file input dynamically to avoid global UI plugins (like Dropify) auto-initializing it
-    const chatFileInput = document.createElement('input');
-    chatFileInput.type = 'file';
-    chatFileInput.accept = 'image/*';
-    chatFileInput.capture = 'environment';
-    chatFileInput.onchange = (e) => handleFileSelect(e.target);
+    // Cámara en Vivo (Cámara trasera por defecto)
+    const chatCameraInput = document.createElement('input');
+    chatCameraInput.type = 'file';
+    chatCameraInput.accept = 'image/*';
+    chatCameraInput.capture = 'environment';
+    chatCameraInput.onchange = (e) => handleFileSelect(e.target);
+
+    // Selección de Galería / Documentos
+    const chatGalleryInput = document.createElement('input');
+    chatGalleryInput.type = 'file';
+    chatGalleryInput.accept = 'image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx';
+    chatGalleryInput.onchange = (e) => handleFileSelect(e.target);
+
+    const openCameraInput = () => triggerSmartCameraInput();
+    const openGalleryInput = () => chatGalleryInput.click();
 
     const toggleActionMenu = () => {
         const menu = document.getElementById('chatActionMenu');
@@ -413,7 +608,8 @@ $primaryColor = '#064e3b'; // Default
 
     const clearFileSelection = () => {
         selectedFile = null;
-        chatFileInput.value = '';
+        chatCameraInput.value = '';
+        chatGalleryInput.value = '';
         document.getElementById('filePreviewContainer').style.display = 'none';
         updateMainButton();
     };
@@ -542,7 +738,16 @@ $primaryColor = '#064e3b'; // Default
 
     const sendAudioMessage = async (audioBlob) => {
         const btnSend = document.getElementById('btnSendMessage');
-        btnSend.disabled = true;
+        if (btnSend) btnSend.disabled = true;
+
+        const tempId = 'opt_audio_' + Date.now();
+        const container = document.getElementById('chatMessages');
+        container.innerHTML += `
+            <div class="message-bubble message-sent sending-optimistic" id="${tempId}">
+                <div style="font-size:0.85rem; font-weight:600;"><i class="ph-fill ph-microphone"></i> Grabación de audio...</div>
+                <div class="sending-status-tag"><i class="ph ph-spinner spinner"></i> Subiendo a Google Drive...</div>
+            </div>`;
+        container.scrollTop = container.scrollHeight;
 
         const fd = new FormData();
         fd.append('action', 'send_message');
@@ -552,37 +757,56 @@ $primaryColor = '#064e3b'; // Default
         fd.append('attachment', audioBlob, 'audio_record.webm');
 
         try {
-            const res = await fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd }).then(r=>r.json());
+            const res = await sendChatAjaxWithProgress(fd, 'Nota de Voz.webm');
+            const optEl = document.getElementById(tempId);
+            if (optEl) optEl.remove();
             if(res.success) {
                 loadMessages();
             }
-        } catch(e) {}
+        } catch(e) {
+            const optEl = document.getElementById(tempId);
+            if (optEl) optEl.remove();
+        }
         
-        btnSend.disabled = false;
+        if (btnSend) btnSend.disabled = false;
     };
 
     const sendMessage = async () => {
         const input = document.getElementById('messageInput');
         const text = input.value.trim();
-        if((!text && !selectedFile)) return;
+        const fileToSend = selectedFile;
+        if((!text && !fileToSend)) return;
 
         input.value = '';
         input.style.height = '';
+        if (fileToSend) clearFileSelection();
         const btnSend = document.getElementById('btnSendMessage');
-        btnSend.disabled = true;
+        if (btnSend) btnSend.disabled = true;
+
+        const tempId = 'opt_msg_' + Date.now();
+        const container = document.getElementById('chatMessages');
+        let fileText = fileToSend ? `<div style="font-size:0.85rem; margin-top:4px; font-weight:600; color:#3b82f6;"><i class="ph ph-file"></i> ${escapeHtml(fileToSend.name)}</div>` : '';
+        container.innerHTML += `
+            <div class="message-bubble message-sent sending-optimistic" id="${tempId}">
+                <div>${escapeHtml(text)}</div>
+                ${fileText}
+                <div class="sending-status-tag"><i class="ph ph-spinner spinner"></i> ${fileToSend ? 'Subiendo a Google Drive...' : 'Enviando...'}</div>
+            </div>`;
+        container.scrollTop = container.scrollHeight;
 
         const fd = new FormData();
         fd.append('action', 'send_message');
         fd.append('ticket_id', currentTicketId);
         fd.append('token', token);
         fd.append('message', text);
-        if (selectedFile) {
-            fd.append('attachment', selectedFile);
-            clearFileSelection();
+        if (fileToSend) {
+            fd.append('attachment', fileToSend);
         }
 
         try {
-            const res = await fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd }).then(r=>r.json());
+            const res = await sendChatAjaxWithProgress(fd, fileToSend ? fileToSend.name : null);
+            const optEl = document.getElementById(tempId);
+            if (optEl) optEl.remove();
             if(res.success) {
                 loadMessages();
                 updateMainButton();
@@ -590,15 +814,17 @@ $primaryColor = '#064e3b'; // Default
                 alert(res.message || 'Error al enviar');
             }
         } catch(e) {
+            const optEl = document.getElementById(tempId);
+            if (optEl) optEl.remove();
             alert('Error de conexión');
         }
         
-        btnSend.disabled = false;
+        if (btnSend) btnSend.disabled = false;
     };
 
     document.addEventListener('DOMContentLoaded', () => {
         loadMessages();
-        setInterval(loadMessages, 3000);
+        setInterval(loadMessages, 1200);
         
         <?php if ($has_session): ?>
         // Ping to keep the chat locked for this technician

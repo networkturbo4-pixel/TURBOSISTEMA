@@ -172,3 +172,45 @@ echo json_encode(['success' => false, 'message' => 'Acción no válida']);
 *   **Submenús Colapsables:** El sidebar soporta elementos con submenús. Se usa un contenedor `.sidebar-item.has-submenu` junto con `.sidebar-toggle` (que contiene el texto y la flecha `.toggle-icon`) y un contenedor `.sidebar-submenu` para los enlaces anidados.
 *   **Badges de Sidebar:** Se pueden añadir notificaciones visuales a los enlaces usando clases como `.sidebar-badge.badge-green` o `.badge-orange`.
 *   **Comportamiento Móvil:** En dispositivos móviles, el sidebar se oculta fuera de la pantalla. Al hacer clic en el botón de hamburguesa, se despliega. Si el usuario **hace clic fuera del sidebar**, este se cerrará automáticamente. El logo se mantiene visible en la parte superior del sidebar durante la vista móvil.
+
+---
+
+## 📁 Almacenamiento en Google Drive API
+
+El sistema cuenta con un helper centralizado para subir y almacenar imágenes, videos y documentos en **Google Drive** desde cualquier módulo del sistema.
+
+### 1. Archivo de Configuración (`/config/google_drive.php`)
+- `GDRIVE_CREDENTIALS_PATH`: Ruta al archivo JSON del Service Account (`google-credentials.json`).
+- `GDRIVE_ROOT_FOLDER_ID`: ID de la carpeta raíz compartida en Google Drive.
+- `GDRIVE_MAKE_PUBLIC_DEFAULT`: (`true`) Todos los archivos subidos tienen permiso de lectura público por enlace.
+
+### 2. Uso desde PHP (`GoogleDriveHelper.php`)
+```php
+require_once __DIR__ . '/../includes/GoogleDriveHelper.php';
+
+// Subir desde array $_FILES (ej. $_FILES['archivo']) a subcarpeta 'Inventario'
+$res = GoogleDriveHelper::uploadFromUploadedFile($_FILES['archivo'], 'Inventario');
+
+if ($res['success']) {
+    $fileId    = $res['file_id'];
+    $directUrl = $res['direct_link']; // https://lh3.googleusercontent.com/d/[ID]
+    $viewUrl   = $res['web_view_link'];
+}
+```
+
+### 3. Subida directa vía AJAX (`/ajax/upload_drive.php`)
+Puedes enviar FormData con la clave `file` o `archivo` y el nombre de la subcarpeta `subfolder`:
+```javascript
+const formData = new FormData();
+formData.append('file', fileInput.files[0]);
+formData.append('subfolder', 'Productos');
+
+fetch('/ajax/upload_drive.php', { method: 'POST', body: formData })
+  .then(res => res.json())
+  .then(data => {
+      if(data.success) {
+          console.log("URL de la imagen en Google Drive:", data.direct_link);
+      }
+  });
+```
+

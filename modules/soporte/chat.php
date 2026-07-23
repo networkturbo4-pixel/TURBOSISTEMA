@@ -129,7 +129,7 @@ include '../../includes/sidebar.php';
         flex: 1;
         display: flex;
         flex-direction: column;
-        background: url('../../assets/img/chat-bg.png') repeat; /* Opcional: fondo estilo WhatsApp */
+        background: url('<?php echo BASE_URL; ?>/assets/img/chat-bg.png') repeat;
         background-color: #efeae2;
     }
     body.dark-theme .chat-main {
@@ -352,8 +352,10 @@ include '../../includes/sidebar.php';
         </div>
 
         <div class="chat-input-area">
-            <button class="btn-icon" title="Adjuntar archivo"><i class="ph ph-paperclip"></i></button>
+            <input type="file" id="chatFileInput" style="display:none;" accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx">
+            <button class="btn-icon" title="Adjuntar archivo" onclick="document.getElementById('chatFileInput').click();"><i class="ph ph-paperclip"></i></button>
             <div class="chat-input-wrapper">
+                <div id="chatFilePreview" style="display:none; font-size:0.8rem; background:#f1f5f9; padding:4px 8px; border-radius:4px; margin-bottom:4px; font-weight:600; color:#3b82f6;"></div>
                 <textarea id="messageInput" placeholder="Escribe un mensaje..." rows="1" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"></textarea>
             </div>
             <button class="btn-send" id="btnSendMessage"><i class="ph-fill ph-paper-plane-right"></i></button>
@@ -457,28 +459,70 @@ include '../../includes/sidebar.php';
         isPolling = false;
     };
 
+    let selectedChatFile = null;
+    document.getElementById('chatFileInput').addEventListener('change', (e) => {
+        if(e.target.files && e.target.files[0]) {
+            selectedChatFile = e.target.files[0];
+            const pv = document.getElementById('chatFilePreview');
+            pv.innerText = 'Adjunto: ' + selectedChatFile.name;
+            pv.style.display = 'block';
+        }
+    });
+
     // Enviar mensaje
     const sendMessage = async () => {
         const input = document.getElementById('messageInput');
         const text = input.value.trim();
-        if(!text || !currentTicketId) return;
+        
+        if(!text && !selectedChatFile) return;
 
         input.value = '';
         input.style.height = '';
-
+        
         const fd = new FormData();
         fd.append('action', 'send_message');
         fd.append('ticket_id', currentTicketId);
         fd.append('message', text);
 
-        try {
-            const res = await fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd }).then(r=>r.json());
-            if(res.success) {
-                loadMessages(); // Refrescar rápido
-            } else {
-                window.showToast(res.message, 'error');
+        const btnSend = document.getElementById('btnSendMessage');
+        btnSend.disabled = true;
+
+        const executeSend = async () => {
+            try {
+                const res = await fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd }).then(r=>r.json());
+                if(res.success) {
+                    selectedChatFile = null;
+                    document.getElementById('chatFileInput').value = '';
+                    document.getElementById('chatFilePreview').style.display = 'none';
+                    loadMessages(); // Refrescar rápido
+                } else {
+                    window.showToast(res.message, 'error');
+                }
+            } catch(e) {
+                window.showToast('Error de conexión', 'error');
             }
-        } catch(e) {}
+            btnSend.disabled = false;
+        };
+
+        if (selectedChatFile) {
+            fd.append('attachment', selectedChatFile);
+            if (selectedChatFile.type.startsWith('image/')) {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            fd.append('latitude', pos.coords.latitude);
+                            fd.append('longitude', pos.coords.longitude);
+                            executeSend();
+                        },
+                        (err) => executeSend(),
+                        { timeout: 5000 }
+                    );
+                    return;
+                }
+            }
+        }
+        
+        executeSend();
     };
 
     // Cambiar estado del ticket

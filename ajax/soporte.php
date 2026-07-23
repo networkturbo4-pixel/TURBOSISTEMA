@@ -23,6 +23,30 @@ function validateToken($pdo, $ticket_id, $token) {
     return $real_token && $real_token === $token;
 }
 
+function createTicketDriveFolder($pdo, $ticket_id, $cliente_id, $cliente_nombre_manual) {
+    try {
+        require_once __DIR__ . '/../includes/GoogleDriveHelper.php';
+        $clientName = 'Cliente General';
+        if ($cliente_nombre_manual) {
+            $clientName = $cliente_nombre_manual;
+        } elseif ($cliente_id) {
+            $stmt = $pdo->prepare("SELECT nombre_completo FROM clientes WHERE id = ?");
+            $stmt->execute([$cliente_id]);
+            $clientName = $stmt->fetchColumn() ?: 'Cliente General';
+        }
+        
+        $dateStr = date('Y-m-d_H-i');
+        $folderName = $clientName . ' - ' . $dateStr;
+        
+        $folderId = GoogleDriveHelper::getOrCreateFolder($folderName, 'Soporte');
+        if ($folderId) {
+            $pdo->prepare("UPDATE tickets SET gdrive_folder_id = ? WHERE id = ?")->execute([$folderId, $ticket_id]);
+        }
+    } catch(Exception $e) {
+        error_log("Error creando carpeta GD para ticket $ticket_id: " . $e->getMessage());
+    }
+}
+
 try {
     switch ($action) {
         case 'list':
@@ -42,9 +66,10 @@ try {
             if ($user_role !== 'admin' && $user_role !== 'administrador') {
                 $where .= " AND (t.assigned_to = $user_id OR t.assigned_to IS NULL)"; 
             }
-
+            
             $stmt = $pdo->prepare("
-                SELECT t.*, c.nombre_completo as cliente_nombre, c.celular as cliente_celular, c.direccion as cliente_direccion, u.name as tech_name,
+                SELECT t.*, COALESCE(NULLIF(t.cliente_nombre_manual, ''), c.nombre_completo, 'Cliente General') as cliente_nombre,
+                       c.celular as cliente_celular, c.direccion as cliente_direccion, u.name as tech_name,
                        tc.name as cat_name, tc.color as cat_color,
                        tp.name as pri_name, tp.color as pri_color,
                        (SELECT COUNT(*) FROM ticket_messages m WHERE m.ticket_id = t.id AND (m.user_id != ? OR m.user_id IS NULL) AND m.is_read = FALSE) as unread_count
@@ -60,6 +85,12 @@ try {
             echo json_encode(['success' => true, 'data' => $stmt->fetchAll()]);
             break;
 
+        case 'get_settings_data':
+            $categories = $pdo->query("SELECT * FROM ticket_categories ORDER BY name ASC")->fetchAll();
+            $priorities = $pdo->query("SELECT * FROM ticket_priorities ORDER BY level ASC")->fetchAll();
+            echo json_encode(['success' => true, 'categories' => $categories, 'priorities' => $priorities]);
+            break;
+
         case 'public_login':
             $dni = $_POST['dni'] ?? '';
             $stmt = $pdo->prepare("SELECT id, nombre_completo, celular FROM clientes WHERE dni = ?");
@@ -70,7 +101,7 @@ try {
                 $_SESSION['public_cliente_nombre'] = $cliente['nombre_completo'];
                 echo json_encode(['success' => true]);
             } else {
-                echo json_encode(['success' => false, 'message' => 'No es cliente de la empresa o DNI incorrecto.']);
+                echo json_encode(['success' => false, 'message' => 'DNI no registrado']);
             }
             break;
 
@@ -94,11 +125,21 @@ try {
             $stmtMsg = $pdo->prepare("INSERT INTO ticket_messages (ticket_id, user_id, message, is_system_message) VALUES (?, NULL, ?, 0)");
             $stmtMsg->execute([$ticket_id, $descripcion]); // user_id is NULL for client messages created from public portal
 
+            // Crear carpeta de Drive
+            createTicketDriveFolder($pdo, $ticket_id, $cliente_id, null);
+
             echo json_encode(['success' => true, 'ticket_id' => $ticket_id, 'token' => $token]);
             break;
 
         case 'save':
-            $cliente_id = !empty($_POST['cliente_id']) ? $_POST['cliente_id'] : null;
+            $cliente_id_raw = $_POST['cliente_id'] ?? '';
+            $cliente_nombre_manual = trim($_POST['cliente_nombre_manual'] ?? '');
+
+            $cliente_id = null;
+            if ($cliente_id_raw !== 'manual' && !empty($cliente_id_raw)) {
+                $cliente_id = intval($cliente_id_raw);
+            }
+
             $asunto = $_POST['asunto'] ?? '';
             $categoria_id = !empty($_POST['categoria_id']) ? $_POST['categoria_id'] : null;
             $prioridad_id = !empty($_POST['prioridad_id']) ? $_POST['prioridad_id'] : null;
@@ -106,14 +147,20 @@ try {
             $descripcion = $_POST['descripcion'] ?? '';
 
             if (empty($asunto)) throw new Exception('El asunto es requerido');
+            if (empty($cliente_id) && empty($cliente_nombre_manual)) {
+                throw new Exception('Debe seleccionar un cliente del sistema o escribir un nombre manualmente.');
+            }
 
-            $stmt = $pdo->prepare("INSERT INTO tickets (cliente_id, asunto, categoria_id, prioridad_id, assigned_to, descripcion) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$cliente_id, $asunto, $categoria_id, $prioridad_id, $assigned_to, $descripcion]);
+            $stmt = $pdo->prepare("INSERT INTO tickets (cliente_id, cliente_nombre_manual, asunto, categoria_id, prioridad_id, assigned_to, descripcion) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$cliente_id, $cliente_nombre_manual ?: null, $asunto, $categoria_id, $prioridad_id, $assigned_to, $descripcion]);
             
             // Insert initial message as description
             $ticket_id = $pdo->lastInsertId();
             $stmtMsg = $pdo->prepare("INSERT INTO ticket_messages (ticket_id, user_id, message, is_system_message) VALUES (?, ?, ?, 0)");
             $stmtMsg->execute([$ticket_id, $user_id, $descripcion]);
+
+            // Crear carpeta de Drive
+            createTicketDriveFolder($pdo, $ticket_id, $cliente_id, $cliente_nombre_manual);
 
             echo json_encode(['success' => true, 'message' => 'Ticket creado']);
             break;
@@ -241,18 +288,78 @@ try {
             
             // Handle Attachment
             if ($has_attachment) {
-                $uploadDir = '../uploads/tickets/';
-                if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
-                
                 $file = $_FILES['attachment'];
-                $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-                $fileName = 'tkt_' . $ticket_id . '_' . time() . '_' . uniqid() . '.' . $ext;
-                $targetPath = $uploadDir . $fileName;
                 
-                if (move_uploaded_file($file['tmp_name'], $targetPath)) {
-                    $dbPath = 'uploads/tickets/' . $fileName;
+                require_once __DIR__ . '/../includes/GoogleDriveHelper.php';
+                require_once __DIR__ . '/../includes/ImageHelper.php';
+                
+                $isImage = strpos($file['type'], 'image/') === 0;
+                
+                // Get ticket GD folder ID
+                $stmtGd = $pdo->prepare("SELECT gdrive_folder_id FROM tickets WHERE id = ?");
+                $stmtGd->execute([$ticket_id]);
+                $ticketGdId = $stmtGd->fetchColumn();
+
+                $uploadFilepath = $file['tmp_name'];
+                $fileName = $file['name'];
+                
+                // Process image with Watermark and GPS if applicable
+                if ($isImage) {
+                    $lat = $_POST['latitude'] ?? null;
+                    $lng = $_POST['longitude'] ?? null;
+                    
+                    // Fetch logo
+                    $logoPath = null;
+                    try {
+                        $stmtSett = $pdo->query("SELECT setting_value FROM settings WHERE setting_key = 'logo_light'");
+                        $logoVal = $stmtSett->fetchColumn();
+                        if ($logoVal) {
+                            $logoPath = __DIR__ . '/../' . $logoVal;
+                        }
+                    } catch(Exception $e) {}
+                    
+                    $processedPath = sys_get_temp_dir() . '/' . uniqid('img_') . '.jpg';
+                    if (ImageHelper::processAndWatermark($file['tmp_name'], $processedPath, $logoPath, $lat, $lng)) {
+                        $uploadFilepath = $processedPath;
+                        $fileName = pathinfo($file['name'], PATHINFO_FILENAME) . '.jpg';
+                        $file['type'] = 'image/jpeg';
+                    }
+                }
+                
+                // Upload to Google Drive (using specific folder ID if available, otherwise fallback to 'chat')
+                if ($ticketGdId) {
+                    $gdriveRes = GoogleDriveHelper::uploadFile($uploadFilepath, $fileName, $file['type'], null, true, $ticketGdId);
+                } else {
+                    $gdriveRes = GoogleDriveHelper::uploadFile($uploadFilepath, $fileName, $file['type'], 'chat', true);
+                }
+                
+                // Clean up processed temp file
+                if ($isImage && isset($processedPath) && file_exists($processedPath)) {
+                    @unlink($processedPath);
+                }
+                
+                if (isset($gdriveRes['success']) && $gdriveRes['success']) {
+                    $dbPath = $gdriveRes['direct_link'] ?? $gdriveRes['webContentLink'] ?? ''; // GoogleDriveHelper::uploadFile returns webContentLink, but let's check
+                    if (empty($dbPath) && isset($gdriveRes['id'])) {
+                        // Enlace de visualización si webContentLink no está
+                        $dbPath = $gdriveRes['webViewLink'];
+                    }
                     $stmtAtt = $pdo->prepare("INSERT INTO ticket_attachments (message_id, file_path, file_name) VALUES (?, ?, ?)");
-                    $stmtAtt->execute([$message_id, $dbPath, $file['name']]);
+                    $stmtAtt->execute([$message_id, $dbPath, $fileName]);
+                } else {
+                    // Fallback local
+                    $uploadDir = '../uploads/tickets/';
+                    if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+                    
+                    $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+                    $fileName = 'tkt_' . $ticket_id . '_' . time() . '_' . uniqid() . '.' . $ext;
+                    $targetPath = $uploadDir . $fileName;
+                    
+                    if (move_uploaded_file($file['tmp_name'], $targetPath)) {
+                        $dbPath = 'uploads/tickets/' . $fileName;
+                        $stmtAtt = $pdo->prepare("INSERT INTO ticket_attachments (message_id, file_path, file_name) VALUES (?, ?, ?)");
+                        $stmtAtt->execute([$message_id, $dbPath, $file['name']]);
+                    }
                 }
             }
             
@@ -264,10 +371,16 @@ try {
 
         // --- AJUSTES: CATEGORÍAS Y PRIORIDADES ---
         case 'save_category':
-            $name = $_POST['name'] ?? '';
+            $id = intval($_POST['id'] ?? 0);
+            $name = trim($_POST['name'] ?? '');
             $color = $_POST['color'] ?? '#3b82f6';
             if (empty($name)) throw new Exception('Nombre requerido');
-            $pdo->prepare("INSERT INTO ticket_categories (name, color) VALUES (?, ?)")->execute([$name, $color]);
+
+            if ($id > 0) {
+                $pdo->prepare("UPDATE ticket_categories SET name = ?, color = ? WHERE id = ?")->execute([$name, $color, $id]);
+            } else {
+                $pdo->prepare("INSERT INTO ticket_categories (name, color) VALUES (?, ?)")->execute([$name, $color]);
+            }
             echo json_encode(['success' => true]);
             break;
             
@@ -278,11 +391,17 @@ try {
             break;
             
         case 'save_priority':
-            $name = $_POST['name'] ?? '';
+            $id = intval($_POST['id'] ?? 0);
+            $name = trim($_POST['name'] ?? '');
             $color = $_POST['color'] ?? '#eab308';
-            $level = $_POST['level'] ?? 1;
+            $level = intval($_POST['level'] ?? 1);
             if (empty($name)) throw new Exception('Nombre requerido');
-            $pdo->prepare("INSERT INTO ticket_priorities (name, color, level) VALUES (?, ?, ?)")->execute([$name, $color, $level]);
+
+            if ($id > 0) {
+                $pdo->prepare("UPDATE ticket_priorities SET name = ?, color = ?, level = ? WHERE id = ?")->execute([$name, $color, $level, $id]);
+            } else {
+                $pdo->prepare("INSERT INTO ticket_priorities (name, color, level) VALUES (?, ?, ?)")->execute([$name, $color, $level]);
+            }
             echo json_encode(['success' => true]);
             break;
             

@@ -4,10 +4,9 @@ requireLogin();
 
 header('Content-Type: application/json');
 
-// Solo admin puede acceder a este módulo
-$user_role = strtolower(trim($_SESSION['user_role'] ?? ''));
-if ($user_role !== 'admin' && $user_role !== 'administrador') {
-    echo json_encode(['success' => false, 'message' => 'Acceso denegado. Solo administradores.']);
+// Verificar permisos al módulo
+if (!hasAccess($pdo, 'mochila')) {
+    echo json_encode(['success' => false, 'message' => 'Acceso denegado. No tienes permisos para este módulo.']);
     exit;
 }
 

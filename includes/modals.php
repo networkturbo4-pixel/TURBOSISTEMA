@@ -423,3 +423,9 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Global de Google Drive, Ubicación InDrive/Uber y Cámara Webcam -->
+<?php require_once __DIR__ . '/gdrive_modal.php'; ?>
+<?php require_once __DIR__ . '/location_modal.php'; ?>
+<?php require_once __DIR__ . '/webcam_modal.php'; ?>
+

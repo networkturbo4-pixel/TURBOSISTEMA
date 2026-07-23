@@ -46,7 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Clear attempts on success
                 $pdo->prepare("DELETE FROM login_attempts WHERE ip_address = ? OR identifier = ?")->execute([$ip_address, $identifier]);
                 
-                if (strtolower($user['role']) === 'cliente') {
+                $roleLowerPin = strtolower($user['role'] ?? '');
+                if ($roleLowerPin === 'cliente') {
                     $stmtC = $pdo->prepare("SELECT id FROM clientes WHERE user_id = ?");
                     $stmtC->execute([$user['id']]);
                     $cliente_id = $stmtC->fetchColumn();
@@ -56,9 +57,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         echo json_encode(['success' => true, 'redirect' => 'portal.php']);
                         exit;
                     }
+                } elseif (in_array($roleLowerPin, ['tecnico', 'técnico'])) {
+                    echo json_encode(['success' => true, 'redirect' => 'tecnico.php']);
+                    exit;
                 }
                 
-                // Tecnico redirect (same dashboard, different view)
                 echo json_encode(['success' => true, 'redirect' => 'index.php']);
             } else {
                 // Log failed attempt
@@ -83,7 +86,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Clear attempts on success
                 $pdo->prepare("DELETE FROM login_attempts WHERE ip_address = ? OR identifier = ?")->execute([$ip_address, $identifier]);
                 
-                if (strtolower($user['role']) === 'cliente') {
+                $roleLower = strtolower($user['role'] ?? '');
+                if ($roleLower === 'cliente') {
                     $stmtC = $pdo->prepare("SELECT id FROM clientes WHERE user_id = ?");
                     $stmtC->execute([$user['id']]);
                     $cliente_id = $stmtC->fetchColumn();
@@ -93,6 +97,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         echo json_encode(['success' => true, 'redirect' => 'portal.php']);
                         exit;
                     }
+                } elseif (in_array($roleLower, ['tecnico', 'técnico'])) {
+                    echo json_encode(['success' => true, 'redirect' => 'tecnico.php']);
+                    exit;
                 }
                 
                 echo json_encode(['success' => true, 'redirect' => 'index.php']);

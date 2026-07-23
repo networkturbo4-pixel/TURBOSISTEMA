@@ -38,6 +38,7 @@ $fontLink = "https://fonts.googleapis.com/css2?family=" . urlencode($typography)
     <link rel="icon" href="<?php echo BASE_URL . '/' . $favicon; ?>">
     <?php endif; ?>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/style.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/gdrive_manager.css?v=<?php echo time(); ?>">
     <link href="<?php echo $fontLink; ?>" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
@@ -56,6 +57,12 @@ $fontLink = "https://fonts.googleapis.com/css2?family=" . urlencode($typography)
         * {
             font-family: '<?php echo htmlspecialchars($typography); ?>', sans-serif !important;
         }
+        <?php if (isset($_GET['embedded']) || isset($_GET['portal'])): ?>
+        .sidebar, .sidebar-wrapper, .top-header, .app-header-admin, header:not(.embedded-header) { display: none !important; }
+        .app-container, .main-content, .content-wrapper, .container-fluid, container, main, .main-layout { margin-left: 0 !important; margin-right: 0 !important; width: 100% !important; max-width: 100% !important; padding: 12px !important; box-sizing: border-box !important; }
+        html, body { background-color: #f8fafc !important; color: #0f172a !important; overflow-y: auto !important; height: auto !important; display: block !important; margin: 0 !important; padding: 0 !important; }
+        body.dark-theme { background-color: #0f172a !important; color: #f8fafc !important; }
+        <?php endif; ?>
     </style>
     <script>
         window.AppConfig = {
@@ -91,6 +98,21 @@ $fontLink = "https://fonts.googleapis.com/css2?family=" . urlencode($typography)
                 }
             }
             return originalFetch(resource, config);
+        };
+
+        // CSRF XHR Interceptor
+        const originalXhrSend = XMLHttpRequest.prototype.send;
+        XMLHttpRequest.prototype.send = function(body) {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            if (csrfToken) {
+                try {
+                    this.setRequestHeader('X-CSRF-Token', csrfToken);
+                } catch(e) {}
+                if (body instanceof FormData && !body.has('csrf_token')) {
+                    body.append('csrf_token', csrfToken);
+                }
+            }
+            return originalXhrSend.apply(this, arguments);
         };
     </script>
 </head>

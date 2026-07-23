@@ -208,16 +208,42 @@ include '../../includes/sidebar.php';
         align-items: center;
         gap: 10px;
     }
+    
+    .tech-acta-header {
+        background: var(--surface-color);
+        padding: 16px 20px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        border: 1px solid var(--border-color);
+    }
+    .tech-acta-header h2 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--primary-color);
+    }
+    .tech-acta-folio {
+        font-size: 0.85rem;
+        font-weight: 800;
+        background: rgba(59, 130, 246, 0.1);
+        color: var(--primary-color);
+        padding: 4px 10px;
+        border-radius: 8px;
+        letter-spacing: 0.5px;
+    }
 </style>
 
-<div class="page-header-card d-flex justify-content-between align-items-center mb-4">
-    <a href="<?php echo BASE_URL; ?>/modules/actas/index.php" class="btn btn-secondary" style="background: transparent; border: none; font-weight: bold; color: var(--primary-color);">
-        <i class="ph ph-arrow-left"></i> Volver
-    </a>
-    <div class="header-info">
-        <span>PREFIJO: LIM-</span>
-        <span class="folio-text">FOLIO: <?php echo $nextFolio; ?></span>
-    </div>
+<div style="width: 100%; display: flex; flex-direction: column;">
+<div class="tech-acta-header">
+    <h2><i class="ph-bold ph-file-text"></i> Nueva Acta</h2>
+    <div class="tech-acta-folio">FOLIO: <?php echo $nextFolio; ?></div>
 </div>
 
 <form id="actaForm">
@@ -683,8 +709,8 @@ include '../../includes/sidebar.php';
             </div>
         </div>
         <div class="modal-footer" style="justify-content: center; border-top: 1px solid var(--border-color); background: transparent;">
-            <button class="btn" style="background: transparent; color: var(--text-muted); border: none; font-weight: 600;" type="button" onclick="window.location.href='index.php'">
-                Volver al listado
+            <button class="btn" style="background: var(--primary-color); color: white; border: none; font-weight: 600; padding: 12px 24px; border-radius: 12px; width: 100%;" type="button" onclick="if(window.parent && window.parent.closeTechAppModal) { window.parent.closeTechAppModal(); } else { window.location.href='../actas/index.php'; }">
+                Finalizar y Cerrar
             </button>
         </div>
         </div>
@@ -1658,5 +1684,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 </script>
+
+</div>
 
 <?php include '../../includes/footer.php'; ?>

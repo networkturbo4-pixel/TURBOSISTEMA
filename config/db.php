@@ -1,7 +1,8 @@
 <?php
 session_start();
 
-if ($_SERVER['HTTP_HOST'] === 'localhost' || $_SERVER['HTTP_HOST'] === '127.0.0.1') {
+$http_host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+if ($http_host === 'localhost' || $http_host === '127.0.0.1' || php_sapi_name() === 'cli') {
     define('BASE_URL', '/TURBOSAAS');
     $host = 'localhost';
     $dbname = 'turbosaas_db';

@@ -166,7 +166,7 @@ $clientes = $pdo->query("SELECT id, nombre_completo, dni FROM clientes ORDER BY 
         right: -450px;
         width: 400px;
         height: 100vh;
-        background: url('../../assets/img/chat-bg.png') repeat, var(--surface-color);
+        background: url('<?php echo BASE_URL; ?>/assets/img/chat-bg.png') repeat, var(--surface-color);
         background-color: #efeae2;
         box-shadow: -5px 0 15px rgba(0,0,0,0.1);
         z-index: 1050;
@@ -369,13 +369,19 @@ $clientes = $pdo->query("SELECT id, nombre_completo, dni FROM clientes ORDER BY 
             <div class="modal-body">
                 <div class="row">
                     <div class="col-md-12 mb-3">
-                        <label class="form-label">Cliente</label>
-                        <select name="cliente_id" class="form-select" required>
+                        <label class="form-label">Cliente *</label>
+                        <select name="cliente_id" id="modal_cliente_select" class="form-select" onchange="toggleManualClientInput(this.value)" required>
                             <option value="">Seleccione un cliente...</option>
+                            <option value="manual" style="font-weight: bold; color: var(--primary-color);">✍️ Escribir nombre de persona aparte (no registrar)</option>
                             <?php foreach($clientes as $cli): ?>
                                 <option value="<?php echo $cli['id']; ?>"><?php echo htmlspecialchars($cli['nombre_completo'] . ' (' . $cli['dni'] . ')'); ?></option>
                             <?php endforeach; ?>
                         </select>
+                        
+                        <div id="modal_manual_cliente_wrapper" style="display: none; margin-top: 10px;">
+                            <label class="form-label text-primary" style="font-size: 0.85rem; font-weight: 600;">Nombre Completo de la Persona *</label>
+                            <input type="text" name="cliente_nombre_manual" id="modal_cliente_nombre_manual" class="form-control" placeholder="Escribe el nombre completo (ej. Juan Pérez)...">
+                        </div>
                     </div>
                     <div class="col-md-12 mb-3">
                         <label class="form-label">Asunto</label>
@@ -451,10 +457,13 @@ $clientes = $pdo->query("SELECT id, nombre_completo, dni FROM clientes ORDER BY 
                         <thead><tr><th>Nombre</th><th>Color</th><th>Acciones</th></tr></thead>
                         <tbody id="catTableBody">
                             <?php foreach($categorias as $cat): ?>
-                            <tr>
+                            <tr id="cat_row_<?php echo $cat['id']; ?>">
                                 <td><?php echo htmlspecialchars($cat['name']); ?></td>
                                 <td><div style="width: 20px; height: 20px; background: <?php echo $cat['color']; ?>; border-radius: 4px;"></div></td>
-                                <td><button class="btn btn-sm btn-danger" onclick="deleteSetting('category', <?php echo $cat['id']; ?>)">Eliminar</button></td>
+                                <td>
+                                    <button class="btn btn-sm btn-warning me-1" onclick="startEditSetting('category', <?php echo $cat['id']; ?>)"><i class="ph ph-pencil"></i> Editar</button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteSetting('category', <?php echo $cat['id']; ?>)">Eliminar</button>
+                                </td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -475,11 +484,14 @@ $clientes = $pdo->query("SELECT id, nombre_completo, dni FROM clientes ORDER BY 
                         <thead><tr><th>Nombre</th><th>Nivel</th><th>Color</th><th>Acciones</th></tr></thead>
                         <tbody id="priTableBody">
                             <?php foreach($prioridades as $pri): ?>
-                            <tr>
+                            <tr id="pri_row_<?php echo $pri['id']; ?>">
                                 <td><?php echo htmlspecialchars($pri['name']); ?></td>
                                 <td><?php echo $pri['level']; ?></td>
                                 <td><div style="width: 20px; height: 20px; background: <?php echo $pri['color']; ?>; border-radius: 4px;"></div></td>
-                                <td><button class="btn btn-sm btn-danger" onclick="deleteSetting('priority', <?php echo $pri['id']; ?>)">Eliminar</button></td>
+                                <td>
+                                    <button class="btn btn-sm btn-warning me-1" onclick="startEditSetting('priority', <?php echo $pri['id']; ?>)"><i class="ph ph-pencil"></i> Editar</button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteSetting('priority', <?php echo $pri['id']; ?>)">Eliminar</button>
+                                </td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -529,12 +541,15 @@ $clientes = $pdo->query("SELECT id, nombre_completo, dni FROM clientes ORDER BY 
     </div>
     <div class="chat-input-area" style="position: relative;">
         <!-- Menú de Acciones Flotante -->
-        <div id="chatActionMenu" style="display: none; position: absolute; bottom: 100%; left: 15px; margin-bottom: 10px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid var(--border-color); padding: 10px; z-index: 100;">
-            <button onclick="chatFileInput.click(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.9rem;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
-                <i class="ph-fill ph-camera" style="font-size: 1.2rem; color: #3b82f6;"></i> Enviar Foto
+        <div id="chatActionMenu" style="display: none; position: absolute; bottom: 100%; left: 15px; margin-bottom: 10px; background: var(--surface-color, #fff); border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); border: 1px solid var(--border-color, #e2e8f0); padding: 8px; z-index: 100; min-width: 220px;">
+            <button type="button" onclick="openCameraInput(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: var(--text-color, #1e293b);" onmouseover="this.style.background='rgba(16,185,129,0.1)'" onmouseout="this.style.background='transparent'">
+                <i class="ph-fill ph-camera" style="font-size: 1.3rem; color: #10b981;"></i> Tomar Foto con Cámara
             </button>
-            <button onclick="sendLocation(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.9rem;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
-                <i class="ph-fill ph-map-pin" style="font-size: 1.2rem; color: #ef4444;"></i> Enviar Ubicación
+            <button type="button" onclick="openGalleryInput(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: var(--text-color, #1e293b);" onmouseover="this.style.background='rgba(59,130,246,0.1)'" onmouseout="this.style.background='transparent'">
+                <i class="ph-fill ph-image" style="font-size: 1.3rem; color: #3b82f6;"></i> Enviar Foto / Archivo
+            </button>
+            <button type="button" onclick="sendLocation(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: var(--text-color, #1e293b);" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='transparent'">
+                <i class="ph-fill ph-map-pin" style="font-size: 1.3rem; color: #ef4444;"></i> Enviar Ubicación
             </button>
         </div>
 
@@ -542,6 +557,21 @@ $clientes = $pdo->query("SELECT id, nombre_completo, dni FROM clientes ORDER BY 
             <i class="ph ph-plus-circle"></i>
         </button>
         
+        <!-- Banner de Animación de Subida Moderno -->
+        <div id="chatUploadingBanner" class="chat-upload-banner" style="display: none;">
+            <div class="chat-upload-content">
+                <div class="chat-upload-spinner"></div>
+                <div class="chat-upload-text">
+                    <div class="upload-title"><i class="ph-bold ph-cloud-arrow-up"></i> Subiendo a Google Drive...</div>
+                    <div class="upload-filename" id="chatUploadFilename">archivo.png</div>
+                </div>
+                <span id="chatUploadPercentText" style="font-size: 0.8rem; font-weight: 700; color: #3b82f6;">0%</span>
+            </div>
+            <div class="chat-upload-progress">
+                <div class="progress-bar-inner" id="chatUploadProgressFill" style="width: 0%;"></div>
+            </div>
+        </div>
+
         <div id="filePreviewContainer" style="display: none; position: absolute; bottom: 100%; left: 50px; margin-bottom: 8px; background: #3b82f6; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(59,130,246,0.3); z-index: 50;">
             <i class="ph-fill ph-image"></i>
             <span id="filePreviewName" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500;"></span>
@@ -567,7 +597,7 @@ $clientes = $pdo->query("SELECT id, nombre_completo, dni FROM clientes ORDER BY 
 <!-- Lightbox Modal -->
 <div id="imageLightbox" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:99999; align-items:center; justify-content:center; flex-direction:column; backdrop-filter: blur(5px);">
     <button onclick="document.getElementById('imageLightbox').style.display='none'" style="position:absolute; top:20px; right:20px; background:rgba(255,255,255,0.1); border:none; color:white; font-size:1.5rem; cursor:pointer; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'"><i class="ph-bold ph-x"></i></button>
-    <img id="lightboxImg" style="max-width:90%; max-height:90%; border-radius:12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); object-fit: contain;">
+    <img id="lightboxImg" referrerpolicy="no-referrer" style="max-width:90%; max-height:90%; border-radius:12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); object-fit: contain;">
 </div>
 
 <!-- Modal Papelera -->
@@ -606,6 +636,90 @@ $clientes = $pdo->query("SELECT id, nombre_completo, dni FROM clientes ORDER BY 
         align-self: center;
         display: inline-block;
     }
+    .chat-upload-banner {
+        position: absolute;
+        bottom: 105%;
+        left: 15px;
+        right: 15px;
+        background: rgba(15, 23, 42, 0.95);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(59, 130, 246, 0.4);
+        border-radius: 12px;
+        padding: 10px 14px;
+        z-index: 150;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 0 0 15px rgba(59, 130, 246, 0.2);
+        animation: slideUpFade 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .chat-upload-content {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .chat-upload-spinner {
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(59, 130, 246, 0.2);
+        border-top-color: #3b82f6;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        flex-shrink: 0;
+    }
+    .chat-upload-text {
+        flex: 1;
+        overflow: hidden;
+    }
+    .chat-upload-text .upload-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #3b82f6;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .chat-upload-text .upload-filename {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .chat-upload-progress {
+        width: 100%;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 2px;
+        margin-top: 6px;
+        overflow: hidden;
+    }
+    .progress-bar-inner {
+        height: 100%;
+        background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+        background-size: 200% 100%;
+        animation: gradientMove 1.5s linear infinite;
+        border-radius: 2px;
+        transition: width 0.15s ease;
+    }
+    .message-bubble.sending-optimistic {
+        opacity: 0.75;
+        position: relative;
+        border: 1px dashed rgba(255, 255, 255, 0.4);
+    }
+    .sending-status-tag {
+        font-size: 0.7rem;
+        color: var(--text-muted, #94a3b8);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 4px;
+    }
+    @keyframes gradientMove {
+        0% { background-position: 0% 50%; }
+        100% { background-position: 200% 50%; }
+    }
+    @keyframes slideUpFade {
+        from { transform: translateY(10px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
     .loc-card {
         background: #f8fafc;
         border: 1px solid #e2e8f0;
@@ -629,6 +743,7 @@ $clientes = $pdo->query("SELECT id, nombre_completo, dni FROM clientes ORDER BY 
     let currentChatId = null;
     let lastMessageId = 0;
     const currentUserId = <?php echo $_SESSION['user_id']; ?>;
+    const escapeHtml = (str) => String(str || '').replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
 
     const loadTickets = async () => {
         try {
@@ -705,9 +820,25 @@ $clientes = $pdo->query("SELECT id, nombre_completo, dni FROM clientes ORDER BY 
     document.getElementById('filterCategoria').addEventListener('change', renderKanban);
     document.getElementById('filterPrioridad').addEventListener('change', renderKanban);
 
+    // Alternar entrada manual de nombre de cliente
+    const toggleManualClientInput = (val) => {
+        const wrapper = document.getElementById('modal_manual_cliente_wrapper');
+        const input = document.getElementById('modal_cliente_nombre_manual');
+        if (val === 'manual') {
+            wrapper.style.display = 'block';
+            input.required = true;
+            input.focus();
+        } else {
+            wrapper.style.display = 'none';
+            input.required = false;
+            input.value = '';
+        }
+    };
+
     // Modal Nuevo Ticket
     const openNuevoTicketModal = () => {
         document.getElementById('ticketForm').reset();
+        toggleManualClientInput('');
         document.getElementById('ticketModal').classList.add('active');
     };
 
@@ -725,7 +856,7 @@ $clientes = $pdo->query("SELECT id, nombre_completo, dni FROM clientes ORDER BY 
                 document.getElementById('ticketModal').classList.remove('active');
                 loadTickets();
             } else {
-                window.showToast(res.message, 'error');
+                window.showToast(res.message || 'Error al crear ticket', 'error');
             }
         } catch (err) {
             window.showToast('Error del servidor', 'error');
@@ -735,6 +866,7 @@ $clientes = $pdo->query("SELECT id, nombre_completo, dni FROM clientes ORDER BY 
     // Ajustes
     const openAjustesModal = () => {
         document.getElementById('ajustesModal').classList.add('active');
+        refreshSettingsData();
     };
 
     const switchTab = (tab) => {
@@ -751,14 +883,174 @@ $clientes = $pdo->query("SELECT id, nombre_completo, dni FROM clientes ORDER BY 
         }
     };
 
+    let currentSettingsData = { categories: [], priorities: [] };
+
+    // Recargar datos de ajustes dinámicamente sin parpadeos ni recargas de página
+    const refreshSettingsData = async () => {
+        try {
+            const formData = new FormData();
+            formData.append('action', 'get_settings_data');
+            const res = await fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: formData }).then(r => r.json());
+            if (res.success) {
+                currentSettingsData = res;
+
+                // 1. Actualizar tabla categorías en modal
+                const catTbody = document.getElementById('catTableBody');
+                if (catTbody) {
+                    let catRows = '';
+                    res.categories.forEach(cat => {
+                        catRows += `
+                            <tr id="cat_row_${cat.id}">
+                                <td>${escapeHtml(cat.name)}</td>
+                                <td><div style="width: 20px; height: 20px; background: ${cat.color}; border-radius: 4px;"></div></td>
+                                <td>
+                                    <button class="btn btn-sm btn-warning me-1" onclick="startEditSetting('category', ${cat.id})"><i class="ph ph-pencil"></i> Editar</button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteSetting('category', ${cat.id})">Eliminar</button>
+                                </td>
+                            </tr>`;
+                    });
+                    catTbody.innerHTML = catRows || '<tr><td colspan="3" class="text-center text-muted">No hay categorías</td></tr>';
+                }
+
+                // 2. Actualizar tabla prioridades en modal
+                const priTbody = document.getElementById('priTableBody');
+                if (priTbody) {
+                    let priRows = '';
+                    res.priorities.forEach(pri => {
+                        priRows += `
+                            <tr id="pri_row_${pri.id}">
+                                <td>${escapeHtml(pri.name)}</td>
+                                <td>${pri.level}</td>
+                                <td><div style="width: 20px; height: 20px; background: ${pri.color}; border-radius: 4px;"></div></td>
+                                <td>
+                                    <button class="btn btn-sm btn-warning me-1" onclick="startEditSetting('priority', ${pri.id})"><i class="ph ph-pencil"></i> Editar</button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteSetting('priority', ${pri.id})">Eliminar</button>
+                                </td>
+                            </tr>`;
+                    });
+                    priTbody.innerHTML = priRows || '<tr><td colspan="4" class="text-center text-muted">No hay prioridades</td></tr>';
+                }
+
+                // 3. Actualizar selects de categorías y prioridades en modal de ticket
+                updateCategoryAndPrioritySelects(res.categories, res.priorities);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    window.startEditSetting = (type, id) => {
+        if (type === 'category') {
+            const cat = (currentSettingsData.categories || []).find(c => c.id == id);
+            const tr = document.getElementById(`cat_row_${id}`);
+            if (!tr) return;
+            const curName = cat ? cat.name : tr.children[0].innerText.trim();
+            const curColor = cat ? cat.color : '#3b82f6';
+            tr.innerHTML = `
+                <td><input type="text" id="edit_cat_name_${id}" class="form-control form-control-sm" value="${escapeHtml(curName)}"></td>
+                <td><input type="color" id="edit_cat_color_${id}" class="form-control form-control-sm" style="width: 40px; padding:0;" value="${curColor}"></td>
+                <td>
+                    <button class="btn btn-sm btn-success me-1" onclick="saveSettingEdit('category', ${id})">Guardar</button>
+                    <button class="btn btn-sm btn-secondary" onclick="refreshSettingsData()">Cancelar</button>
+                </td>`;
+        } else {
+            const pri = (currentSettingsData.priorities || []).find(p => p.id == id);
+            const tr = document.getElementById(`pri_row_${id}`);
+            if (!tr) return;
+            const curName = pri ? pri.name : tr.children[0].innerText.trim();
+            const curLevel = pri ? pri.level : (tr.children[1].innerText.trim() || 1);
+            const curColor = pri ? pri.color : '#eab308';
+            tr.innerHTML = `
+                <td><input type="text" id="edit_pri_name_${id}" class="form-control form-control-sm" value="${escapeHtml(curName)}"></td>
+                <td><input type="number" id="edit_pri_level_${id}" class="form-control form-control-sm" style="width: 65px;" value="${curLevel}"></td>
+                <td><input type="color" id="edit_pri_color_${id}" class="form-control form-control-sm" style="width: 40px; padding:0;" value="${curColor}"></td>
+                <td>
+                    <button class="btn btn-sm btn-success me-1" onclick="saveSettingEdit('priority', ${id})">Guardar</button>
+                    <button class="btn btn-sm btn-secondary" onclick="refreshSettingsData()">Cancelar</button>
+                </td>`;
+        }
+    };
+
+    window.saveSettingEdit = async (type, id) => {
+        const fd = new FormData();
+        fd.append('id', id);
+
+        if (type === 'category') {
+            const nameEl = document.getElementById(`edit_cat_name_${id}`);
+            const colorEl = document.getElementById(`edit_cat_color_${id}`);
+            if (!nameEl || !nameEl.value.trim()) { window.showToast('El nombre es requerido', 'error'); return; }
+            fd.append('action', 'save_category');
+            fd.append('name', nameEl.value.trim());
+            fd.append('color', colorEl ? colorEl.value : '#3b82f6');
+        } else {
+            const nameEl = document.getElementById(`edit_pri_name_${id}`);
+            const levelEl = document.getElementById(`edit_pri_level_${id}`);
+            const colorEl = document.getElementById(`edit_pri_color_${id}`);
+            if (!nameEl || !nameEl.value.trim()) { window.showToast('El nombre es requerido', 'error'); return; }
+            fd.append('action', 'save_priority');
+            fd.append('name', nameEl.value.trim());
+            fd.append('level', levelEl ? levelEl.value : 1);
+            fd.append('color', colorEl ? colorEl.value : '#eab308');
+        }
+
+        try {
+            const res = await fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd }).then(r => r.json());
+            if (res.success) {
+                window.showToast('Actualizado exitosamente', 'success');
+                await refreshSettingsData();
+            } else {
+                window.showToast(res.message || 'Error al actualizar', 'error');
+            }
+        } catch (err) {
+            window.showToast('Error de conexión', 'error');
+        }
+    };
+
+    const updateCategoryAndPrioritySelects = (categories, priorities) => {
+        const catSelect = document.querySelector('#ticketForm select[name="categoria_id"]');
+        const priSelect = document.querySelector('#ticketForm select[name="prioridad_id"]');
+        const filterCat = document.getElementById('filterCategoria');
+        const filterPri = document.getElementById('filterPrioridad');
+
+        if (catSelect) {
+            let options = '<option value="">Sin Categoría</option>';
+            categories.forEach(cat => { options += `<option value="${cat.id}">${escapeHtml(cat.name)}</option>`; });
+            catSelect.innerHTML = options;
+        }
+        if (filterCat) {
+            let options = '<option value="">Todas las Categorías</option>';
+            categories.forEach(cat => { options += `<option value="${cat.id}">${escapeHtml(cat.name)}</option>`; });
+            filterCat.innerHTML = options;
+        }
+
+        if (priSelect) {
+            let options = '<option value="">Sin Prioridad</option>';
+            priorities.forEach(pri => { options += `<option value="${pri.id}">${escapeHtml(pri.name)}</option>`; });
+            priSelect.innerHTML = options;
+        }
+        if (filterPri) {
+            let options = '<option value="">Todas las Prioridades</option>';
+            priorities.forEach(pri => { options += `<option value="${pri.id}">${escapeHtml(pri.name)}</option>`; });
+            filterPri.innerHTML = options;
+        }
+    };
+
     document.getElementById('catForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const fd = new FormData(e.target);
         fd.append('action', 'save_category');
         try {
             const res = await fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd }).then(r=>r.json());
-            if(res.success) location.reload(); else window.showToast(res.message, 'error');
-        } catch(err) {}
+            if(res.success) {
+                e.target.reset();
+                window.showToast('Categoría guardada exitosamente', 'success');
+                await refreshSettingsData();
+            } else {
+                window.showToast(res.message || 'Error al guardar categoría', 'error');
+            }
+        } catch(err) {
+            window.showToast('Error de conexión', 'error');
+        }
     });
 
     document.getElementById('priForm').addEventListener('submit', async (e) => {
@@ -767,8 +1059,16 @@ $clientes = $pdo->query("SELECT id, nombre_completo, dni FROM clientes ORDER BY 
         fd.append('action', 'save_priority');
         try {
             const res = await fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd }).then(r=>r.json());
-            if(res.success) location.reload(); else window.showToast(res.message, 'error');
-        } catch(err) {}
+            if(res.success) {
+                e.target.reset();
+                window.showToast('Prioridad guardada exitosamente', 'success');
+                await refreshSettingsData();
+            } else {
+                window.showToast(res.message || 'Error al guardar prioridad', 'error');
+            }
+        } catch(err) {
+            window.showToast('Error de conexión', 'error');
+        }
     });
 
     window.deleteSetting = async (type, id) => {
@@ -778,7 +1078,12 @@ $clientes = $pdo->query("SELECT id, nombre_completo, dni FROM clientes ORDER BY 
             fd.append('id', id);
             try {
                 const res = await fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd }).then(r=>r.json());
-                if(res.success) location.reload(); else window.showToast(res.message, 'error');
+                if(res.success) {
+                    window.showToast('Elemento eliminado', 'success');
+                    await refreshSettingsData();
+                } else {
+                    window.showToast(res.message || 'Error al eliminar', 'error');
+                }
             } catch(err) {}
         }
     };
@@ -786,7 +1091,7 @@ $clientes = $pdo->query("SELECT id, nombre_completo, dni FROM clientes ORDER BY 
     document.addEventListener('DOMContentLoaded', () => {
         loadTickets();
         setInterval(loadTickets, 10000); // Poll kanban updates
-        setInterval(loadMessages, 3000); // Poll chat messages
+        setInterval(loadMessages, 1200); // Ultra-fast chat polling (1.2s)
         
         document.getElementById('messageInput').addEventListener('keydown', (e) => {
             if(e.key === 'Enter' && !e.shiftKey) {
@@ -795,6 +1100,192 @@ $clientes = $pdo->query("SELECT id, nombre_completo, dni FROM clientes ORDER BY 
             }
         });
     });
+
+    const showUploadBanner = (filename) => {
+        const banner = document.getElementById('chatUploadingBanner');
+        const filenameEl = document.getElementById('chatUploadFilename');
+        const fillEl = document.getElementById('chatUploadProgressFill');
+        const percentEl = document.getElementById('chatUploadPercentText');
+        if (banner) {
+            filenameEl.textContent = filename || 'Archivo multimedia';
+            fillEl.style.width = '10%';
+            if (percentEl) percentEl.textContent = '10%';
+            banner.style.display = 'block';
+        }
+    };
+
+    const updateUploadProgress = (percent) => {
+        const fillEl = document.getElementById('chatUploadProgressFill');
+        const percentEl = document.getElementById('chatUploadPercentText');
+        const p = Math.min(100, Math.max(10, Math.round(percent)));
+        if (fillEl) fillEl.style.width = p + '%';
+        if (percentEl) percentEl.textContent = p + '%';
+    };
+
+    const hideUploadBanner = () => {
+        const banner = document.getElementById('chatUploadingBanner');
+        if (banner) banner.style.display = 'none';
+    };
+
+    const sendChatAjaxWithProgress = (formData, filename = null) => {
+        return new Promise((resolve, reject) => {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            if (csrfToken && !formData.has('csrf_token')) {
+                formData.append('csrf_token', csrfToken);
+            }
+
+            if (filename) showUploadBanner(filename);
+            
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '<?php echo BASE_URL; ?>/ajax/soporte.php', true);
+            if (csrfToken) {
+                xhr.setRequestHeader('X-CSRF-Token', csrfToken);
+            }
+
+            if (filename && xhr.upload) {
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const percent = (e.loaded / e.total) * 100;
+                        updateUploadProgress(percent);
+                    }
+                };
+            }
+
+            xhr.onload = () => {
+                hideUploadBanner();
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        resolve(JSON.parse(xhr.responseText));
+                    } catch (err) {
+                        reject(err);
+                    }
+                } else {
+                    reject(new Error('Error en el servidor'));
+                }
+            };
+
+            xhr.onerror = () => {
+                hideUploadBanner();
+                reject(new Error('Error de red'));
+            };
+
+            xhr.send(formData);
+        });
+    };
+
+    const sendAudioMessage = async (audioBlob) => {
+        const btnSend = document.getElementById('btnSendMessage');
+        if (btnSend) btnSend.disabled = true;
+
+        const tempId = 'opt_audio_' + Date.now();
+        const container = document.getElementById('chatMessages');
+        container.innerHTML += `
+            <div class="message-bubble message-sent sending-optimistic" id="${tempId}">
+                <div style="font-size:0.75rem; font-weight:700; color:var(--primary-color); margin-bottom:3px;">Tú</div>
+                <div style="font-size:0.85rem; font-weight:600;"><i class="ph-fill ph-microphone"></i> Grabación de audio...</div>
+                <div class="sending-status-tag"><i class="ph ph-spinner spinner"></i> Subiendo a Google Drive...</div>
+            </div>`;
+        container.scrollTop = container.scrollHeight;
+
+        const fd = new FormData();
+        fd.append('action', 'send_message');
+        fd.append('ticket_id', currentChatId);
+        fd.append('message', '');
+        fd.append('attachment', audioBlob, 'audio_record.webm');
+
+        try {
+            const res = await sendChatAjaxWithProgress(fd, 'Nota de Voz.webm');
+            const optEl = document.getElementById(tempId);
+            if (optEl) optEl.remove();
+            if (res.success) {
+                loadMessages();
+            } else {
+                window.showToast(res.message || 'Error al enviar audio', 'error');
+            }
+        } catch(e) {
+            const optEl = document.getElementById(tempId);
+            if (optEl) optEl.remove();
+            window.showToast('Error al enviar audio', 'error');
+        }
+        
+        if (btnSend) btnSend.disabled = false;
+    };
+
+    const sendMessage = async () => {
+        const input = document.getElementById('messageInput');
+        const text = input.value.trim();
+        const fileToSend = selectedFile;
+
+        if((!text && !fileToSend) || !currentChatId) return;
+
+        input.value = '';
+        input.style.height = '';
+        if (fileToSend) clearFileSelection();
+        const btnSend = document.getElementById('btnSendMessage');
+        if (btnSend) btnSend.disabled = true;
+
+        const tempId = 'opt_msg_' + Date.now();
+        const container = document.getElementById('chatMessages');
+        let fileText = fileToSend ? `<div style="font-size:0.85rem; margin-top:4px; font-weight:600; color:#3b82f6;"><i class="ph ph-file"></i> ${escapeHtml(fileToSend.name)}</div>` : '';
+        container.innerHTML += `
+            <div class="message-bubble message-sent sending-optimistic" id="${tempId}">
+                <div style="font-size:0.75rem; font-weight:700; color:var(--primary-color); margin-bottom:3px;">Tú</div>
+                <div>${escapeHtml(text)}</div>
+                ${fileText}
+                <div class="sending-status-tag"><i class="ph ph-spinner spinner"></i> ${fileToSend ? 'Subiendo a Google Drive...' : 'Enviando...'}</div>
+            </div>`;
+        container.scrollTop = container.scrollHeight;
+
+        const fd = new FormData();
+        fd.append('action', 'send_message');
+        fd.append('ticket_id', currentChatId);
+        fd.append('message', text);
+        
+        const executeSend = async () => {
+            try {
+                const res = await sendChatAjaxWithProgress(fd, fileToSend ? fileToSend.name : null);
+                const optEl = document.getElementById(tempId);
+                if (optEl) optEl.remove();
+
+                if(res.success) {
+                    loadMessages();
+                    updateMainButton();
+                } else {
+                    window.showToast(res.message || 'Error al enviar mensaje', 'error');
+                }
+            } catch(e) {
+                const optEl = document.getElementById(tempId);
+                if (optEl) optEl.remove();
+                if (btnSend) btnSend.disabled = false;
+                window.showToast('Error de conexión', 'error');
+            }
+        };
+
+        if (fileToSend) {
+            fd.append('attachment', fileToSend);
+            if (fileToSend.type.startsWith('image/')) {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            fd.append('latitude', pos.coords.latitude);
+                            fd.append('longitude', pos.coords.longitude);
+                            executeSend();
+                        },
+                        (err) => {
+                            // GPS denegado o error, igual enviamos sin coordenadas
+                            executeSend();
+                        },
+                        { timeout: 5000 }
+                    );
+                    return; // Wait for callback
+                }
+            }
+        }
+        
+        executeSend();
+        
+        if (btnSend) btnSend.disabled = false;
+    };
 
     const formatTime = (dateStr) => {
         const d = new Date(dateStr);
@@ -940,13 +1431,13 @@ $clientes = $pdo->query("SELECT id, nombre_completo, dni FROM clientes ORDER BY 
                         if (msgContent.startsWith('[LOCATION:') && msgContent.endsWith(']')) {
                             const coords = msgContent.replace('[LOCATION:', '').replace(']', '');
                             msgContent = `
-                                <a href="https://maps.google.com/?q=${coords}" target="_blank" class="loc-card">
-                                    <div style="background: #ef4444; color: white; padding: 10px; border-radius: 8px;"><i class="ph-fill ph-map-pin" style="font-size: 1.5rem;"></i></div>
+                                <div onclick="openLocationViewer('${coords}')" class="loc-card" style="cursor: pointer;">
+                                    <div style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 10px; border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(16,185,129,0.3);"><i class="ph-fill ph-navigation-arrow" style="font-size: 1.3rem;"></i></div>
                                     <div>
-                                        <div style="font-weight: 600; font-size: 0.9rem;">Ubicación compartida</div>
-                                        <div style="font-size: 0.75rem; color: #64748b;">Toca para abrir el mapa</div>
+                                        <div style="font-weight: 700; font-size: 0.88rem;">Ubicación compartida</div>
+                                        <div style="font-size: 0.75rem; color: #10b981; font-weight: 600; display: flex; align-items: center; gap: 4px; margin-top: 2px;"><i class="ph-fill ph-map-pin"></i> Ver en Mapa App Interactivo</div>
                                     </div>
-                                </a>
+                                </div>
                             `;
                         }
 
@@ -954,12 +1445,15 @@ $clientes = $pdo->query("SELECT id, nombre_completo, dni FROM clientes ORDER BY 
                         let attHtml = '';
                         if (msg.attachments && msg.attachments.length > 0) {
                             msg.attachments.forEach(att => {
-                                const url = `${'<?php echo BASE_URL; ?>/'}${att.file_path}`;
+                                let url = att.file_path;
+                                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                                    url = `<?php echo BASE_URL; ?>/` + url;
+                                }
                                 const ext = att.file_name.split('.').pop().toLowerCase();
                                 if (['webm', 'mp3', 'ogg', 'wav', 'm4a'].includes(ext)) {
                                     attHtml += `<audio controls src="${url}" style="max-width: 100%; margin-top: 5px; outline: none; height: 35px;"></audio>`;
                                 } else {
-                                    attHtml += `<img src="${url}" onclick="openLightbox('${url}')" style="cursor: pointer; max-width: 100%; border-radius: 8px; margin-top: 5px; border: 1px solid rgba(0,0,0,0.1); transition: opacity 0.2s;" onmouseover="this.style.opacity=0.9" onmouseout="this.style.opacity=1">`;
+                                    attHtml += `<img src="${url}" referrerpolicy="no-referrer" onclick="openLightbox('${url}')" style="cursor: pointer; max-width: 100%; border-radius: 8px; margin-top: 5px; border: 1px solid rgba(0,0,0,0.1); transition: opacity 0.2s;" onmouseover="this.style.opacity=0.9" onmouseout="this.style.opacity=1">`;
                                 }
                             });
                         }
@@ -996,12 +1490,21 @@ $clientes = $pdo->query("SELECT id, nombre_completo, dni FROM clientes ORDER BY 
 
     let selectedFile = null;
     
-    // Create file input dynamically to avoid global UI plugins (like Dropify) auto-initializing it
-    const chatFileInput = document.createElement('input');
-    chatFileInput.type = 'file';
-    chatFileInput.accept = 'image/*';
-    chatFileInput.capture = 'environment';
-    chatFileInput.onchange = (e) => handleFileSelect(e.target);
+    // Cámara en Vivo (Cámara trasera por defecto)
+    const chatCameraInput = document.createElement('input');
+    chatCameraInput.type = 'file';
+    chatCameraInput.accept = 'image/*';
+    chatCameraInput.capture = 'environment';
+    chatCameraInput.onchange = (e) => handleFileSelect(e.target);
+
+    // Selección de Galería / Documentos
+    const chatGalleryInput = document.createElement('input');
+    chatGalleryInput.type = 'file';
+    chatGalleryInput.accept = 'image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx';
+    chatGalleryInput.onchange = (e) => handleFileSelect(e.target);
+
+    const openCameraInput = () => triggerSmartCameraInput();
+    const openGalleryInput = () => chatGalleryInput.click();
 
     const toggleActionMenu = () => {
         const menu = document.getElementById('chatActionMenu');
@@ -1010,7 +1513,8 @@ $clientes = $pdo->query("SELECT id, nombre_completo, dni FROM clientes ORDER BY 
 
     const clearFileSelection = () => {
         selectedFile = null;
-        chatFileInput.value = '';
+        chatCameraInput.value = '';
+        chatGalleryInput.value = '';
         document.getElementById('filePreviewContainer').style.display = 'none';
         updateMainButton();
     };
@@ -1136,57 +1640,7 @@ $clientes = $pdo->query("SELECT id, nombre_completo, dni FROM clientes ORDER BY 
         }
     };
 
-    const sendAudioMessage = async (audioBlob) => {
-        const btnSend = document.getElementById('btnSendMessage');
-        btnSend.disabled = true;
 
-        const fd = new FormData();
-        fd.append('action', 'send_message');
-        fd.append('ticket_id', currentChatId);
-        fd.append('message', '');
-        fd.append('attachment', audioBlob, 'audio_record.webm');
-
-        try {
-            const res = await fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd }).then(r=>r.json());
-            if(res.success) {
-                loadMessages();
-            }
-        } catch(e) {}
-        
-        btnSend.disabled = false;
-    };
-
-    const sendMessage = async () => {
-        const input = document.getElementById('messageInput');
-        const text = input.value.trim();
-        if((!text && !selectedFile) || !currentChatId) return;
-
-        input.value = '';
-        input.style.height = '';
-        const btnSend = document.getElementById('btnSendMessage');
-        btnSend.disabled = true;
-
-        const fd = new FormData();
-        fd.append('action', 'send_message');
-        fd.append('ticket_id', currentChatId);
-        fd.append('message', text);
-        if (selectedFile) {
-            fd.append('attachment', selectedFile);
-            clearFileSelection();
-        }
-
-        try {
-            const res = await fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd }).then(r=>r.json());
-            if(res.success) {
-                loadMessages();
-                updateMainButton();
-            } else {
-                window.showToast(res.message, 'error');
-            }
-        } catch(e) {}
-        
-        btnSend.disabled = false;
-    };
 
     // Custom confirm modal helper
     function soporteConfirm(title, msg) {
