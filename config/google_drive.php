@@ -9,6 +9,11 @@
  *    (El ID se encuentra en la URL de la carpeta: drive.google.com/drive/folders/[ESTE_ID])
  */
 
+// Cargar variables de entorno si existen
+if (file_exists(__DIR__ . '/env.php')) {
+    require_once __DIR__ . '/env.php';
+}
+
 if (!defined('GDRIVE_CREDENTIALS_PATH')) {
     define('GDRIVE_CREDENTIALS_PATH', __DIR__ . '/google-credentials.json');
 }

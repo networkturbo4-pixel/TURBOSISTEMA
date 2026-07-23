@@ -13,23 +13,50 @@ $redirectUri = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https"
 $clientId = GDRIVE_CLIENT_ID;
 $clientSecret = GDRIVE_CLIENT_SECRET;
 
+function save_config_val($key, $value) {
+    $envFile = __DIR__ . '/config/env.php';
+    if (file_exists($envFile)) {
+        $content = file_get_contents($envFile);
+        $pattern = "/define\('{$key}',\s*'.*?'\);/";
+        $replacement = "define('{$key}', '{$value}');";
+        if (preg_match($pattern, $content)) {
+            $content = preg_replace($pattern, $replacement, $content);
+        } else {
+            $content = rtrim($content);
+            if (substr($content, -2) === '?>') {
+                $content = substr($content, 0, -2) . "\ndefine('{$key}', '{$value}');\n?>";
+            } else {
+                $content .= "\ndefine('{$key}', '{$value}');\n";
+            }
+        }
+        file_put_contents($envFile, $content);
+        return 'config/env.php';
+    } else {
+        $configFile = __DIR__ . '/config/google_drive.php';
+        $content = file_get_contents($configFile);
+        $pattern = "/define\('{$key}',\s*'.*?'\);/";
+        $replacement = "define('{$key}', '{$value}');";
+        if (preg_match($pattern, $content)) {
+            $content = preg_replace($pattern, $replacement, $content);
+            file_put_contents($configFile, $content);
+        }
+        return 'config/google_drive.php';
+    }
+}
+
 // Si se recibe petición de guardado
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_keys'])) {
     $cId = trim($_POST['client_id']);
     $cSec = trim($_POST['client_secret']);
     $rTok = trim($_POST['refresh_token'] ?? '');
 
-    $configFile = __DIR__ . '/config/google_drive.php';
-    $content = file_get_contents($configFile);
-
-    $content = preg_replace("/define\('GDRIVE_CLIENT_ID',\s*'.*?'\);/", "define('GDRIVE_CLIENT_ID', '{$cId}');", $content);
-    $content = preg_replace("/define\('GDRIVE_CLIENT_SECRET',\s*'.*?'\);/", "define('GDRIVE_CLIENT_SECRET', '{$cSec}');", $content);
+    $savedIn = save_config_val('GDRIVE_CLIENT_ID', $cId);
+    save_config_val('GDRIVE_CLIENT_SECRET', $cSec);
     if (!empty($rTok)) {
-        $content = preg_replace("/define\('GDRIVE_REFRESH_TOKEN',\s*'.*?'\);/", "define('GDRIVE_REFRESH_TOKEN', '{$rTok}');", $content);
+        save_config_val('GDRIVE_REFRESH_TOKEN', $rTok);
     }
 
-    file_put_contents($configFile, $content);
-    echo "<div style='padding:15px; background:#dcfce7; color:#15803d; border-radius:8px; margin-bottom:20px; font-family:sans-serif;'>✓ Credenciales guardadas exitosamente en config/google_drive.php</div>";
+    echo "<div style='padding:15px; background:#dcfce7; color:#15803d; border-radius:8px; margin-bottom:20px; font-family:sans-serif;'>✓ Credenciales guardadas exitosamente en {$savedIn}</div>";
     
     // Recargar valores
     $clientId = $cId;
@@ -92,13 +119,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_keys'])) {
                 if (isset($token['refresh_token'])) {
                     $refreshToken = $token['refresh_token'];
                     
-                    // Auto-guardar en config/google_drive.php
-                    $configFile = __DIR__ . '/config/google_drive.php';
-                    $content = file_get_contents($configFile);
-                    $content = preg_replace("/define\('GDRIVE_REFRESH_TOKEN',\s*'.*?'\);/", "define('GDRIVE_REFRESH_TOKEN', '{$refreshToken}');", $content);
-                    file_put_contents($configFile, $content);
+                    // Auto-guardar en env.php o google_drive.php
+                    $savedIn = save_config_val('GDRIVE_REFRESH_TOKEN', $refreshToken);
 
-                    echo "<h3 style='color:#16a34a;'>¡Refresh Token Generado y Guardado Automáticamente! 🎉</h3>";
+                    echo "<h3 style='color:#16a34a;'>¡Refresh Token Generado y Guardado Automáticamente en {$savedIn}! 🎉</h3>";
                     echo "<p>Tu token de actualización es:</p>";
                     echo "<div class='code-box'>" . htmlspecialchars($refreshToken) . "</div>";
                     echo "<p style='margin-top:20px;'><a href='test_gdrive.php' class='btn btn-success'>🚀 Probar Subida a Google Drive Ahora</a></p>";
