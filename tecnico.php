@@ -1273,24 +1273,23 @@ $equiposMochila = $stmtUserEquip->fetchAll();
                                         
                                         if (isVideo) {
                                             const isDriveUrl = url.includes('drive.google.com');
+                                            let videoSrc = url;
+                                            
                                             if (isDriveUrl) {
-                                                let embedUrl = url;
-                                                // Convertir cualquier URL de Drive a formato /preview
                                                 const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
                                                 const ucIdMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
                                                 const driveFileId = fileIdMatch ? fileIdMatch[1] : (ucIdMatch ? ucIdMatch[1] : null);
                                                 
                                                 if (driveFileId) {
-                                                    embedUrl = `https://drive.google.com/file/d/${driveFileId}/preview`;
-                                                } else if (url.includes('/view')) {
-                                                    embedUrl = url.replace(/\/view.*$/, '/preview');
+                                                    // Usamos enlace directo de descarga para evitar el mensaje de "Procesando" de Drive
+                                                    // y permitir reproducción inmediata en el reproductor nativo
+                                                    videoSrc = `https://drive.google.com/uc?export=download&id=${driveFileId}`;
                                                 }
-                                                attHtml += `<div style="margin-top: 6px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);"><iframe src="${embedUrl}" width="100%" height="220" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen style="border:0;"></iframe></div>`;
-                                            } else {
-                                                attHtml += `<video controls playsinline preload="metadata" style="max-width: 100%; border-radius: 10px; margin-top: 6px; border: 1px solid rgba(255,255,255,0.1); background: #000;">
-                                                    <source src="${url}" type="video/${ext === 'webm' ? 'webm' : ext === 'mov' ? 'quicktime' : 'mp4'}">Tu navegador no soporta video.
-                                                </video>`;
                                             }
+                                            
+                                            attHtml += `<video controls playsinline preload="metadata" style="max-width: 100%; border-radius: 10px; margin-top: 6px; border: 1px solid rgba(255,255,255,0.1); background: #000;">
+                                                <source src="${videoSrc}" type="video/${ext === 'webm' ? 'webm' : ext === 'mov' ? 'quicktime' : 'mp4'}">Tu navegador no soporta video.
+                                            </video>`;
                                         } else if (isAudio) {
                                             attHtml += `<audio controls src="${url}" style="max-width: 100%; margin-top: 5px; outline: none; height: 35px;"></audio>`;
                                         } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
