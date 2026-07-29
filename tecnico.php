@@ -1050,7 +1050,7 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             </div>
 
             <!-- Input Area Footer -->
-            <div style="padding: 10px 14px calc(20px + env(safe-area-inset-bottom, 0px)); background: #0f172a; display: flex; align-items: flex-end; gap: 8px; position: relative; flex-wrap: nowrap; border-top: 1px solid rgba(255,255,255,0.05);">
+            <div style="box-sizing: border-box; width: 100%; padding: 10px 14px calc(20px + env(safe-area-inset-bottom, 0px)); background: #0f172a; display: flex; align-items: flex-end; gap: 8px; position: relative; flex-wrap: nowrap; border-top: 1px solid rgba(255,255,255,0.05);">
                 
                 <!-- Inputs ocultos -->
                 <input type="file" id="techFileInput" accept="image/*,video/*,application/pdf" style="display:none;" onchange="handleFileSelect(this)">
