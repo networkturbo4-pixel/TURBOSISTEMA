@@ -1351,6 +1351,7 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             input.style.height = ''; 
             input.style.height = input.scrollHeight + 'px';
             updateTechMainButton();
+            toggleEmojiPicker();
         };
 
         const updateTechMainButton = () => {
