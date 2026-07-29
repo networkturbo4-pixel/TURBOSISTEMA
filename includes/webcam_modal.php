@@ -47,8 +47,9 @@ function triggerSmartCameraInput() {
     
     if (isMobile) {
         // En celulares y tablets, usar el disparador nativo de la cámara del SO
-        if (typeof chatCameraInput !== 'undefined') {
-            chatCameraInput.click();
+        const camInput = document.getElementById('chatCameraInput');
+        if (camInput) {
+            camInput.click();
         }
     } else {
         // En PC/Laptop, abrir la cámara webcam en vivo en el visor modal WebRTC
@@ -76,8 +77,9 @@ async function openWebcamModal() {
     } catch (err) {
         console.warn('getUserMedia falló o fue denegado, recurriendo a la carga nativa:', err);
         closeWebcamModal();
-        if (typeof chatCameraInput !== 'undefined') {
-            chatCameraInput.click();
+        const camInput = document.getElementById('chatCameraInput');
+        if (camInput) {
+            camInput.click();
         }
     }
 }
