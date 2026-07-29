@@ -95,6 +95,7 @@ $equiposMochila = $stmtUserEquip->fetchAll();
     <title>Portal de Técnico - Turbo SaaS</title>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/style.css">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
     <style>
         :root {
             --app-bg: #0b0f19;
@@ -1085,27 +1086,8 @@ $equiposMochila = $stmtUserEquip->fetchAll();
                 </div>
 
                 <!-- Emoji Picker -->
-                <div id="techEmojiPicker" style="display: none; position: absolute; bottom: 100%; left: 14px; margin-bottom: 12px; background: #1e293b; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); padding: 14px; z-index: 100; width: 280px; max-height: 220px; overflow-y: auto;">
-                    <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; text-align: center;">
-                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('😀')">😀</span>
-                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('😂')">😂</span>
-                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('😍')">😍</span>
-                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('🙏')">🙏</span>
-                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('👍')">👍</span>
-                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('🔥')">🔥</span>
-                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('✅')">✅</span>
-                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('❌')">❌</span>
-                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('😅')">😅</span>
-                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('😎')">😎</span>
-                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('🎉')">🎉</span>
-                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('🤔')">🤔</span>
-                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('🙌')">🙌</span>
-                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('💡')">💡</span>
-                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('🔧')">🔧</span>
-                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('🛠️')">🛠️</span>
-                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('🚗')">🚗</span>
-                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('📱')">📱</span>
-                    </div>
+                <div id="emojiPicker" style="display: none; position: absolute; bottom: 100%; left: 0; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; margin-bottom: 8px; z-index: 100; box-shadow: 0 10px 25px rgba(0,0,0,0.5); overflow: hidden;">
+                    <emoji-picker class="dark" style="--background: #1e293b; --border-color: rgba(255,255,255,0.1); --num-columns: 7; --category-font-size: 0.9rem; --indicator-color: #10b981; --input-border-color: rgba(255,255,255,0.2); --input-font-color: white; height: 350px; width: 320px;"></emoji-picker>
                 </div>
 
                 <!-- Input Bubble (WhatsApp style) -->
@@ -1139,6 +1121,9 @@ $equiposMochila = $stmtUserEquip->fetchAll();
     <!-- Modales de Mapa InDrive/Uber y Cámara Webcam -->
     <?php require_once __DIR__ . '/includes/location_modal.php'; ?>
     <?php require_once __DIR__ . '/includes/webcam_modal.php'; ?>
+
+    <!-- Carga de Emoji Picker -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
 
     <script>
         let currentTechTicketId = null;
@@ -1350,18 +1335,22 @@ $equiposMochila = $stmtUserEquip->fetchAll();
         };
 
         const toggleEmojiPicker = () => {
-            const picker = document.getElementById('techEmojiPicker');
+            const picker = document.getElementById('emojiPicker');
             picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
         };
+
+        // Manejo del evento del emoji picker
+        document.querySelector('emoji-picker').addEventListener('emoji-click', event => {
+            insertEmoji(event.detail.unicode);
+        });
 
         const insertEmoji = (emoji) => {
             const input = document.getElementById('techMessageInput');
             input.value += emoji;
+            input.focus();
             input.style.height = ''; 
             input.style.height = input.scrollHeight + 'px';
             updateTechMainButton();
-            toggleEmojiPicker();
-            input.focus();
         };
 
         const updateTechMainButton = () => {
