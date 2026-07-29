@@ -2,7 +2,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
-<div id="mediaPreviewModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999999; background: #000; display: none;">
+<div id="mediaPreviewModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999999; background: #000; display: none; overflow: hidden;">
     
     <!-- Top Bar -->
     <div style="position: absolute; top: 0; left: 0; right: 0; padding: 16px 16px calc(16px + env(safe-area-inset-top, 0px)); display: flex; justify-content: space-between; align-items: center; z-index: 20; background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, transparent 100%); pointer-events: none;">
