@@ -1054,7 +1054,7 @@ $equiposMochila = $stmtUserEquip->fetchAll();
                 
                 <!-- Inputs ocultos -->
                 <input type="file" id="techFileInput" accept="image/*,video/*,application/pdf" style="display:none;" onchange="handleFileSelect(this)">
-                <input type="file" id="chatCameraInput" accept="image/*,video/*" capture="environment" style="display:none;" onchange="handleFileSelect(this)">
+                <input type="file" id="chatCameraInput" accept="image/*" capture="environment" style="display:none;" onchange="handleFileSelect(this)">
                 
                 <!-- Menú de Adjuntos (Estilo Grid Bottom) -->
                 <div id="techChatActionMenu" style="display: none; position: absolute; bottom: 100%; left: 14px; right: 70px; margin-bottom: 12px; background: #1e293b; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); padding: 20px; z-index: 100;">
