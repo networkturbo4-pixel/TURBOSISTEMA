@@ -13,9 +13,9 @@ window.GDriveManager = window.GDriveManager || {
     isModalMode: false,
 
     getBaseUrl: function () {
-        if (window.BASE_URL) return window.BASE_URL;
+        if (typeof window.BASE_URL !== 'undefined') return window.BASE_URL;
         const meta = document.querySelector('meta[name="base-url"]');
-        if (meta && meta.getAttribute('content')) return meta.getAttribute('content');
+        if (meta && meta.hasAttribute('content')) return meta.getAttribute('content');
         return '/TURBOSAAS';
     },
 

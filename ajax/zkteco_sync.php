@@ -4,6 +4,7 @@ require_once '../vendor/autoload.php';
 requireLogin();
 
 header('Content-Type: application/json');
+ini_set('display_errors', '0'); // Evitar que warnings de PHP (ej. fsockopen timeout) rompan el JSON
 
 use Rats\Zkteco\Lib\ZKTeco;
 
@@ -21,6 +22,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $ip = $settings['zkteco_ip'] ?? '192.168.1.201';
             $port = $settings['zkteco_port'] ?? '4370';
+
+            // Liberar la sesión para no bloquear el sistema si hay timeout
+            session_write_close();
+            
+            // Reducir el timeout de los sockets a 5 segundos para que falle rápido
+            ini_set('default_socket_timeout', 5);
 
             $zk = new ZKTeco($ip, $port);
             if (!$zk->connect()) {

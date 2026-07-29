@@ -349,22 +349,29 @@ $primaryColor = '#064e3b'; // Default
         </div>
     <?php else: ?>
     <div class="chat-input-area" style="position: relative;">
-        <!-- Menú de Acciones Flotante -->
-        <div id="chatActionMenu" style="display: none; position: absolute; bottom: 100%; left: 15px; margin-bottom: 10px; background: #fff; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); border: 1px solid #e2e8f0; padding: 8px; z-index: 100; min-width: 220px;">
-            <button type="button" onclick="openCameraInput(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: #1e293b;" onmouseover="this.style.background='rgba(16,185,129,0.1)'" onmouseout="this.style.background='transparent'">
-                <i class="ph-fill ph-camera" style="font-size: 1.3rem; color: #10b981;"></i> Tomar Foto con Cámara
-            </button>
-            <button type="button" onclick="openGalleryInput(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: #1e293b;" onmouseover="this.style.background='rgba(59,130,246,0.1)'" onmouseout="this.style.background='transparent'">
-                <i class="ph-fill ph-image" style="font-size: 1.3rem; color: #3b82f6;"></i> Enviar Foto / Archivo
-            </button>
-            <button type="button" onclick="sendLocation(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: #1e293b;" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='transparent'">
-                <i class="ph-fill ph-map-pin" style="font-size: 1.3rem; color: #ef4444;"></i> Enviar Ubicación
-            </button>
-        </div>
+        <div style="padding: 10px 15px; background: #f0f2f5; display: flex; align-items: center; gap: 6px; position: relative; flex-wrap: nowrap;">
+            
+            <!-- Actions Menu (Optional now, but kept for location/files) -->
+            <div id="chatActionMenu" style="display: none; position: absolute; bottom: 100%; left: 15px; margin-bottom: 10px; background: #ffffff; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid rgba(0,0,0,0.05); padding: 8px; z-index: 100; min-width: 220px;">
+                <button type="button" onclick="openCameraInput(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.95rem; font-weight: 500; color: #333;">
+                    <i class="ph-fill ph-camera" style="font-size: 1.3rem; color: #10b981;"></i> Cámara
+                </button>
+                <button type="button" onclick="openGalleryInput(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.95rem; font-weight: 500; color: #333;">
+                    <i class="ph-fill ph-image" style="font-size: 1.3rem; color: #3b82f6;"></i> Fotos y Videos
+                </button>
+                <button type="button" onclick="sendLocation(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.95rem; font-weight: 500; color: #333;">
+                    <i class="ph-fill ph-map-pin" style="font-size: 1.3rem; color: #ef4444;"></i> Ubicación
+                </button>
+            </div>
 
-        <button onclick="toggleActionMenu()" style="background: transparent; border: none; font-size: 1.5rem; color: #94a3b8; cursor: pointer; padding: 0 10px;">
-            <i class="ph ph-plus-circle"></i>
-        </button>
+            <button type="button" onclick="toggleActionMenu()" style="background: transparent; border: none; font-size: 1.5rem; color: #64748b; cursor: pointer; padding: 4px;">
+                <i class="ph-bold ph-plus-circle"></i>
+            </button>
+
+            <div class="chat-input-wrapper" style="flex: 1; display: flex; flex-direction: column;">
+                <textarea id="messageInput" placeholder="Mensaje..." rows="1" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'; updateMainButton();"></textarea>
+            </div>
+        </div>
         
         <!-- Banner de Animación de Subida Moderno -->
         <div id="chatUploadingBanner" class="chat-upload-banner" style="display: none;">
@@ -413,7 +420,7 @@ $primaryColor = '#064e3b'; // Default
 </div>
 
 <!-- Lightbox Modal -->
-<div id="imageLightbox" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; flex-direction:column; backdrop-filter: blur(5px);">
+<div id="imageLightbox" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999999; align-items:center; justify-content:center; flex-direction:column; backdrop-filter: blur(5px);">
     <button onclick="document.getElementById('imageLightbox').style.display='none'" style="position:absolute; top:20px; right:20px; background:rgba(255,255,255,0.1); border:none; color:white; font-size:1.5rem; cursor:pointer; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'"><i class="ph-bold ph-x"></i></button>
     <img id="lightboxImg" style="max-width:90%; max-height:90%; border-radius:12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); object-fit: contain;">
 </div>
@@ -480,10 +487,30 @@ $primaryColor = '#064e3b'; // Default
                                     url = `<?php echo BASE_URL; ?>/` + url;
                                 }
                                 const ext = att.file_name.split('.').pop().toLowerCase();
-                                if (['webm', 'mp3', 'ogg', 'wav', 'm4a'].includes(ext)) {
+                                const isVideo = ['mp4', 'mov', 'avi', 'mkv'].includes(ext) || (ext === 'webm' && !att.file_name.includes('Nota de Voz'));
+                                const isAudio = ['mp3', 'ogg', 'wav', 'm4a'].includes(ext) || (ext === 'webm' && att.file_name.includes('Nota de Voz'));
+                                
+                                if (isVideo) {
+                                    if (url.includes('drive.google.com')) {
+                                        let embedUrl = url;
+                                        if (url.includes('/view')) {
+                                            embedUrl = url.replace(/\/view.*$/, '/preview');
+                                        } else if (url.includes('uc?id=')) {
+                                            const idMatch = url.match(/id=([^&]+)/);
+                                            if (idMatch) embedUrl = `https://drive.google.com/file/d/${idMatch[1]}/preview`;
+                                        }
+                                        attHtml += `<div style="margin-top: 6px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(0,0,0,0.1);"><iframe src="${embedUrl}" width="100%" height="220" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe></div>`;
+                                    } else {
+                                        attHtml += `<video controls preload="metadata" style="max-width: 100%; border-radius: 10px; margin-top: 6px; border: 1px solid rgba(0,0,0,0.1); background: #000;">
+                                            <source src="${url}">Tu navegador no soporta video.
+                                        </video>`;
+                                    }
+                                } else if (isAudio) {
                                     attHtml += `<audio controls src="${url}" style="max-width: 100%; margin-top: 5px; outline: none; height: 35px;"></audio>`;
-                                } else {
+                                } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
                                     attHtml += `<img src="${url}" referrerpolicy="no-referrer" onclick="openLightbox('${url}')" style="cursor: pointer; max-width: 100%; border-radius: 8px; margin-top: 5px; border: 1px solid rgba(0,0,0,0.1); transition: opacity 0.2s;" onmouseover="this.style.opacity=0.9" onmouseout="this.style.opacity=1">`;
+                                } else {
+                                    attHtml += `<div style="margin-top: 5px;"><a href="${url}" target="_blank" style="color: inherit; text-decoration: underline; font-weight: 600;"><i class="ph-fill ph-file"></i> ${escapeHtml(att.file_name)}</a></div>`;
                                 }
                             });
                         }

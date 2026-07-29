@@ -750,10 +750,10 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.append('action', 'save_settings');
 
         // Checkbox states not in formData if unchecked, we should manually append them or just let the backend handle '0' if missing.
-        if (!document.getElementById('global_notification_push').checked) {
+        if (!document.getElementById('global_notification_push')?.checked) {
             formData.append('settings[global_notification_push]', '0');
         }
-        if (!document.getElementById('receipt_show_history').checked) {
+        if (!document.getElementById('receipt_show_history')?.checked) {
             formData.append('settings[receipt_show_history]', '0');
         }
 

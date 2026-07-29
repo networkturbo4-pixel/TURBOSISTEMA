@@ -624,6 +624,99 @@ $equiposMochila = $stmtUserEquip->fetchAll();
         .nav-tab.active {
             color: #10b981;
         }
+        /* Upload Banner Styles */
+        .chat-upload-banner {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255,255,255,0.05) inset;
+            animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .chat-upload-content {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .chat-upload-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgba(59, 130, 246, 0.2);
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            flex-shrink: 0;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+        }
+
+        .chat-upload-text {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .upload-title {
+            color: #f8fafc;
+            font-weight: 700;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .upload-title i {
+            color: #3b82f6;
+            font-size: 1.1rem;
+            animation: bounce 2s infinite;
+        }
+
+        .upload-filename {
+            color: #94a3b8;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 500;
+        }
+
+        .chat-upload-progress {
+            height: 8px;
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .progress-bar-inner {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #60a5fa, #3b82f6);
+            background-size: 200% 100%;
+            border-radius: 6px;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: shimmerProgress 2s linear infinite;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+
+        @keyframes shimmerProgress {
+            0% { background-position: 100% 0; }
+            100% { background-position: -100% 0; }
+        }
+
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(15px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
     </style>
 </head>
 <body class="tecnico-portal-page">
@@ -893,7 +986,7 @@ $equiposMochila = $stmtUserEquip->fetchAll();
     </div>
 
     <!-- Modal de Chat En Vivo para Técnico (100% Dentro del Portal) -->
-    <div class="modal-overlay" id="techChatModal" style="z-index: 10000; background: rgba(11, 15, 25, 0.96); backdrop-filter: blur(14px); display: none; padding: 0;">
+    <div class="modal-overlay" id="techChatModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; height: 100dvh; width: 100%; z-index: 99999; background: rgba(11, 15, 25, 0.96); backdrop-filter: blur(14px); display: none; padding: 0;">
         <div style="width: 100%; height: 100%; max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; background: #0f172a; color: white;">
             
             <!-- Header Chat App -->
@@ -957,23 +1050,24 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             </div>
 
             <!-- Input Area Footer -->
-            <div style="padding: 12px 16px; background: #1e293b; border-top: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 10px; position: relative;">
+            <div style="padding: 12px 16px calc(24px + env(safe-area-inset-bottom, 0px)); background: #1e293b; border-top: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 6px; position: relative; flex-wrap: nowrap;">
                 
                 <!-- Actions Menu -->
+                <input type="file" id="techFileInput" style="display:none;" onchange="handleFileSelect(this)">
                 <div id="techChatActionMenu" style="display: none; position: absolute; bottom: 100%; left: 16px; margin-bottom: 10px; background: #0f172a; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); padding: 8px; z-index: 100; min-width: 220px;">
                     <button type="button" onclick="triggerSmartCameraInput(); toggleTechActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: #fff;">
-                        <i class="ph-fill ph-camera" style="font-size: 1.3rem; color: #10b981;"></i> Tomar Foto con Cámara
+                        <i class="ph-fill ph-camera" style="font-size: 1.3rem; color: #10b981;"></i> Cámara
                     </button>
                     <button type="button" onclick="openGalleryInput(); toggleTechActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: #fff;">
-                        <i class="ph-fill ph-image" style="font-size: 1.3rem; color: #3b82f6;"></i> Enviar Foto / Archivo
+                        <i class="ph-fill ph-image" style="font-size: 1.3rem; color: #3b82f6;"></i> Fotos y Videos
                     </button>
                     <button type="button" onclick="sendTechLocation(); toggleTechActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: #fff;">
-                        <i class="ph-fill ph-map-pin" style="font-size: 1.3rem; color: #ef4444;"></i> Enviar Ubicación
+                        <i class="ph-fill ph-map-pin" style="font-size: 1.3rem; color: #ef4444;"></i> Ubicación
                     </button>
                 </div>
 
-                <button type="button" onclick="toggleTechActionMenu()" style="background: transparent; border: none; font-size: 1.5rem; color: #94a3b8; cursor: pointer;">
-                    <i class="ph ph-plus-circle"></i>
+                <button type="button" onclick="toggleTechActionMenu()" style="background: transparent; border: none; font-size: 1.5rem; color: #94a3b8; cursor: pointer; padding: 4px;">
+                    <i class="ph-bold ph-plus-circle"></i>
                 </button>
 
                 <textarea id="techMessageInput" placeholder="Escribe un mensaje..." rows="1" style="flex: 1; background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 10px 14px; color: white; outline: none; font-size: 0.9rem; resize: none; max-height: 100px;" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'; updateTechMainButton();"></textarea>
@@ -1035,12 +1129,14 @@ $equiposMochila = $stmtUserEquip->fetchAll();
                 modal.classList.add('active');
             }
             
+            history.pushState({modal: 'techChatModal'}, '', '#chat');
+            
             loadTechChatMessages();
             if (techChatPollInterval) clearInterval(techChatPollInterval);
             techChatPollInterval = setInterval(loadTechChatMessages, 1200);
         }
 
-        function closeTechChat() {
+        function closeTechChat(fromHistory = false) {
             const modal = document.getElementById('techChatModal');
             if (modal) {
                 modal.style.display = 'none';
@@ -1051,6 +1147,9 @@ $equiposMochila = $stmtUserEquip->fetchAll();
                 techChatPollInterval = null;
             }
             currentTechTicketId = null;
+            if (!fromHistory && window.location.hash === '#chat') {
+                history.back();
+            }
         }
 
         async function loadTechChatMessages() {
@@ -1078,11 +1177,13 @@ $equiposMochila = $stmtUserEquip->fetchAll();
                             </div>
                         `;
                     } else if (res.data && res.data.length > 0) {
-                        if (techLastMessageId === 0) container.innerHTML = '';
+                        const isFirstLoad = (techLastMessageId === 0);
+                        if (isFirstLoad) container.innerHTML = '';
 
+                        let htmlBuffer = '';
                         res.data.forEach(msg => {
                             if (msg.is_system_message == 1) {
-                                container.innerHTML += `<div style="text-align:center; margin:8px 0; font-size:0.75rem; color:#94a3b8; background:rgba(255,255,255,0.05); padding:4px 12px; border-radius:12px; align-self:center;">${escapeHtml(msg.message)}</div>`;
+                                htmlBuffer += `<div style="text-align:center; margin:8px 0; font-size:0.75rem; color:#94a3b8; background:rgba(255,255,255,0.05); padding:4px 12px; border-radius:12px; align-self:center;">${escapeHtml(msg.message)}</div>`;
                                 techLastMessageId = msg.id;
                             } else {
                                 const isMe = msg.user_id !== null;
@@ -1111,10 +1212,30 @@ $equiposMochila = $stmtUserEquip->fetchAll();
                                             url = `<?php echo BASE_URL; ?>/` + url;
                                         }
                                         const ext = att.file_name.split('.').pop().toLowerCase();
-                                        if (['webm', 'mp3', 'ogg', 'wav', 'm4a'].includes(ext)) {
+                                        const isVideo = ['mp4', 'mov', 'avi', 'mkv'].includes(ext) || (ext === 'webm' && !att.file_name.includes('Nota de Voz'));
+                                        const isAudio = ['mp3', 'ogg', 'wav', 'm4a'].includes(ext) || (ext === 'webm' && att.file_name.includes('Nota de Voz'));
+                                        
+                                        if (isVideo) {
+                                            if (url.includes('drive.google.com')) {
+                                                let embedUrl = url;
+                                                if (url.includes('/view')) {
+                                                    embedUrl = url.replace(/\/view.*$/, '/preview');
+                                                } else if (url.includes('uc?id=')) {
+                                                    const idMatch = url.match(/id=([^&]+)/);
+                                                    if (idMatch) embedUrl = `https://drive.google.com/file/d/${idMatch[1]}/preview`;
+                                                }
+                                                attHtml += `<div style="margin-top: 6px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);"><iframe src="${embedUrl}" width="100%" height="220" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe></div>`;
+                                            } else {
+                                                attHtml += `<video controls preload="metadata" style="max-width: 100%; border-radius: 10px; margin-top: 6px; border: 1px solid rgba(255,255,255,0.1); background: #000;">
+                                                    <source src="${url}">Tu navegador no soporta video.
+                                                </video>`;
+                                            }
+                                        } else if (isAudio) {
                                             attHtml += `<audio controls src="${url}" style="max-width: 100%; margin-top: 5px; outline: none; height: 35px;"></audio>`;
-                                        } else {
+                                        } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
                                             attHtml += `<img src="${url}" referrerpolicy="no-referrer" onclick="openLightbox('${url}')" style="cursor: pointer; max-width: 100%; border-radius: 10px; margin-top: 6px; border: 1px solid rgba(255,255,255,0.1);">`;
+                                        } else {
+                                            attHtml += `<div style="margin-top: 6px;"><a href="${url}" target="_blank" style="color: inherit; text-decoration: underline; font-weight: 600;"><i class="ph-fill ph-file"></i> ${escapeHtml(att.file_name)}</a></div>`;
                                         }
                                     });
                                 }
@@ -1122,7 +1243,7 @@ $equiposMochila = $stmtUserEquip->fetchAll();
                                 const alignSelf = isMe ? 'flex-end' : 'flex-start';
                                 const bgMsg = isMe ? 'linear-gradient(135deg, #1e3a8a, #1d4ed8)' : 'rgba(30, 41, 59, 0.9)';
 
-                                container.innerHTML += `
+                                htmlBuffer += `
                                     <div style="align-self: ${alignSelf}; max-width: 82%; background: ${bgMsg}; padding: 10px 14px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); font-size: 0.88rem;">
                                         <div style="font-size: 0.72rem; font-weight: 700; color: ${isMe ? '#93c5fd' : '#10b981'}; margin-bottom: 3px;">${userName}</div>
                                         <div>${msgContent}</div>
@@ -1132,7 +1253,11 @@ $equiposMochila = $stmtUserEquip->fetchAll();
                                 techLastMessageId = msg.id;
                             }
                         });
-                        container.scrollTop = container.scrollHeight;
+                        
+                        if (htmlBuffer !== '') {
+                            container.insertAdjacentHTML('beforeend', htmlBuffer);
+                            container.scrollTop = container.scrollHeight;
+                        }
                     }
                 }
             } catch(e) {
@@ -1188,6 +1313,10 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             }
         }
 
+        const openGalleryInput = () => {
+            document.getElementById('techFileInput').click();
+        };
+
         const sendTechLocation = () => {
             if (!navigator.geolocation) {
                 alert('Tu dispositivo no soporta geolocalización');
@@ -1213,15 +1342,145 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             );
         };
 
-        const handleTechMainAction = async () => {
+        const handleTechMainAction = () => {
+            const btnIcon = document.getElementById('btnTechSendIcon').className;
+            if (btnIcon.includes('ph-microphone')) {
+                if (isTechRecording) {
+                    techMediaRecorder.stop();
+                } else {
+                    startTechRecording();
+                }
+            } else {
+                sendTechTextMessage();
+            }
+        };
+
+        const showTechUploadBanner = (filename) => {
+            const banner = document.getElementById('techChatUploadingBanner');
+            const filenameEl = document.getElementById('techChatUploadFilename');
+            const fillEl = document.getElementById('techChatUploadProgressFill');
+            const percentEl = document.getElementById('techChatUploadPercentText');
+            if (banner) {
+                filenameEl.textContent = filename || 'Archivo multimedia';
+                fillEl.style.width = '10%';
+                if (percentEl) percentEl.textContent = '10%';
+                banner.style.display = 'block';
+            }
+        };
+
+        const updateTechUploadProgress = (percent) => {
+            const fillEl = document.getElementById('techChatUploadProgressFill');
+            const percentEl = document.getElementById('techChatUploadPercentText');
+            const p = Math.min(100, Math.max(10, Math.round(percent)));
+            if (fillEl) fillEl.style.width = p + '%';
+            if (percentEl) percentEl.textContent = p + '%';
+        };
+
+        const hideTechUploadBanner = () => {
+            const banner = document.getElementById('techChatUploadingBanner');
+            if (banner) banner.style.display = 'none';
+        };
+
+        const sendTechChatAjaxWithProgress = (formData, filename = null) => {
+            return new Promise((resolve, reject) => {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                if (csrfToken && !formData.has('csrf_token')) {
+                    formData.append('csrf_token', csrfToken);
+                }
+
+                if (filename) showTechUploadBanner(filename);
+                
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', '<?php echo BASE_URL; ?>/ajax/soporte.php', true);
+                if (csrfToken) {
+                    xhr.setRequestHeader('X-CSRF-Token', csrfToken);
+                }
+
+                if (filename && xhr.upload) {
+                    xhr.upload.onprogress = (e) => {
+                        if (e.lengthComputable) {
+                            const percent = (e.loaded / e.total) * 100;
+                            updateTechUploadProgress(percent);
+                        }
+                    };
+                }
+
+                xhr.onload = () => {
+                    hideTechUploadBanner();
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            resolve(JSON.parse(xhr.responseText));
+                        } catch(e) {
+                            reject(e);
+                        }
+                    } else {
+                        reject(new Error(xhr.statusText));
+                    }
+                };
+                xhr.onerror = () => {
+                    hideTechUploadBanner();
+                    reject(new Error("Network Error"));
+                };
+                xhr.send(formData);
+            });
+        };
+
+        const compressImage = (file, maxWidth = 1600, maxHeight = 1600, quality = 0.8) => {
+            return new Promise((resolve) => {
+                if (!file.type.startsWith('image/') || file.type === 'image/gif') {
+                    resolve(file);
+                    return;
+                }
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        let width = img.width;
+                        let height = img.height;
+                        if (width > maxWidth || height > maxHeight) {
+                            if (width > height) {
+                                height = Math.round((height *= maxWidth / width));
+                                width = maxWidth;
+                            } else {
+                                width = Math.round((width *= maxHeight / height));
+                                height = maxHeight;
+                            }
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        canvas.toBlob((blob) => {
+                            if (blob) {
+                                const newFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: 'image/jpeg', lastModified: Date.now() });
+                                resolve(newFile);
+                            } else {
+                                resolve(file);
+                            }
+                        }, 'image/jpeg', quality);
+                    };
+                    img.onerror = () => resolve(file);
+                };
+                reader.onerror = () => resolve(file);
+            });
+        };
+
+        const sendTechTextMessage = async () => {
             const input = document.getElementById('techMessageInput');
             const text = input.value.trim();
-            const fileToSend = techSelectedFile;
+            let fileToSend = techSelectedFile;
             if (!text && !fileToSend || !currentTechTicketId) return;
 
             input.value = '';
             input.style.height = '';
             if (fileToSend) clearTechFileSelection();
+
+            if (fileToSend) {
+                fileToSend = await compressImage(fileToSend);
+            }
 
             const fd = new FormData();
             fd.append('action', 'send_message');
@@ -1232,18 +1491,118 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             }
 
             try {
-                fd.append('csrf_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
-                const res = await fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd }).then(r=>r.json());
+                const res = await sendTechChatAjaxWithProgress(fd, fileToSend ? fileToSend.name : null);
                 if (res.success) {
                     loadTechChatMessages();
                     updateTechMainButton();
+                } else {
+                    alert(res.error || res.message || 'Error al enviar');
                 }
-            } catch(e) {}
+            } catch(e) {
+                alert('Error de conexión al enviar.');
+            }
+        };
+
+        // Audio Recording Logic
+        let isTechRecording = false;
+        let techMediaRecorder = null;
+        let techAudioChunks = [];
+        let techRecordingTimerInterval = null;
+        let techRecordingSeconds = 0;
+
+        const startTechRecording = async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                techMediaRecorder = new MediaRecorder(stream);
+                techAudioChunks = [];
+                
+                techMediaRecorder.addEventListener("dataavailable", event => {
+                    techAudioChunks.push(event.data);
+                });
+                
+                techMediaRecorder.addEventListener("stop", () => {
+                    if (isTechRecording) {
+                        const audioBlob = new Blob(techAudioChunks, { type: 'audio/webm' });
+                        sendTechAudioMessage(audioBlob);
+                    }
+                    isTechRecording = false;
+                    stream.getTracks().forEach(track => track.stop());
+                    
+                    document.getElementById('techAudioRecordingUi').style.display = 'none';
+                    document.getElementById('techMessageInput').style.display = 'block';
+                    document.querySelector('button[onclick="toggleTechActionMenu()"]').style.display = 'block';
+                    updateTechMainButton();
+                    clearInterval(techRecordingTimerInterval);
+                });
+
+                techMediaRecorder.start();
+                isTechRecording = true;
+                
+                document.getElementById('techMessageInput').style.display = 'none';
+                document.querySelector('button[onclick="toggleTechActionMenu()"]').style.display = 'none';
+                document.getElementById('techAudioRecordingUi').style.display = 'flex';
+                document.getElementById('btnTechSendIcon').className = 'ph-fill ph-paper-plane-right';
+                
+                techRecordingSeconds = 0;
+                document.getElementById('techRecordingTimer').textContent = '00:00';
+                techRecordingTimerInterval = setInterval(() => {
+                    techRecordingSeconds++;
+                    const m = String(Math.floor(techRecordingSeconds / 60)).padStart(2, '0');
+                    const s = String(techRecordingSeconds % 60).padStart(2, '0');
+                    document.getElementById('techRecordingTimer').textContent = `${m}:${s}`;
+                }, 1000);
+
+            } catch (err) {
+                alert('No se pudo acceder al micrófono. Por favor, revisa los permisos del navegador.');
+            }
+        };
+
+        const cancelTechRecording = () => {
+            if (isTechRecording && techMediaRecorder) {
+                isTechRecording = false; // flag to not send
+                techMediaRecorder.stop();
+            }
+        };
+
+        const sendTechAudioMessage = async (audioBlob) => {
+            const btnSend = document.getElementById('btnTechSend');
+            if (btnSend) btnSend.disabled = true;
+
+            const tempId = 'opt_audio_' + Date.now();
+            const container = document.getElementById('techChatMessages');
+            container.innerHTML += `
+                <div style="align-self: flex-end; background: #1e293b; color: white; padding: 12px 16px; border-radius: 16px 16px 0 16px; max-width: 80%; border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px;">
+                    <div style="font-size:0.85rem; font-weight:600;"><i class="ph-fill ph-microphone"></i> Grabación de audio...</div>
+                    <div style="font-size: 0.75rem; color: #3b82f6;"><i class="ph ph-spinner spinner"></i> Subiendo a Google Drive...</div>
+                </div>`;
+            container.scrollTop = container.scrollHeight;
+
+            const fd = new FormData();
+            fd.append('action', 'send_message');
+            fd.append('ticket_id', currentTechTicketId);
+            fd.append('message', '');
+            fd.append('attachment', audioBlob, 'audio_record.webm');
+            fd.append('csrf_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+
+            try {
+                const res = await sendTechChatAjaxWithProgress(fd, 'Nota de Voz.webm');
+                if (res.success) {
+                    loadTechChatMessages();
+                } else {
+                    alert(res.error || 'Error al enviar audio');
+                }
+            } catch(e) {
+                alert('Error de conexión');
+            } finally {
+                if (btnSend) btnSend.disabled = false;
+                const optEl = document.getElementById(tempId);
+                if (optEl) optEl.remove();
+            }
         };
     </script>
 
     <!-- Modal de Vista App Embebida (Para Crear Actas, Mochila, Mapas, etc. 100% Dentro del Portal) -->
-    <div class="modal-overlay" id="techAppViewModal" style="z-index: 10000; background: rgba(11, 15, 25, 0.96); backdrop-filter: blur(14px); display: none; padding: 0;">
+    <div class="modal-overlay" id="techAppViewModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; height: 100vh; width: 100vw; z-index: 100000; background: rgba(11, 15, 25, 0.96); backdrop-filter: blur(14px); display: none; padding: 0;">
         <div style="width: 100%; height: 100%; max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; background: #0f172a; color: white;">
             
             <!-- Header Drawer App -->
@@ -1267,21 +1626,18 @@ $equiposMochila = $stmtUserEquip->fetchAll();
     </div>
 
     <script>
-        function openTechAppModule(url, title) {
+        function openTechAppModule(url, title = 'Módulo') {
+            document.getElementById('techAppModalTitle').innerText = title;
+            document.getElementById('techAppModalIframe').src = url + (url.includes('?') ? '&' : '?') + 'embedded=1';
             const modal = document.getElementById('techAppViewModal');
-            const iframe = document.getElementById('techAppModalIframe');
-            const titleEl = document.getElementById('techAppModalTitle');
-
-            if (modal && iframe) {
-                titleEl.textContent = title || 'Módulo';
-                const separator = url.includes('?') ? '&' : '?';
-                iframe.src = url + separator + 'embedded=1';
+            if (modal) {
                 modal.style.display = 'flex';
                 modal.classList.add('active');
             }
+            history.pushState({modal: 'techAppViewModal'}, '', '#modulo');
         }
 
-        function closeTechAppModal() {
+        function closeTechAppModal(fromHistory = false) {
             const modal = document.getElementById('techAppViewModal');
             const iframe = document.getElementById('techAppModalIframe');
             if (modal) {
@@ -1289,11 +1645,27 @@ $equiposMochila = $stmtUserEquip->fetchAll();
                 modal.classList.remove('active');
                 if (iframe) iframe.src = '';
             }
+            if (!fromHistory && window.location.hash === '#modulo') {
+                history.back();
+            }
         }
+
+        // Manejar el botón "Atrás" del navegador/celular
+        window.addEventListener('popstate', function(event) {
+            if (document.getElementById('techChatModal') && document.getElementById('techChatModal').style.display === 'flex') {
+                closeTechChat(true);
+            }
+            if (document.getElementById('techAppViewModal') && document.getElementById('techAppViewModal').style.display === 'flex') {
+                closeTechAppModal(true);
+            }
+            if (document.getElementById('techLightboxModal') && document.getElementById('techLightboxModal').style.display === 'flex') {
+                closeLightbox();
+            }
+        });
     </script>
 
     <!-- Modal Lightbox para imágenes del Chat -->
-    <div id="techLightboxModal" onclick="closeLightbox()" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.9); z-index: 99999; justify-content: center; align-items: center; cursor: zoom-out;">
+    <div id="techLightboxModal" onclick="closeLightbox()" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.9); z-index: 999999; justify-content: center; align-items: center; cursor: zoom-out;">
         <span style="position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; cursor: pointer;">&times;</span>
         <img id="techLightboxImage" src="" style="max-width: 95%; max-height: 95%; border-radius: 10px; box-shadow: 0 0 30px rgba(0,0,0,0.5);">
     </div>

@@ -1054,7 +1054,7 @@
             agrupadoSection.style.display = 'none';
 
         } else if (type === 'agrupado') {
-            grid.style.gridTemplateColumns = '1fr';
+            grid.style.gridTemplateColumns = '1fr 1fr';
             skuRightCol.style.display = 'none';
             if (skuScannerCol) skuScannerCol.style.display = 'none';
             customColsSection.style.display = 'none';

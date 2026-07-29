@@ -122,11 +122,24 @@ try {
 
             foreach ($products as &$p) {
                 if ($p['product_type'] === 'agrupado') {
-                    $stmtChildrenTotals->execute([$p['id']]);
-                    $childTotal = (int)$stmtChildrenTotals->fetchColumn();
-                    $p['total_quantity'] = $childTotal;
-                    $p['qty_disponible'] = $childTotal;
-                    $p['qty_instalado'] = 0;
+                    $stmtChildrenStats = $pdo->prepare("
+                        SELECT 
+                            COALESCE(SUM(total_quantity), 0) as db_total,
+                            COALESCE(SUM((SELECT SUM(ius.quantity) FROM inventory_user_stock ius WHERE ius.product_id = ch.id)), 0) as asignado
+                        FROM inventory_products ch 
+                        WHERE ch.parent_product_id = ? AND (ch.is_deleted = 0 OR ch.is_deleted IS NULL)
+                    ");
+                    $stmtChildrenStats->execute([$p['id']]);
+                    $stats = $stmtChildrenStats->fetch(PDO::FETCH_ASSOC);
+
+                    $db_total = floatval($stats['db_total']);
+                    $asignado = floatval($stats['asignado']);
+
+                    $p['qty_disponible'] = $db_total;
+                    $p['qty_asignado'] = $asignado;
+                    $p['qty_instalado'] = $asignado; 
+                    $p['total_quantity'] = $db_total + $asignado;
+
                     $p['qty_malogrado'] = 0;
                     $p['qty_reparado'] = 0;
                     $p['qty_observacion'] = 0;
@@ -185,8 +198,11 @@ try {
             // Decode variant_attributes and compute qty_disponible for each child
             foreach ($children as &$ch) {
                 $ch['variant_attributes'] = json_decode($ch['variant_attributes'] ?? '{}', true) ?: new stdClass();
-                $ch['qty_disponible'] = max(0, floatval($ch['total_quantity']) - floatval($ch['qty_asignado']));
-                $ch['qty_instalado']  = floatval($ch['qty_instalado']);
+                $db_total = floatval($ch['total_quantity']);
+                $qty_asignado = floatval($ch['qty_asignado']);
+                $ch['qty_disponible'] = $db_total;
+                $ch['total_quantity'] = $db_total + $qty_asignado;
+                $ch['qty_instalado']  = $qty_asignado; // Use qty_asignado as installed
                 $ch['qty_malogrado']  = floatval($ch['qty_malogrado']);
                 $ch['qty_observacion']  = floatval($ch['qty_observacion']);
             }
@@ -1134,7 +1150,32 @@ try {
 
         // ── Get SKU entries history ─────────────────────────
         case 'get_sku_entries':
-            $sku_id = intval($_POST['sku_id'] ?? $_GET['sku_id'] ?? 0);
+            $sku_id_raw = $_POST['sku_id'] ?? $_GET['sku_id'] ?? '';
+            
+            if (strpos($sku_id_raw, 'bulk_') === 0) {
+                $product_id = intval(str_replace('bulk_', '', $sku_id_raw));
+                if (!$product_id) {
+                    echo json_encode(['success' => false, 'message' => 'ID inválido']);
+                    break;
+                }
+                $stmt = $pdo->prepare("
+                    SELECT 
+                        id,
+                        'asignado' as tipo,
+                        assigned_by_name as user_name,
+                        created_at,
+                        CONCAT('Asignó ', quantity, ' unidades de ', product_name, ' a ', assigned_to_name) as notas,
+                        '' as photos
+                    FROM inventory_assignment_log
+                    WHERE product_id = ? OR product_id IN (SELECT id FROM inventory_products WHERE parent_product_id = ?)
+                    ORDER BY created_at DESC
+                ");
+                $stmt->execute([$product_id, $product_id]);
+                echo json_encode(['success' => true, 'data' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+                break;
+            }
+            
+            $sku_id = intval($sku_id_raw);
             if (!$sku_id) {
                 echo json_encode(['success' => false, 'message' => 'ID inválido']);
                 break;
@@ -1146,7 +1187,7 @@ try {
                                    WHERE e.sku_id = ?
                                    ORDER BY e.created_at DESC");
             $stmt->execute([$sku_id]);
-            echo json_encode(['success' => true, 'data' => $stmt->fetchAll()]);
+            echo json_encode(['success' => true, 'data' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
             break;
 
         case 'update_entry':

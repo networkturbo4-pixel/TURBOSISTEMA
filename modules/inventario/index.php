@@ -718,49 +718,50 @@ window.addEventListener('error', function(e) {
                             </div>
                         </div>
 
-                        <!-- Agrupado: Variant Columns + Dynamic Table -->
-                        <div id="agrupadoVariantsSection" data-show-for="agrupado" style="display:none;">
-                            <!-- Column Manager -->
-                            <div style="margin-bottom:14px;">
-                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-                                    <label class="form-label" style="margin:0;"><i class="ph ph-columns" style="color:#8b5cf6;"></i> Columnas de Variantes <span id="varColCountBadge" style="font-size:0.75rem;color:var(--text-muted);font-weight:400;">0 columnas</span></label>
-                                </div>
-                                <div style="margin-bottom:8px; display:flex; gap:6px; flex-wrap:wrap; font-size:0.78rem; align-items:center;" id="varColSuggestions">
-                                    <span style="color:var(--text-muted);">Añadir rápido:</span>
-                                    <button type="button" class="btn-suggestion" onclick="addVariantCol('Marca')">+ Marca</button>
-                                    <button type="button" class="btn-suggestion" onclick="addVariantCol('Talla')">+ Talla</button>
-                                    <button type="button" class="btn-suggestion" onclick="addVariantCol('Color')">+ Color</button>
-                                    <button type="button" class="btn-suggestion" onclick="addVariantCol('Material')">+ Material</button>
-                                    <button type="button" class="btn-suggestion" onclick="addVariantCol('Peso')">+ Peso</button>
-                                </div>
-                                <div id="varColsList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
-                                <div style="display:flex;gap:6px;">
-                                    <input type="text" class="form-control" id="varColNewName" placeholder="Nombre de columna" style="flex:1;font-size:0.85rem;">
-                                    <button type="button" class="btn btn-primary" onclick="addVariantCol()" style="flex-shrink:0;padding:8px 12px;"><i class="ph ph-plus"></i> Añadir</button>
-                                </div>
-                            </div>
-
-                            <!-- Variants Table (dynamic columns) -->
-                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-                                <label class="form-label" style="margin:0;"><i class="ph ph-stack" style="color:#8b5cf6;"></i> Variantes <span id="variantCountBadge" style="font-size:0.75rem;color:var(--text-muted);font-weight:400;">0 variantes</span></label>
-                            </div>
-                            <div class="table-responsive" id="variantsTableWrap" style="border:1px solid var(--border-color);border-radius:10px;max-height:350px;overflow-y:auto;">
-                                <table class="inv-table" style="margin:0;">
-                                    <thead id="variantsTableHead">
-                                        <tr>
-                                            <th style="min-width:160px;">Nombre</th>
-                                            <th style="min-width:90px;">Cantidad</th>
-                                            <th style="width:50px;"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="variantsTableBody"></tbody>
-                                </table>
-                            </div>
-                            <button type="button" class="btn btn-primary w-100" onclick="addVariantRow()" style="margin-top:10px;height:40px;">
-                                <i class="ph ph-plus-circle"></i> Agregar Variante
-                            </button>
-                        </div>
                     </div><!-- end left col -->
+
+                    <!-- Agrupado: Variant Columns + Dynamic Table -->
+                    <div id="agrupadoVariantsSection" data-show-for="agrupado" style="display:none;">
+                        <!-- Column Manager -->
+                        <div style="margin-bottom:14px;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                                <label class="form-label" style="margin:0;"><i class="ph ph-columns" style="color:#8b5cf6;"></i> Columnas de Variantes <span id="varColCountBadge" style="font-size:0.75rem;color:var(--text-muted);font-weight:400;">0 columnas</span></label>
+                            </div>
+                            <div style="margin-bottom:8px; display:flex; gap:6px; flex-wrap:wrap; font-size:0.78rem; align-items:center;" id="varColSuggestions">
+                                <span style="color:var(--text-muted);">Añadir rápido:</span>
+                                <button type="button" class="btn-suggestion" onclick="addVariantCol('Marca')">+ Marca</button>
+                                <button type="button" class="btn-suggestion" onclick="addVariantCol('Talla')">+ Talla</button>
+                                <button type="button" class="btn-suggestion" onclick="addVariantCol('Color')">+ Color</button>
+                                <button type="button" class="btn-suggestion" onclick="addVariantCol('Material')">+ Material</button>
+                                <button type="button" class="btn-suggestion" onclick="addVariantCol('Peso')">+ Peso</button>
+                            </div>
+                            <div id="varColsList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
+                            <div style="display:flex;gap:6px;">
+                                <input type="text" class="form-control" id="varColNewName" placeholder="Nombre de columna" style="flex:1;font-size:0.85rem;">
+                                <button type="button" class="btn btn-primary" onclick="addVariantCol()" style="flex-shrink:0;padding:8px 12px;"><i class="ph ph-plus"></i> Añadir</button>
+                            </div>
+                        </div>
+
+                        <!-- Variants Table (dynamic columns) -->
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                            <label class="form-label" style="margin:0;"><i class="ph ph-stack" style="color:#8b5cf6;"></i> Variantes <span id="variantCountBadge" style="font-size:0.75rem;color:var(--text-muted);font-weight:400;">0 variantes</span></label>
+                        </div>
+                        <div class="table-responsive" id="variantsTableWrap" style="border:1px solid var(--border-color);border-radius:10px;max-height:350px;overflow-y:auto;">
+                            <table class="inv-table" style="margin:0;">
+                                <thead id="variantsTableHead">
+                                    <tr>
+                                        <th style="min-width:160px;">Nombre</th>
+                                        <th style="min-width:90px;">Cantidad</th>
+                                        <th style="width:50px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="variantsTableBody"></tbody>
+                            </table>
+                        </div>
+                        <button type="button" class="btn btn-primary w-100" onclick="addVariantRow()" style="margin-top:10px;height:40px;">
+                            <i class="ph ph-plus-circle"></i> Agregar Variante
+                        </button>
+                    </div>
 
                     <!-- ── Columna Derecha ── -->
                     <div id="skuRightCol" data-show-for="normal">

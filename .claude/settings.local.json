@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "PowerShell(cd \"C:\\\\xampp\\\\htdocs\\\\TURBOSAAS\"; $orphans = @\\(\\); $tempFiles = @\\(\"test.php\",\"test2.php\",\"test3.php\",\"alter.php\",\"alter_chat.php\",\"alter_ticket.php\",\"add_col.php\",\"db_clientes.php\",\"db_update.php\",\"update_db.php\",\"insert_role.php\",\"soporte.php\",\"portal.php\",\"ticket.php\",\"db_update.php\"\\); foreach \\($f in $tempFiles\\) { if \\(Test-Path $f\\) { $orphans += $f } }; \"Archivos temporales/de migración encontrados:\"; $orphans)"
-    ]
-  }
-}

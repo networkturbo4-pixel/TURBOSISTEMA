@@ -324,6 +324,9 @@ include '../../includes/sidebar.php';
     <!-- ÁREA PRINCIPAL -->
     <?php if ($ticket): ?>
     <div class="chat-main">
+        <div id="collisionAlert" style="display:none; background:#fee2e2; color:#ef4444; padding:10px; text-align:center; font-weight:bold; border-bottom:1px solid #fca5a5;">
+            ⚠️ <span id="collisionText">Alguien ya está respondiendo este ticket</span>
+        </div>
         <div class="chat-main-header">
             <div class="chat-main-profile">
                 <!-- Botón Volver solo visible en móvil -->
@@ -335,6 +338,7 @@ include '../../includes/sidebar.php';
                 <div>
                     <div class="chat-main-name"><?php echo htmlspecialchars($ticket['cliente_nombre']); ?></div>
                     <div class="chat-main-status">TKT-<?php echo str_pad($ticket['id'], 4, '0', STR_PAD_LEFT); ?> | <?php echo htmlspecialchars($ticket['asunto']); ?></div>
+                    <div id="typingIndicator" style="display:none; color:var(--primary-color); font-size:0.8rem; font-style:italic; margin-top:2px;">Cliente está escribiendo...</div>
                 </div>
             </div>
             <div>
@@ -372,17 +376,18 @@ include '../../includes/sidebar.php';
 
 <script>
     const currentTicketId = <?php echo $ticket_id; ?>;
-    const currentUserId = <?php echo $_SESSION['user_id']; ?>;
+    const currentUserId = <?php echo $_SESSION['user_id'] ?? 0; ?>;
     let lastMessageId = 0;
-    let isPolling = false;
+    let sseSource = null;
+    let isFetchingOlder = false;
+    let noMoreMessages = false;
+    let typingTimeout = null;
 
-    // Función para formatear hora
     const formatTime = (dateStr) => {
         const d = new Date(dateStr);
         return d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     };
 
-    // Cargar lista de chats
     const loadChatList = async () => {
         try {
             const formData = new FormData();
@@ -392,16 +397,13 @@ include '../../includes/sidebar.php';
             if (res.success) {
                 const list = document.getElementById('chatList');
                 list.innerHTML = '';
-                
                 if(res.data.length === 0) {
                     list.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted);">No hay tickets disponibles.</div>';
                     return;
                 }
-
                 res.data.forEach(t => {
                     const initials = t.cliente_nombre ? t.cliente_nombre.substring(0,1).toUpperCase() : '?';
                     const activeClass = t.id == currentTicketId ? 'active' : '';
-                    
                     list.innerHTML += `
                         <a href="chat.php?id=${t.id}" class="chat-list-item ${activeClass}">
                             <div class="chat-list-avatar">${initials}</div>
@@ -419,44 +421,164 @@ include '../../includes/sidebar.php';
         } catch(e) {}
     };
 
-    // Cargar mensajes del ticket actual
-    const loadMessages = async () => {
-        if(!currentTicketId || isPolling) return;
-        isPolling = true;
+    const renderMessage = (msg, prepend = false) => {
+        const container = document.getElementById('chatMessages');
+        if(document.getElementById(`msg-${msg.id}`)) return; // Evitar duplicados
+        
+        const isMe = msg.user_id == currentUserId;
+        const bubbleClass = isMe ? 'message-sent' : 'message-received';
+        const userName = isMe ? 'Tú' : (msg.user_name || 'Cliente');
+        
+        let attHtml = '';
+        if (msg.attachments && msg.attachments.length > 0) {
+            msg.attachments.forEach(att => {
+                const isImg = att.file_name.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+                if (isImg) {
+                    attHtml += `<div style="margin-bottom:8px;"><a href="${att.file_path}" target="_blank"><img src="${att.file_path}" style="max-width:100%; border-radius:8px; cursor:pointer;" alt="adjunto"></a></div>`;
+                } else {
+                    attHtml += `<div style="margin-bottom:8px;"><a href="${att.file_path}" target="_blank" class="btn btn-sm btn-light" style="display:block; text-align:center;"><i class="ph ph-download-simple"></i> ${att.file_name}</a></div>`;
+                }
+            });
+        }
 
+        let checksHtml = '';
+        if (isMe) {
+            const checkColor = msg.is_read == 1 ? '#3b82f6' : '#9ca3af';
+            checksHtml = `<span class="message-checks" style="color:${checkColor}; margin-left:5px; font-size:0.8rem;"><i class="ph-bold ph-checks"></i></span>`;
+        }
+
+        const html = `
+            <div class="message-bubble ${bubbleClass}" id="msg-${msg.id}">
+                ${!isMe ? `<div style="font-size:0.75rem; font-weight:700; color:var(--primary-color); margin-bottom:3px;">${userName}</div>` : ''}
+                ${attHtml}
+                <div>${msg.message ? msg.message.replace(/\n/g, '<br>') : ''}</div>
+                <div style="display:flex; justify-content:flex-end; align-items:center; margin-top:5px;">
+                    <span class="message-time">${formatTime(msg.created_at)}</span>
+                    ${checksHtml}
+                </div>
+            </div>
+        `;
+        
+        if (prepend) {
+            const oldScrollHeight = container.scrollHeight;
+            container.insertAdjacentHTML('afterbegin', html);
+            container.scrollTop = container.scrollHeight - oldScrollHeight;
+        } else {
+            container.insertAdjacentHTML('beforeend', html);
+            container.scrollTop = container.scrollHeight;
+        }
+    };
+
+    const loadInitialMessages = async () => {
+        if(!currentTicketId) return;
         try {
             const fd = new FormData();
             fd.append('action', 'get_messages');
             fd.append('ticket_id', currentTicketId);
-            fd.append('last_id', lastMessageId);
-
             const res = await fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd }).then(r=>r.json());
-            
             if(res.success && res.data.length > 0) {
-                const container = document.getElementById('chatMessages');
-                
                 res.data.forEach(msg => {
-                    const isMe = msg.user_id == currentUserId;
-                    const bubbleClass = isMe ? 'message-sent' : 'message-received';
-                    const userName = isMe ? 'Tú' : (msg.user_name || 'Cliente');
-                    
-                    container.innerHTML += `
-                        <div class="message-bubble ${bubbleClass}">
-                            ${!isMe ? `<div style="font-size:0.75rem; font-weight:700; color:var(--primary-color); margin-bottom:3px;">${userName}</div>` : ''}
-                            <div>${msg.message.replace(/\n/g, '<br>')}</div>
-                            <span class="message-time">${formatTime(msg.created_at)}</span>
-                        </div>
-                    `;
-                    lastMessageId = msg.id;
+                    renderMessage(msg, false);
+                    lastMessageId = Math.max(lastMessageId, msg.id);
                 });
-                
-                // Auto-scroll to bottom
-                container.scrollTop = container.scrollHeight;
             }
-        } catch(e) {
-            console.error(e);
-        }
-        isPolling = false;
+            setupSSE();
+        } catch(e) { console.error(e); }
+    };
+
+    const loadOlderMessages = async () => {
+        if (!currentTicketId || isFetchingOlder || noMoreMessages) return;
+        const container = document.getElementById('chatMessages');
+        const firstMsgEl = container.querySelector('.message-bubble');
+        if (!firstMsgEl) return;
+        
+        const firstId = firstMsgEl.id.replace('msg-', '');
+        isFetchingOlder = true;
+        
+        try {
+            const fd = new FormData();
+            fd.append('action', 'get_messages');
+            fd.append('ticket_id', currentTicketId);
+            fd.append('older_than_id', firstId);
+            const res = await fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd }).then(r=>r.json());
+            if (res.success && res.data.length > 0) {
+                for (let i = res.data.length - 1; i >= 0; i--) {
+                    renderMessage(res.data[i], true);
+                }
+            } else {
+                noMoreMessages = true;
+            }
+        } catch(e) {}
+        isFetchingOlder = false;
+    };
+
+    const setupSSE = () => {
+        if(sseSource) sseSource.close();
+        sseSource = new EventSource(`<?php echo BASE_URL; ?>/ajax/sse_soporte.php?ticket_id=${currentTicketId}&last_id=${lastMessageId}`);
+        
+        sseSource.addEventListener('new_messages', (e) => {
+            const messages = JSON.parse(e.data);
+            let hasNew = false;
+            messages.forEach(msg => {
+                if(msg.id > lastMessageId) {
+                    renderMessage(msg, false);
+                    lastMessageId = msg.id;
+                    hasNew = true;
+                }
+            });
+            if(hasNew) markAsRead();
+        });
+
+        sseSource.addEventListener('status_update', (e) => {
+            const status = JSON.parse(e.data);
+            document.getElementById('typingIndicator').style.display = status.is_typing ? 'block' : 'none';
+            if (status.last_read_id > 0) {
+                document.querySelectorAll('.message-sent .message-checks').forEach(el => {
+                    const msgDiv = el.closest('.message-bubble');
+                    const mId = parseInt(msgDiv.id.replace('msg-', ''));
+                    if (mId <= status.last_read_id) {
+                        el.style.color = '#3b82f6';
+                    }
+                });
+            }
+        });
+    };
+
+    const markAsRead = () => {
+        const fd = new FormData();
+        fd.append('action', 'mark_as_read');
+        fd.append('ticket_id', currentTicketId);
+        fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd });
+    };
+
+    const notifyTyping = () => {
+        const fd = new FormData();
+        fd.append('action', 'set_typing');
+        fd.append('ticket_id', currentTicketId);
+        fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd });
+    };
+
+    const chatPing = async () => {
+        const fd = new FormData();
+        fd.append('action', 'chat_ping');
+        fd.append('ticket_id', currentTicketId);
+        try {
+            const res = await fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd }).then(r=>r.json());
+            const alertEl = document.getElementById('collisionAlert');
+            const inputEl = document.getElementById('messageInput');
+            const btnEl = document.getElementById('btnSendMessage');
+            
+            if(res.success && res.locked) {
+                alertEl.style.display = 'block';
+                document.getElementById('collisionText').innerText = res.locked_by + ' ya está respondiendo este ticket';
+                inputEl.disabled = true;
+                btnEl.disabled = true;
+            } else {
+                alertEl.style.display = 'none';
+                inputEl.disabled = false;
+                btnEl.disabled = false;
+            }
+        } catch(e){}
     };
 
     let selectedChatFile = null;
@@ -469,7 +591,6 @@ include '../../includes/sidebar.php';
         }
     });
 
-    // Enviar mensaje
     const sendMessage = async () => {
         const input = document.getElementById('messageInput');
         const text = input.value.trim();
@@ -494,7 +615,7 @@ include '../../includes/sidebar.php';
                     selectedChatFile = null;
                     document.getElementById('chatFileInput').value = '';
                     document.getElementById('chatFilePreview').style.display = 'none';
-                    loadMessages(); // Refrescar rápido
+                    // SSE will auto-fetch the new message shortly
                 } else {
                     window.showToast(res.message, 'error');
                 }
@@ -525,21 +646,15 @@ include '../../includes/sidebar.php';
         executeSend();
     };
 
-    // Cambiar estado del ticket
     window.updateTicketStatus = async (status) => {
         if(!currentTicketId) return;
         const fd = new FormData();
         fd.append('action', 'update_status');
         fd.append('ticket_id', currentTicketId);
         fd.append('estado', status);
-
         try {
             const res = await fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd }).then(r=>r.json());
-            if(res.success) {
-                window.showToast('Estado actualizado', 'success');
-            } else {
-                window.showToast('Error al actualizar estado', 'error');
-            }
+            if(res.success) window.showToast('Estado actualizado', 'success');
         } catch(e) {}
     };
 
@@ -547,27 +662,44 @@ include '../../includes/sidebar.php';
         loadChatList();
         
         if (currentTicketId) {
-            loadMessages();
-            // Polling cada 5 segundos
-            setInterval(loadMessages, 5000);
+            loadInitialMessages();
+            chatPing();
+            setInterval(chatPing, 8000); // Check collision every 8s
 
-            // Evento enter para enviar
-            document.getElementById('messageInput').addEventListener('keydown', (e) => {
+            const msgContainer = document.getElementById('chatMessages');
+            msgContainer.addEventListener('scroll', () => {
+                if (msgContainer.scrollTop === 0) {
+                    loadOlderMessages();
+                }
+            });
+
+            const input = document.getElementById('messageInput');
+            input.addEventListener('keydown', (e) => {
                 if(e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     sendMessage();
+                } else {
+                    clearTimeout(typingTimeout);
+                    typingTimeout = setTimeout(notifyTyping, 500);
                 }
             });
 
             document.getElementById('btnSendMessage').addEventListener('click', sendMessage);
 
-            // Responsive back button
             if(window.innerWidth <= 768) {
                 document.getElementById('btnBackMobile').style.display = 'block';
             }
         }
     });
 
+    window.addEventListener('beforeunload', () => {
+        if (currentTicketId) {
+            const fd = new FormData();
+            fd.append('action', 'chat_leave');
+            fd.append('ticket_id', currentTicketId);
+            navigator.sendBeacon('<?php echo BASE_URL; ?>/ajax/soporte.php', fd);
+        }
+    });
 </script>
 
 <?php include '../../includes/footer.php'; ?>

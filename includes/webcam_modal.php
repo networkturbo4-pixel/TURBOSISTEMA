@@ -1,5 +1,5 @@
-<!-- Modal de Captura de Cámara Webcam para PC / Laptop -->
-<div class="modal-overlay" id="webcamCaptureModal" style="z-index: 10000; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); display: none;">
+<!-- Modal Interactivo de Captura de Cámara (Web / Móvil) -->
+<div class="modal-overlay" id="webcamCaptureModal" style="z-index: 999999; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); display: none;">
     <div class="modal-content" style="max-width: 500px; width: 92%; padding: 0; overflow: hidden; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 60px rgba(0,0,0,0.5); background: #0f172a; color: white; animation: scaleUpUber 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
         
         <!-- Header -->

@@ -228,15 +228,39 @@ try {
                 $pdo->prepare("UPDATE ticket_messages SET is_read = TRUE WHERE ticket_id = ? AND user_id IS NOT NULL AND is_read = FALSE")->execute([$ticket_id]);
             }
 
-            $stmt = $pdo->prepare("
-                SELECT m.*, u.name as user_name 
-                FROM ticket_messages m
-                LEFT JOIN users u ON m.user_id = u.id
-                WHERE m.ticket_id = ? AND m.id > ?
-                ORDER BY m.id ASC
-            ");
-            $stmt->execute([$ticket_id, $last_id]);
-            $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $older_than_id = (int)($_POST['older_than_id'] ?? 0);
+            
+            if ($older_than_id > 0) {
+                $stmt = $pdo->prepare("
+                    SELECT m.*, u.name as user_name 
+                    FROM ticket_messages m
+                    LEFT JOIN users u ON m.user_id = u.id
+                    WHERE m.ticket_id = ? AND m.id < ?
+                    ORDER BY m.id DESC LIMIT 50
+                ");
+                $stmt->execute([$ticket_id, $older_than_id]);
+                $messages = array_reverse($stmt->fetchAll(PDO::FETCH_ASSOC));
+            } else if ($last_id > 0) {
+                $stmt = $pdo->prepare("
+                    SELECT m.*, u.name as user_name 
+                    FROM ticket_messages m
+                    LEFT JOIN users u ON m.user_id = u.id
+                    WHERE m.ticket_id = ? AND m.id > ?
+                    ORDER BY m.id ASC
+                ");
+                $stmt->execute([$ticket_id, $last_id]);
+                $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } else {
+                $stmt = $pdo->prepare("
+                    SELECT m.*, u.name as user_name 
+                    FROM ticket_messages m
+                    LEFT JOIN users u ON m.user_id = u.id
+                    WHERE m.ticket_id = ?
+                    ORDER BY m.id DESC LIMIT 50
+                ");
+                $stmt->execute([$ticket_id]);
+                $messages = array_reverse($stmt->fetchAll(PDO::FETCH_ASSOC));
+            }
 
             // Fetch attachments
             if (!empty($messages)) {
@@ -267,6 +291,18 @@ try {
                 $pdo->prepare("UPDATE ticket_messages SET is_read = TRUE WHERE ticket_id = ? AND (user_id != ? OR user_id IS NULL) AND is_read = FALSE")->execute([$ticket_id, $user_id]);
             } else {
                 $pdo->prepare("UPDATE ticket_messages SET is_read = TRUE WHERE ticket_id = ? AND user_id IS NOT NULL AND is_read = FALSE")->execute([$ticket_id]);
+            }
+            echo json_encode(['success' => true]);
+            break;
+
+        case 'set_typing':
+            $ticket_id = $_POST['ticket_id'] ?? 0;
+            if (!$has_session && !validateToken($pdo, $ticket_id, $token)) throw new Exception('No autorizado');
+            
+            if ($has_session) {
+                $pdo->prepare("UPDATE tickets SET tech_typing_at = NOW() WHERE id = ?")->execute([$ticket_id]);
+            } else {
+                $pdo->prepare("UPDATE tickets SET client_typing_at = NOW() WHERE id = ?")->execute([$ticket_id]);
             }
             echo json_encode(['success' => true]);
             break;
