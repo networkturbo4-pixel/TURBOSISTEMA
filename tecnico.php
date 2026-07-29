@@ -1050,7 +1050,7 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             </div>
 
             <!-- Input Area Footer -->
-            <div style="box-sizing: border-box; width: 100%; padding: 10px 14px calc(20px + env(safe-area-inset-bottom, 0px)); background: #0f172a; display: flex; align-items: flex-end; gap: 8px; position: relative; flex-wrap: nowrap; border-top: 1px solid rgba(255,255,255,0.05);">
+            <div style="box-sizing: border-box; width: 100%; padding: 10px 10px calc(16px + env(safe-area-inset-bottom, 0px)); background: #0f172a; display: flex; align-items: flex-end; gap: 6px; position: relative; flex-wrap: nowrap; border-top: 1px solid rgba(255,255,255,0.05); overflow: visible; flex-shrink: 0;">
                 
                 <!-- Inputs ocultos -->
                 <input type="file" id="techFileInput" accept="image/*,video/*,application/pdf" style="display:none;" onchange="handleFileSelect(this)">
@@ -1128,7 +1128,7 @@ $equiposMochila = $stmtUserEquip->fetchAll();
                 </div>
 
                 <!-- Send / Mic Button outside -->
-                <button type="button" id="btnTechSend" onclick="handleTechMainAction()" style="flex-shrink: 0; width: 48px; height: 48px; background: #10b981; border: none; border-radius: 50%; color: white; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(16,185,129,0.35); transition: background 0.2s; margin-bottom: 2px;">
+                <button type="button" id="btnTechSend" onclick="handleTechMainAction()" style="flex-shrink: 0; min-width: 44px; width: 44px; height: 44px; background: #10b981; border: none; border-radius: 50%; color: white; font-size: 1.3rem; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(16,185,129,0.35); transition: background 0.2s;">
                     <i id="btnTechSendIcon" class="ph-fill ph-microphone"></i>
                 </button>
             </div>
@@ -1268,7 +1268,7 @@ $equiposMochila = $stmtUserEquip->fetchAll();
                                             url = `<?php echo BASE_URL; ?>/` + url;
                                         }
                                         const ext = att.file_name.split('.').pop().toLowerCase();
-                                        const isVideo = ['mp4', 'mov', 'avi', 'mkv'].includes(ext) || (ext === 'webm' && !att.file_name.includes('Nota de Voz'));
+                                        const isVideo = ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext) || (ext === 'webm' && !att.file_name.includes('Nota de Voz'));
                                         const isAudio = ['mp3', 'ogg', 'wav', 'm4a'].includes(ext) || (ext === 'webm' && att.file_name.includes('Nota de Voz'));
                                         
                                         if (isVideo) {
@@ -1282,8 +1282,8 @@ $equiposMochila = $stmtUserEquip->fetchAll();
                                                 }
                                                 attHtml += `<div style="margin-top: 6px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);"><iframe src="${embedUrl}" width="100%" height="220" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe></div>`;
                                             } else {
-                                                attHtml += `<video controls preload="metadata" style="max-width: 100%; border-radius: 10px; margin-top: 6px; border: 1px solid rgba(255,255,255,0.1); background: #000;">
-                                                    <source src="${url}">Tu navegador no soporta video.
+                                                attHtml += `<video controls playsinline preload="metadata" style="max-width: 100%; border-radius: 10px; margin-top: 6px; border: 1px solid rgba(255,255,255,0.1); background: #000;">
+                                                    <source src="${url}" type="video/${ext === 'webm' ? 'webm' : ext === 'mov' ? 'quicktime' : 'mp4'}">Tu navegador no soporta video.
                                                 </video>`;
                                             }
                                         } else if (isAudio) {

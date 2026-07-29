@@ -105,9 +105,10 @@ async function openWebcamModal() {
     try {
         webcamStream = await navigator.mediaDevices.getUserMedia({ 
             video: { 
-                width: { ideal: 1920 }, 
-                height: { ideal: 1080 }, 
-                facingMode: currentFacingMode 
+                width: { ideal: 1280 }, 
+                height: { ideal: 720 }, 
+                facingMode: currentFacingMode,
+                frameRate: { ideal: 30 }
             },
             audio: true 
         });
@@ -148,9 +149,10 @@ async function flipCamera() {
     try {
         webcamStream = await navigator.mediaDevices.getUserMedia({
             video: { 
-                width: { ideal: 1920 }, 
-                height: { ideal: 1080 }, 
-                facingMode: currentFacingMode 
+                width: { ideal: 1280 }, 
+                height: { ideal: 720 }, 
+                facingMode: currentFacingMode,
+                frameRate: { ideal: 30 }
             },
             audio: true
         });
@@ -245,16 +247,24 @@ function startRecording() {
     if (!webcamStream) return;
     
     recordedChunks = [];
-    const options = { mimeType: 'video/webm;codecs=vp8,opus' };
+    
+    // Intentar mp4 primero (mejor soporte), luego webm
+    let selectedMimeType = 'video/webm';
+    const mimeTypes = ['video/mp4', 'video/webm;codecs=h264,opus', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+    for (const mt of mimeTypes) {
+        if (MediaRecorder.isTypeSupported(mt)) {
+            selectedMimeType = mt;
+            break;
+        }
+    }
     
     try {
-        mediaRecorder = new MediaRecorder(webcamStream, options);
+        mediaRecorder = new MediaRecorder(webcamStream, { 
+            mimeType: selectedMimeType,
+            videoBitsPerSecond: 2500000 
+        });
     } catch (e) {
-        try {
-            mediaRecorder = new MediaRecorder(webcamStream, { mimeType: 'video/webm' });
-        } catch (e2) {
-            mediaRecorder = new MediaRecorder(webcamStream);
-        }
+        mediaRecorder = new MediaRecorder(webcamStream);
     }
     
     mediaRecorder.ondataavailable = (e) => {
@@ -280,7 +290,7 @@ function startRecording() {
         document.getElementById('webcamPreviewControls').style.display = 'flex';
     };
     
-    mediaRecorder.start(100);
+    mediaRecorder.start(1000);
     recordingSeconds = 0;
     updateRecordingTimer();
     recordingTimer = setInterval(updateRecordingTimer, 1000);
