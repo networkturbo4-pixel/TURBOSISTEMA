@@ -72,7 +72,7 @@ try {
             $stmtNormal->execute([$target_user_id]);
             $normalItems = $stmtNormal->fetchAll();
 
-            // Productos a granel asignados (product_type = 'granel' or is_bulk = 1)
+            // Productos a granel asignados (excluimos agrupados y sus variantes aunque tengan is_bulk=1)
             $stmtBulk = $pdo->prepare("
                 SELECT us.id as stock_id, us.quantity, 
                        p.id as product_id, p.name as product_name, p.master_sku, p.unit_type, p.product_image, p.created_at,
@@ -80,13 +80,13 @@ try {
                 FROM inventory_user_stock us
                 JOIN inventory_products p ON us.product_id = p.id
                 LEFT JOIN inventory_categories c ON p.category_id = c.id
-                WHERE us.user_id = ? AND us.quantity > 0 AND (p.product_type = 'granel' OR p.is_bulk = 1)
+                WHERE us.user_id = ? AND us.quantity > 0 AND (p.product_type = 'granel' OR p.is_bulk = 1) AND LOWER(p.product_type) != 'agrupado' AND p.parent_product_id IS NULL
                 ORDER BY p.name ASC
             ");
             $stmtBulk->execute([$target_user_id]);
             $bulkItems = $stmtBulk->fetchAll();
 
-            // Productos agrupados asignados (product_type = 'agrupado')
+            // Productos agrupados asignados (padres o variantes)
             $stmtGrouped = $pdo->prepare("
                 SELECT us.id as stock_id, us.quantity, 
                        p.id as product_id, p.name as product_name, p.master_sku, p.unit_type, p.product_image, p.created_at,
@@ -94,7 +94,7 @@ try {
                 FROM inventory_user_stock us
                 JOIN inventory_products p ON us.product_id = p.id
                 LEFT JOIN inventory_categories c ON p.category_id = c.id
-                WHERE us.user_id = ? AND us.quantity > 0 AND p.product_type = 'agrupado'
+                WHERE us.user_id = ? AND us.quantity > 0 AND (LOWER(p.product_type) = 'agrupado' OR p.parent_product_id IS NOT NULL)
                 ORDER BY p.name ASC
             ");
             $stmtGrouped->execute([$target_user_id]);
@@ -335,8 +335,8 @@ try {
 
                 $pdo->beginTransaction();
 
-                // Get product_id and user_id from stock
-                $stmtStock = $pdo->prepare("SELECT user_id, product_id, quantity FROM inventory_user_stock WHERE id = ?");
+                // Get product_id and user_id from stock with additional info for logging
+                $stmtStock = $pdo->prepare("SELECT s.user_id, s.product_id, s.quantity, p.name as product_name, p.is_bulk, u.name as user_name FROM inventory_user_stock s JOIN inventory_products p ON s.product_id = p.id LEFT JOIN users u ON s.user_id = u.id WHERE s.id = ?");
                 $stmtStock->execute([$stock_id]);
                 $stock = $stmtStock->fetch();
 
@@ -351,6 +351,13 @@ try {
                 // Sumar al almacén
                 $pdo->prepare("UPDATE inventory_products SET total_quantity = total_quantity + ? WHERE id = ?")->execute([$quantity, $stock['product_id']]);
 
+                // Registrar en el historial de asignaciones
+                $byId = intval($_SESSION['user_id'] ?? 0);
+                $byName = '';
+                if ($byId) { $bn = $pdo->prepare("SELECT name FROM users WHERE id = ?"); $bn->execute([$byId]); $byName = $bn->fetchColumn() ?: ''; }
+                $logStmt = $pdo->prepare("INSERT INTO inventory_assignment_log (sku_id, product_id, sku_code, product_name, assigned_to, assigned_to_name, assigned_by, assigned_by_name, quantity, is_epp, action, notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
+                $logStmt->execute([null, $stock['product_id'], 'GRANEL', $stock['product_name'] ?? '', $stock['user_id'], $stock['user_name'] ?? '', $byId, $byName, $quantity, $stock['is_bulk'] ?? 0, 'unassign', 'Devuelto desde mochila']);
+
                 $pdo->commit();
                 echo json_encode(['success' => true, 'message' => "Devuelto $quantity al almacén"]);
                 break;
@@ -362,8 +369,31 @@ try {
                 break;
             }
 
-            $stmt = $pdo->prepare("UPDATE inventory_skus SET assigned_to = NULL, status = 'disponible' WHERE id = ?");
+            $pdo->beginTransaction();
+
+            // Guardar info previa para el historial
+            $prevInfo = $pdo->prepare("SELECT s.sku_code, s.assigned_to, s.is_epp, s.product_id, p.name as product_name, u.name as assigned_to_name FROM inventory_skus s JOIN inventory_products p ON s.product_id = p.id LEFT JOIN users u ON s.assigned_to = u.id WHERE s.id = ?");
+            $prevInfo->execute([$sku_id]);
+            $prev = $prevInfo->fetch();
+
+            $stmt = $pdo->prepare("UPDATE inventory_skus SET assigned_to = NULL, status = 'disponible', historia = 'devuelto' WHERE id = ?");
             $stmt->execute([$sku_id]);
+
+            if ($prev) {
+                $byId = intval($_SESSION['user_id'] ?? 0);
+                
+                // Historial del SKU individual
+                $stmtEntry = $pdo->prepare("INSERT INTO inventory_entries (sku_id, user_id, tipo, notas) VALUES (?, ?, ?, ?)");
+                $stmtEntry->execute([$sku_id, $prev['assigned_to'] ?: $byId, 'devuelto', 'Devuelto al almacén desde mochila']);
+
+                // Historial de asignaciones general
+                $byName = '';
+                if ($byId) { $bn = $pdo->prepare("SELECT name FROM users WHERE id = ?"); $bn->execute([$byId]); $byName = $bn->fetchColumn() ?: ''; }
+                $logStmt = $pdo->prepare("INSERT INTO inventory_assignment_log (sku_id, product_id, sku_code, product_name, assigned_to, assigned_to_name, assigned_by, assigned_by_name, quantity, is_epp, action, notes) VALUES (?,?,?,?,?,?,?,?,1,?,?,?)");
+                $logStmt->execute([$sku_id, $prev['product_id'], $prev['sku_code'] ?? '', $prev['product_name'] ?? '', $prev['assigned_to'] ?? 0, $prev['assigned_to_name'] ?? '', $byId, $byName, $prev['is_epp'] ?? 0, 'unassign', 'Devuelto desde mochila']);
+            }
+
+            $pdo->commit();
             echo json_encode(['success' => true, 'message' => 'SKU devuelto al almacén']);
             break;
 

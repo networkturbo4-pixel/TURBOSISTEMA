@@ -1517,7 +1517,7 @@
 .upload-modal-overlay.active { display: flex; }
 
 .upload-modal {
-    background: var(--card-bg);
+    background: var(--card-bg, #ffffff);
     border-radius: 20px;
     padding: 24px;
     max-width: 480px;

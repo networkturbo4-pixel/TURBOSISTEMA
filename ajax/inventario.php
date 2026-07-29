@@ -1161,10 +1161,13 @@ try {
                 $stmt = $pdo->prepare("
                     SELECT 
                         id,
-                        'asignado' as tipo,
-                        assigned_by_name as user_name,
+                        IF(action = 'unassign', 'devuelto', 'asignado') as tipo,
+                        IF(action = 'unassign', assigned_to_name, assigned_by_name) as user_name,
                         created_at,
-                        CONCAT('Asignó ', quantity, ' unidades de ', product_name, ' a ', assigned_to_name) as notas,
+                        IF(action = 'unassign',
+                           CONCAT('Devolvió ', quantity, ' unidades de ', product_name, ' a Turbo'),
+                           CONCAT('Asignó ', quantity, ' unidades de ', product_name, ' a ', assigned_to_name)
+                        ) as notas,
                         '' as photos
                     FROM inventory_assignment_log
                     WHERE product_id = ? OR product_id IN (SELECT id FROM inventory_products WHERE parent_product_id = ?)
