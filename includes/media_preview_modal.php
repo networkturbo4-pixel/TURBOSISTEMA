@@ -266,6 +266,8 @@ function startMediaText() {
     document.getElementById('mediaTextControls').style.display = 'flex';
     document.getElementById('mediaTextColorPicker').style.display = 'flex';
     document.getElementById('mediaTextFontPicker').style.display = 'flex';
+    document.getElementById('textAlignBtn').style.display = 'inline-block';
+    document.getElementById('textBgBtn').style.display = 'inline-block';
     
     // Ocultar la imagen original
     img.style.display = 'none';
