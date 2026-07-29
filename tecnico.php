@@ -1118,9 +1118,10 @@ $equiposMochila = $stmtUserEquip->fetchAll();
         </div>
     </div>
 
-    <!-- Modales de Mapa InDrive/Uber y Cámara Webcam -->
+    <!-- Modales de Mapa InDrive/Uber, Cámara Webcam y Vista Previa Media -->
     <?php require_once __DIR__ . '/includes/location_modal.php'; ?>
     <?php require_once __DIR__ . '/includes/webcam_modal.php'; ?>
+    <?php require_once __DIR__ . '/includes/media_preview_modal.php'; ?>
 
     <!-- Carga de Emoji Picker -->
     <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
@@ -1372,40 +1373,15 @@ $equiposMochila = $stmtUserEquip->fetchAll();
 
         function handleFileSelect(input) {
             if (input.files && input.files[0]) {
-                techSelectedFile = input.files[0];
-                document.getElementById('techFilePreviewName').innerText = techSelectedFile.name;
-                document.getElementById('techFilePreviewContainer').style.display = 'flex';
-                updateTechMainButton();
+                openMediaPreview(input.files[0]);
+                input.value = ''; // Reset for future selections
             }
         }
 
-        // Envío directo desde cámara (sin paso intermedio de preview)
-        async function sendCapturedFileDirectly(file) {
-            if (!file || !currentTechTicketId) return;
-            
-            let fileToSend = file;
-            
-            // Comprimir solo si es imagen
-            if (file.type.startsWith('image/')) {
-                fileToSend = await compressImage(file);
-            }
-            
-            const fd = new FormData();
-            fd.append('action', 'send_message');
-            fd.append('ticket_id', currentTechTicketId);
-            fd.append('message', '');
-            fd.append('attachment', fileToSend);
-            
-            try {
-                const res = await sendTechChatAjaxWithProgress(fd, fileToSend.name);
-                if (res.success) {
-                    loadTechChatMessages();
-                } else {
-                    alert(res.error || res.message || 'Error al enviar');
-                }
-            } catch(e) {
-                alert('Error de conexión al enviar.');
-            }
+        // Ya no enviamos directo, pasamos por la vista previa
+        function sendCapturedFileDirectly(file) {
+            if (!file) return;
+            openMediaPreview(file);
         }
 
         const openGalleryInput = () => {
