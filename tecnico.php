@@ -1050,29 +1050,85 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             </div>
 
             <!-- Input Area Footer -->
-            <div style="padding: 12px 16px calc(24px + env(safe-area-inset-bottom, 0px)); background: #1e293b; border-top: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 6px; position: relative; flex-wrap: nowrap;">
+            <div style="padding: 10px 14px calc(20px + env(safe-area-inset-bottom, 0px)); background: #0f172a; display: flex; align-items: flex-end; gap: 8px; position: relative; flex-wrap: nowrap; border-top: 1px solid rgba(255,255,255,0.05);">
                 
-                <!-- Actions Menu -->
-                <input type="file" id="techFileInput" style="display:none;" onchange="handleFileSelect(this)">
-                <div id="techChatActionMenu" style="display: none; position: absolute; bottom: 100%; left: 16px; margin-bottom: 10px; background: #0f172a; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); padding: 8px; z-index: 100; min-width: 220px;">
-                    <button type="button" onclick="triggerSmartCameraInput(); toggleTechActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: #fff;">
-                        <i class="ph-fill ph-camera" style="font-size: 1.3rem; color: #10b981;"></i> Cámara
-                    </button>
-                    <button type="button" onclick="openGalleryInput(); toggleTechActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: #fff;">
-                        <i class="ph-fill ph-image" style="font-size: 1.3rem; color: #3b82f6;"></i> Fotos y Videos
-                    </button>
-                    <button type="button" onclick="sendTechLocation(); toggleTechActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: #fff;">
-                        <i class="ph-fill ph-map-pin" style="font-size: 1.3rem; color: #ef4444;"></i> Ubicación
-                    </button>
+                <!-- Inputs ocultos -->
+                <input type="file" id="techFileInput" accept="image/*,video/*,application/pdf" style="display:none;" onchange="handleFileSelect(this)">
+                <input type="file" id="chatCameraInput" accept="image/*,video/*" capture="environment" style="display:none;" onchange="handleFileSelect(this)">
+                
+                <!-- Menú de Adjuntos (Estilo Grid Bottom) -->
+                <div id="techChatActionMenu" style="display: none; position: absolute; bottom: 100%; left: 14px; right: 70px; margin-bottom: 12px; background: #1e293b; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); padding: 20px; z-index: 100;">
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px 10px; text-align: center;">
+                        
+                        <div onclick="openGalleryInput(); toggleTechActionMenu();" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                            <div style="width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #2563eb); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(59,130,246,0.3);">
+                                <i class="ph-fill ph-image" style="font-size: 1.6rem; color: #fff;"></i>
+                            </div>
+                            <span style="font-size: 0.78rem; font-weight: 600; color: #cbd5e1;">Galería</span>
+                        </div>
+
+                        <div onclick="triggerSmartCameraInput(); toggleTechActionMenu();" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                            <div style="width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, #ec4899, #db2777); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(236,72,153,0.3);">
+                                <i class="ph-fill ph-camera" style="font-size: 1.6rem; color: #fff;"></i>
+                            </div>
+                            <span style="font-size: 0.78rem; font-weight: 600; color: #cbd5e1;">Cámara</span>
+                        </div>
+
+                        <div onclick="sendTechLocation(); toggleTechActionMenu();" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                            <div style="width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #059669); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(16,185,129,0.3);">
+                                <i class="ph-fill ph-map-pin" style="font-size: 1.6rem; color: #fff;"></i>
+                            </div>
+                            <span style="font-size: 0.78rem; font-weight: 600; color: #cbd5e1;">Ubicación</span>
+                        </div>
+                        
+                    </div>
                 </div>
 
-                <button type="button" onclick="toggleTechActionMenu()" style="background: transparent; border: none; font-size: 1.5rem; color: #94a3b8; cursor: pointer; padding: 4px;">
-                    <i class="ph-bold ph-plus-circle"></i>
-                </button>
+                <!-- Emoji Picker -->
+                <div id="techEmojiPicker" style="display: none; position: absolute; bottom: 100%; left: 14px; margin-bottom: 12px; background: #1e293b; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); padding: 14px; z-index: 100; width: 280px; max-height: 220px; overflow-y: auto;">
+                    <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; text-align: center;">
+                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('😀')">😀</span>
+                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('😂')">😂</span>
+                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('😍')">😍</span>
+                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('🙏')">🙏</span>
+                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('👍')">👍</span>
+                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('🔥')">🔥</span>
+                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('✅')">✅</span>
+                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('❌')">❌</span>
+                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('😅')">😅</span>
+                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('😎')">😎</span>
+                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('🎉')">🎉</span>
+                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('🤔')">🤔</span>
+                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('🙌')">🙌</span>
+                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('💡')">💡</span>
+                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('🔧')">🔧</span>
+                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('🛠️')">🛠️</span>
+                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('🚗')">🚗</span>
+                        <span style="cursor: pointer; font-size: 1.5rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="insertEmoji('📱')">📱</span>
+                    </div>
+                </div>
 
-                <textarea id="techMessageInput" placeholder="Escribe un mensaje..." rows="1" style="flex: 1; background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 10px 14px; color: white; outline: none; font-size: 0.9rem; resize: none; max-height: 100px;" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'; updateTechMainButton();"></textarea>
+                <!-- Input Bubble (WhatsApp style) -->
+                <div style="flex: 1; display: flex; align-items: flex-end; background: #1e293b; border-radius: 24px; padding: 4px 6px; gap: 4px; border: 1px solid rgba(255,255,255,0.05); box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);">
+                    
+                    <button type="button" onclick="toggleEmojiPicker()" style="background: transparent; border: none; font-size: 1.4rem; color: #94a3b8; cursor: pointer; padding: 6px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#94a3b8'">
+                        <i class="ph-bold ph-smiley"></i>
+                    </button>
+                    
+                    <textarea id="techMessageInput" placeholder="Mensaje" rows="1" style="flex: 1; background: transparent; border: none; padding: 8px 4px; color: white; outline: none; font-size: 1rem; resize: none; max-height: 120px; line-height: 1.4; align-self: center;" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'; updateTechMainButton();"></textarea>
+                    
+                    <div style="display: flex; align-items: center; padding-bottom: 2px;">
+                        <button type="button" onclick="toggleTechActionMenu()" style="background: transparent; border: none; font-size: 1.4rem; color: #94a3b8; cursor: pointer; padding: 6px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transform: rotate(-45deg); transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#94a3b8'">
+                            <i class="ph-bold ph-paperclip"></i>
+                        </button>
+                        <button type="button" onclick="triggerSmartCameraInput()" style="background: transparent; border: none; font-size: 1.4rem; color: #94a3b8; cursor: pointer; padding: 6px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 4px; transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#94a3b8'">
+                            <i class="ph-fill ph-camera"></i>
+                        </button>
+                    </div>
+                </div>
 
-                <button type="button" id="btnTechSend" onclick="handleTechMainAction()" style="width: 42px; height: 42px; background: linear-gradient(135deg, #10b981, #059669); border: none; border-radius: 50%; color: white; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(16,185,129,0.35);">
+                <!-- Send / Mic Button outside -->
+                <button type="button" id="btnTechSend" onclick="handleTechMainAction()" style="flex-shrink: 0; width: 48px; height: 48px; background: #10b981; border: none; border-radius: 50%; color: white; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(16,185,129,0.35); transition: background 0.2s; margin-bottom: 2px;">
                     <i id="btnTechSendIcon" class="ph-fill ph-microphone"></i>
                 </button>
             </div>
@@ -1288,6 +1344,21 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
         };
 
+        const toggleEmojiPicker = () => {
+            const picker = document.getElementById('techEmojiPicker');
+            picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+        };
+
+        const insertEmoji = (emoji) => {
+            const input = document.getElementById('techMessageInput');
+            input.value += emoji;
+            input.style.height = ''; 
+            input.style.height = input.scrollHeight + 'px';
+            updateTechMainButton();
+            toggleEmojiPicker();
+            input.focus();
+        };
+
         const updateTechMainButton = () => {
             const text = document.getElementById('techMessageInput').value.trim();
             const btnIcon = document.getElementById('btnTechSendIcon');
@@ -1478,7 +1549,7 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             input.style.height = '';
             if (fileToSend) clearTechFileSelection();
 
-            if (fileToSend) {
+            if (fileToSend && fileToSend.type.startsWith('image/')) {
                 fileToSend = await compressImage(fileToSend);
             }
 
