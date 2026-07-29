@@ -241,12 +241,11 @@ function takeWebcamSnapshot() {
 
     canvas.toBlob((blob) => {
         if (blob) {
-            capturedBlob = blob;
-            preview.src = URL.createObjectURL(blob);
-            preview.style.display = 'block';
-            video.style.display = 'none';
-            document.getElementById('webcamBottomControls').style.display = 'none';
-            document.getElementById('webcamPreviewControls').style.display = 'flex';
+            const capturedFile = new File([blob], `cam_${Date.now()}.jpg`, { type: 'image/jpeg' });
+            closeWebcamModal();
+            if (typeof sendCapturedFileDirectly === 'function') {
+                sendCapturedFileDirectly(capturedFile);
+            }
         }
     }, 'image/jpeg', 0.92);
 }
@@ -333,19 +332,12 @@ function startRecording() {
     mediaRecorder.onstop = () => {
         const mimeUsed = mediaRecorder.mimeType || 'video/webm';
         const blob = new Blob(recordedChunks, { type: mimeUsed });
-        capturedBlob = blob;
+        const capturedFile = new File([blob], `cam_${Date.now()}.mp4`, { type: 'video/mp4' });
         
-        // Mostrar preview en un elemento de video separado
-        const video = document.getElementById('webcamVideo');
-        const videoPreview = document.getElementById('webcamVideoPreview');
-        
-        video.style.display = 'none';
-        videoPreview.src = URL.createObjectURL(blob);
-        videoPreview.style.display = 'block';
-        videoPreview.play();
-        
-        document.getElementById('webcamBottomControls').style.display = 'none';
-        document.getElementById('webcamPreviewControls').style.display = 'flex';
+        closeWebcamModal();
+        if (typeof sendCapturedFileDirectly === 'function') {
+            sendCapturedFileDirectly(capturedFile);
+        }
     };
     
     mediaRecorder.start(1000);
