@@ -7,6 +7,9 @@
 
     <!-- Preview de foto capturada -->
     <img id="webcamPreview" style="display: none; flex: 1; width: 100%; height: 100%; object-fit: contain; background: #000;">
+    
+    <!-- Preview de video capturado -->
+    <video id="webcamVideoPreview" playsinline controls style="display: none; flex: 1; width: 100%; height: 100%; object-fit: contain; background: #000;"></video>
 
     <!-- Top Bar -->
     <div style="position: absolute; top: 0; left: 0; right: 0; padding: 16px 16px calc(16px + env(safe-area-inset-top, 0px)); display: flex; justify-content: space-between; align-items: center; z-index: 10; background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, transparent 100%);">
@@ -50,7 +53,7 @@
     </div>
 
     <!-- Preview Controls (after capture) -->
-    <div id="webcamPreviewControls" style="display: none; position: absolute; bottom: 0; left: 0; right: 0; padding: 20px 30px calc(30px + env(safe-area-inset-bottom, 0px)); display: none; justify-content: center; gap: 20px; z-index: 10; background: linear-gradient(0deg, rgba(0,0,0,0.7) 0%, transparent 100%);">
+    <div id="webcamPreviewControls" style="display: none; position: absolute; bottom: 0; left: 0; right: 0; padding: 20px 30px calc(30px + env(safe-area-inset-bottom, 0px)); justify-content: center; gap: 20px; z-index: 10; background: linear-gradient(0deg, rgba(0,0,0,0.7) 0%, transparent 100%);">
         <button onclick="discardCapture()" style="width: 56px; height: 56px; border-radius: 50%; background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border: none; color: white; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; cursor: pointer;">
             <i class="ph-bold ph-x"></i>
         </button>
@@ -60,7 +63,7 @@
     </div>
 
     <!-- Recording indicator -->
-    <div id="recordingIndicator" style="display: none; position: absolute; top: 80px; left: 50%; transform: translateX(-50%); background: rgba(239,68,68,0.85); backdrop-filter: blur(10px); padding: 6px 16px; border-radius: 20px; color: white; font-weight: 700; font-size: 0.85rem; z-index: 10; display: none; align-items: center; gap: 8px;">
+    <div id="recordingIndicator" style="display: none; position: absolute; top: 80px; left: 50%; transform: translateX(-50%); background: rgba(239,68,68,0.85); backdrop-filter: blur(10px); padding: 6px 16px; border-radius: 20px; color: white; font-weight: 700; font-size: 0.85rem; z-index: 10; align-items: center; gap: 8px;">
         <div style="width: 10px; height: 10px; border-radius: 50%; background: #fff; animation: recPulse 1s ease-in-out infinite;"></div>
         <span id="recordingTime">00:00</span>
     </div>
@@ -77,7 +80,7 @@
 <script>
 let webcamStream = null;
 let currentFacingMode = 'environment';
-let cameraMode = 'foto'; // 'foto' or 'video'
+let cameraMode = 'foto';
 let mediaRecorder = null;
 let recordedChunks = [];
 let recordingTimer = null;
@@ -97,12 +100,15 @@ async function openWebcamModal() {
     document.getElementById('webcamBottomControls').style.display = 'flex';
     document.getElementById('webcamPreviewControls').style.display = 'none';
     document.getElementById('webcamPreview').style.display = 'none';
+    document.getElementById('webcamVideoPreview').style.display = 'none';
     video.style.display = 'block';
+    video.muted = true;
+    video.controls = false;
     
-    // Reset mode to foto
     setCameraMode('foto');
     
     try {
+        // Solo video, SIN audio para evitar que se cuele el sonido en modo foto
         webcamStream = await navigator.mediaDevices.getUserMedia({ 
             video: { 
                 width: { ideal: 1280 }, 
@@ -110,13 +116,12 @@ async function openWebcamModal() {
                 facingMode: currentFacingMode,
                 frameRate: { ideal: 30 }
             },
-            audio: true 
+            audio: false 
         });
         video.srcObject = webcamStream;
     } catch (err) {
         console.warn('Camera access denied:', err);
         closeWebcamModal();
-        // Fallback: abrir file input nativo
         const camInput = document.getElementById('chatCameraInput');
         if (camInput) camInput.click();
     }
@@ -125,6 +130,7 @@ async function openWebcamModal() {
 function closeWebcamModal() {
     const modal = document.getElementById('webcamCaptureModal');
     const video = document.getElementById('webcamVideo');
+    const videoPreview = document.getElementById('webcamVideoPreview');
     
     stopRecording();
     
@@ -132,7 +138,16 @@ function closeWebcamModal() {
         webcamStream.getTracks().forEach(track => track.stop());
         webcamStream = null;
     }
-    if (video) video.srcObject = null;
+    if (video) {
+        video.srcObject = null;
+        video.src = '';
+        video.muted = true;
+        video.controls = false;
+    }
+    if (videoPreview) {
+        videoPreview.src = '';
+        videoPreview.style.display = 'none';
+    }
     if (modal) modal.style.display = 'none';
     
     capturedBlob = null;
@@ -141,6 +156,7 @@ function closeWebcamModal() {
 async function flipCamera() {
     currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
     const video = document.getElementById('webcamVideo');
+    const needsAudio = (cameraMode === 'video');
     
     if (webcamStream) {
         webcamStream.getTracks().forEach(track => track.stop());
@@ -154,7 +170,7 @@ async function flipCamera() {
                 facingMode: currentFacingMode,
                 frameRate: { ideal: 30 }
             },
-            audio: true
+            audio: needsAudio
         });
         video.srcObject = webcamStream;
     } catch (err) {
@@ -162,7 +178,7 @@ async function flipCamera() {
     }
 }
 
-function setCameraMode(mode) {
+async function setCameraMode(mode) {
     cameraMode = mode;
     const btnFoto = document.getElementById('btnModeFoto');
     const btnVideo = document.getElementById('btnModeVideo');
@@ -176,7 +192,17 @@ function setCameraMode(mode) {
         btnVideo.style.color = 'rgba(255,255,255,0.6)';
         shutterInner.style.background = 'white';
         shutterInner.style.borderRadius = '50%';
+        shutterInner.style.width = '58px';
+        shutterInner.style.height = '58px';
         btnShutter.onclick = takeWebcamSnapshot;
+        
+        // Quitar audio track si existe (modo foto no necesita audio)
+        if (webcamStream) {
+            webcamStream.getAudioTracks().forEach(track => {
+                track.stop();
+                webcamStream.removeTrack(track);
+            });
+        }
     } else {
         btnVideo.style.background = 'white';
         btnVideo.style.color = '#000';
@@ -184,7 +210,21 @@ function setCameraMode(mode) {
         btnFoto.style.color = 'rgba(255,255,255,0.6)';
         shutterInner.style.background = '#ef4444';
         shutterInner.style.borderRadius = '50%';
+        shutterInner.style.width = '58px';
+        shutterInner.style.height = '58px';
         btnShutter.onclick = toggleRecording;
+        
+        // Agregar audio track para modo video
+        if (webcamStream && webcamStream.getAudioTracks().length === 0) {
+            try {
+                const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioStream.getAudioTracks().forEach(track => {
+                    webcamStream.addTrack(track);
+                });
+            } catch(e) {
+                console.warn('No se pudo obtener audio:', e);
+            }
+        }
     }
 }
 
@@ -215,9 +255,24 @@ function discardCapture() {
     capturedBlob = null;
     const video = document.getElementById('webcamVideo');
     const preview = document.getElementById('webcamPreview');
+    const videoPreview = document.getElementById('webcamVideoPreview');
     
     preview.style.display = 'none';
+    videoPreview.style.display = 'none';
+    videoPreview.src = '';
     video.style.display = 'block';
+    
+    // Re-attach stream si sigue activo
+    if (webcamStream && webcamStream.active) {
+        video.srcObject = webcamStream;
+        video.muted = true;
+        video.controls = false;
+    } else {
+        // Re-open camera
+        openWebcamModal();
+        return;
+    }
+    
     document.getElementById('webcamBottomControls').style.display = 'flex';
     document.getElementById('webcamPreviewControls').style.display = 'none';
 }
@@ -226,10 +281,14 @@ function confirmCapture() {
     if (!capturedBlob) return;
     
     const isVideo = capturedBlob.type.startsWith('video');
-    const ext = isVideo ? 'webm' : 'jpg';
-    const capturedFile = new File([capturedBlob], `cam_${Date.now()}.${ext}`, { type: capturedBlob.type });
+    const ext = isVideo ? 'mp4' : 'jpg';
+    const mimeType = isVideo ? 'video/mp4' : 'image/jpeg';
+    const capturedFile = new File([capturedBlob], `cam_${Date.now()}.${ext}`, { type: mimeType });
     
-    if (typeof handleFileSelect === 'function') {
+    // Enviar DIRECTAMENTE al chat (sin pasar por preview de selección)
+    if (typeof sendCapturedFileDirectly === 'function') {
+        sendCapturedFileDirectly(capturedFile);
+    } else if (typeof handleFileSelect === 'function') {
         handleFileSelect({ files: [capturedFile] });
     }
     closeWebcamModal();
@@ -248,7 +307,7 @@ function startRecording() {
     
     recordedChunks = [];
     
-    // Intentar mp4 primero (mejor soporte), luego webm
+    // Seleccionar el mejor formato disponible
     let selectedMimeType = 'video/webm';
     const mimeTypes = ['video/mp4', 'video/webm;codecs=h264,opus', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
     for (const mt of mimeTypes) {
@@ -272,19 +331,18 @@ function startRecording() {
     };
     
     mediaRecorder.onstop = () => {
-        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const mimeUsed = mediaRecorder.mimeType || 'video/webm';
+        const blob = new Blob(recordedChunks, { type: mimeUsed });
         capturedBlob = blob;
         
-        // Mostrar preview de video
-        const preview = document.getElementById('webcamPreview');
+        // Mostrar preview en un elemento de video separado
         const video = document.getElementById('webcamVideo');
-        // Usar un video element para preview
-        preview.style.display = 'none';
-        video.src = URL.createObjectURL(blob);
-        video.srcObject = null;
-        video.muted = false;
-        video.controls = true;
-        video.style.display = 'block';
+        const videoPreview = document.getElementById('webcamVideoPreview');
+        
+        video.style.display = 'none';
+        videoPreview.src = URL.createObjectURL(blob);
+        videoPreview.style.display = 'block';
+        videoPreview.play();
         
         document.getElementById('webcamBottomControls').style.display = 'none';
         document.getElementById('webcamPreviewControls').style.display = 'flex';
@@ -311,23 +369,26 @@ function stopRecording() {
         clearInterval(recordingTimer);
         recordingTimer = null;
     }
-    document.getElementById('recordingIndicator').style.display = 'none';
+    const indicator = document.getElementById('recordingIndicator');
+    if (indicator) indicator.style.display = 'none';
     
     const shutterInner = document.getElementById('shutterInner');
-    shutterInner.style.borderRadius = '50%';
-    shutterInner.style.width = '58px';
-    shutterInner.style.height = '58px';
+    if (shutterInner) {
+        shutterInner.style.borderRadius = '50%';
+        shutterInner.style.width = '58px';
+        shutterInner.style.height = '58px';
+    }
 }
 
 function updateRecordingTimer() {
     recordingSeconds++;
     const mins = String(Math.floor(recordingSeconds / 60)).padStart(2, '0');
     const secs = String(recordingSeconds % 60).padStart(2, '0');
-    document.getElementById('recordingTime').textContent = `${mins}:${secs}`;
+    const el = document.getElementById('recordingTime');
+    if (el) el.textContent = `${mins}:${secs}`;
 }
 
 function toggleCamFlash() {
-    // Flash/torch toggle (solo funciona si el dispositivo lo soporta)
     if (!webcamStream) return;
     const track = webcamStream.getVideoTracks()[0];
     if (!track) return;

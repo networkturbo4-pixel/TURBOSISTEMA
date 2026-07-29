@@ -1384,6 +1384,35 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             }
         }
 
+        // Envío directo desde cámara (sin paso intermedio de preview)
+        async function sendCapturedFileDirectly(file) {
+            if (!file || !currentTechTicketId) return;
+            
+            let fileToSend = file;
+            
+            // Comprimir solo si es imagen
+            if (file.type.startsWith('image/')) {
+                fileToSend = await compressImage(file);
+            }
+            
+            const fd = new FormData();
+            fd.append('action', 'send_message');
+            fd.append('ticket_id', currentTechTicketId);
+            fd.append('message', '');
+            fd.append('attachment', fileToSend);
+            
+            try {
+                const res = await sendTechChatAjaxWithProgress(fd, fileToSend.name);
+                if (res.success) {
+                    loadTechChatMessages();
+                } else {
+                    alert(res.error || res.message || 'Error al enviar');
+                }
+            } catch(e) {
+                alert('Error de conexión al enviar.');
+            }
+        }
+
         const openGalleryInput = () => {
             document.getElementById('techFileInput').click();
         };
