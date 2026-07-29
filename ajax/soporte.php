@@ -375,10 +375,19 @@ try {
                 }
                 
                 if (isset($gdriveRes['success']) && $gdriveRes['success']) {
-                    $dbPath = $gdriveRes['direct_link'] ?? $gdriveRes['webContentLink'] ?? ''; // GoogleDriveHelper::uploadFile returns webContentLink, but let's check
-                    if (empty($dbPath) && isset($gdriveRes['id'])) {
-                        // Enlace de visualización si webContentLink no está
-                        $dbPath = $gdriveRes['webViewLink'];
+                    // Para videos: usar web_view_link (se renderiza via iframe /preview)
+                    // Para imágenes: usar direct_link (lh3 para carga directa rápida)
+                    $isVideoFile = strpos($file['type'], 'video/') === 0;
+                    if ($isVideoFile) {
+                        $dbPath = $gdriveRes['web_view_link'] ?? $gdriveRes['webViewLink'] ?? '';
+                        if (empty($dbPath) && isset($gdriveRes['file_id'])) {
+                            $dbPath = 'https://drive.google.com/file/d/' . $gdriveRes['file_id'] . '/view';
+                        }
+                    } else {
+                        $dbPath = $gdriveRes['direct_link'] ?? $gdriveRes['web_content_link'] ?? $gdriveRes['webContentLink'] ?? '';
+                        if (empty($dbPath) && isset($gdriveRes['file_id'])) {
+                            $dbPath = 'https://drive.google.com/uc?export=view&id=' . $gdriveRes['file_id'];
+                        }
                     }
                     $stmtAtt = $pdo->prepare("INSERT INTO ticket_attachments (message_id, file_path, file_name) VALUES (?, ?, ?)");
                     $stmtAtt->execute([$message_id, $dbPath, $fileName]);

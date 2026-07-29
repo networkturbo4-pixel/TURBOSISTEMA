@@ -1272,15 +1272,20 @@ $equiposMochila = $stmtUserEquip->fetchAll();
                                         const isAudio = ['mp3', 'ogg', 'wav', 'm4a'].includes(ext) || (ext === 'webm' && att.file_name.includes('Nota de Voz'));
                                         
                                         if (isVideo) {
-                                            if (url.includes('drive.google.com')) {
+                                            const isDriveUrl = url.includes('drive.google.com');
+                                            if (isDriveUrl) {
                                                 let embedUrl = url;
-                                                if (url.includes('/view')) {
+                                                // Convertir cualquier URL de Drive a formato /preview
+                                                const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                                                const ucIdMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+                                                const driveFileId = fileIdMatch ? fileIdMatch[1] : (ucIdMatch ? ucIdMatch[1] : null);
+                                                
+                                                if (driveFileId) {
+                                                    embedUrl = `https://drive.google.com/file/d/${driveFileId}/preview`;
+                                                } else if (url.includes('/view')) {
                                                     embedUrl = url.replace(/\/view.*$/, '/preview');
-                                                } else if (url.includes('uc?id=')) {
-                                                    const idMatch = url.match(/id=([^&]+)/);
-                                                    if (idMatch) embedUrl = `https://drive.google.com/file/d/${idMatch[1]}/preview`;
                                                 }
-                                                attHtml += `<div style="margin-top: 6px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);"><iframe src="${embedUrl}" width="100%" height="220" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe></div>`;
+                                                attHtml += `<div style="margin-top: 6px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);"><iframe src="${embedUrl}" width="100%" height="220" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen style="border:0;"></iframe></div>`;
                                             } else {
                                                 attHtml += `<video controls playsinline preload="metadata" style="max-width: 100%; border-radius: 10px; margin-top: 6px; border: 1px solid rgba(255,255,255,0.1); background: #000;">
                                                     <source src="${url}" type="video/${ext === 'webm' ? 'webm' : ext === 'mov' ? 'quicktime' : 'mp4'}">Tu navegador no soporta video.

@@ -320,7 +320,7 @@ function startRecording() {
     try {
         mediaRecorder = new MediaRecorder(webcamStream, { 
             mimeType: selectedMimeType,
-            videoBitsPerSecond: 2500000 
+            videoBitsPerSecond: 1500000 
         });
     } catch (e) {
         mediaRecorder = new MediaRecorder(webcamStream);
