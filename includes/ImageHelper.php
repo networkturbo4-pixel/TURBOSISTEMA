@@ -110,8 +110,9 @@ class ImageHelper {
         $fontWidth = imagefontwidth($fontSize);
         $fontHeight = imagefontheight($fontSize);
         
-        // Como la fuente nativa es pequeña, vamos a escalarla dibujándola en un lienzo temporal
-        $scale = $newWidth > 800 ? 3 : ($newWidth > 400 ? 2 : 1);
+        // Calcular escala basada en el lado menor para que no se vea gigante en imágenes apaisadas (panorámicas/recortes)
+        $refSize = min($newWidth, $newHeight);
+        $scale = $refSize > 800 ? 3 : ($refSize > 400 ? 2 : 1);
         
         $lineHeight = $fontHeight + 6;
         $textBlockHeight = count($lines) * $lineHeight + 16; // Más padding

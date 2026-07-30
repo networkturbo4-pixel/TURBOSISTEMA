@@ -414,6 +414,33 @@ try {
             echo json_encode(['success' => true]);
             break;
 
+        case 'delete_message':
+            $message_id = $_POST['message_id'] ?? 0;
+            if (!$has_session) throw new Exception('No autorizado'); // Solo usuarios del sistema por ahora
+
+            // Verificar si el mensaje pertenece al usuario o es admin
+            $stmt = $pdo->prepare("SELECT user_id, ticket_id FROM ticket_messages WHERE id = ?");
+            $stmt->execute([$message_id]);
+            $msgInfo = $stmt->fetch();
+
+            if (!$msgInfo) {
+                throw new Exception('Mensaje no encontrado');
+            }
+
+            if ($user_role !== 'admin' && $user_role !== 'administrador' && $msgInfo['user_id'] != $user_id) {
+                throw new Exception('No tienes permiso para eliminar este mensaje');
+            }
+
+            // Opcional: Eliminar archivos adjuntos asociados si los hay
+            // $stmtAtt = $pdo->prepare("DELETE FROM ticket_attachments WHERE message_id = ?");
+            // $stmtAtt->execute([$message_id]);
+
+            // Eliminar el mensaje
+            $pdo->prepare("DELETE FROM ticket_messages WHERE id = ?")->execute([$message_id]);
+            
+            echo json_encode(['success' => true]);
+            break;
+
         // --- AJUSTES: CATEGORÍAS Y PRIORIDADES ---
         case 'save_category':
             $id = intval($_POST['id'] ?? 0);

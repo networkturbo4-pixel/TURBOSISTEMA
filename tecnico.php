@@ -113,8 +113,8 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             min-height: 100vh !important;
             overflow-x: hidden !important;
             overflow-y: auto !important;
-            background-color: #0b0f19 !important;
-            color: #f8fafc !important;
+            background-color: var(--app-bg) !important;
+            color: var(--app-text-main) !important;
             margin: 0 !important;
             padding: 0 !important;
             padding-bottom: 20px !important;
@@ -279,12 +279,18 @@ $equiposMochila = $stmtUserEquip->fetchAll();
         }
 
         .stat-card-app {
-            background: rgba(30, 41, 59, 0.8) !important;
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95)) !important;
             border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            border-radius: 16px !important;
+            border-radius: 20px !important;
             padding: 16px !important;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3) !important;
-            backdrop-filter: blur(10px) !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
+            backdrop-filter: blur(12px) !important;
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s !important;
+        }
+        
+        .stat-card-app:hover {
+            transform: translateY(-2px) !important;
+            border-color: rgba(59, 130, 246, 0.4) !important;
         }
 
         .stat-icon {
@@ -352,24 +358,26 @@ $equiposMochila = $stmtUserEquip->fetchAll();
         .quick-action-icon {
             width: 56px !important;
             height: 56px !important;
-            border-radius: 16px !important;
+            border-radius: 18px !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
-            font-size: 1.5rem !important;
+            font-size: 1.6rem !important;
             color: #ffffff !important;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4) !important;
-            transition: transform 0.2s !important;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
         }
 
-        .quick-action-item:active .quick-action-icon {
-            transform: scale(0.92) !important;
+        .quick-action-item:active .quick-action-icon, .quick-action-item:hover .quick-action-icon {
+            transform: translateY(-4px) scale(0.95) !important;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4) !important;
         }
 
         .quick-action-label {
             font-size: 0.74rem !important;
-            font-weight: 600 !important;
-            color: #cbd5e1 !important;
+            font-weight: 700 !important;
+            color: #f8fafc !important;
             text-align: center !important;
             line-height: 1.2 !important;
         }
@@ -408,19 +416,19 @@ $equiposMochila = $stmtUserEquip->fetchAll();
 
         /* --- Tarjeta de Trabajo Ultra-Moderna --- */
         .job-card-modern {
-            background: linear-gradient(145deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%) !important;
-            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95)) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
             border-radius: 20px !important;
             padding: 18px !important;
             margin-bottom: 16px !important;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35) !important;
-            backdrop-filter: blur(14px) !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
+            backdrop-filter: blur(12px) !important;
             position: relative !important;
-            transition: transform 0.2s, border-color 0.2s !important;
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s !important;
         }
 
         .job-card-modern:hover {
-            border-color: rgba(16, 185, 129, 0.4) !important;
+            border-color: rgba(59, 130, 246, 0.4) !important;
             transform: translateY(-2px) !important;
         }
 
@@ -477,7 +485,7 @@ $equiposMochila = $stmtUserEquip->fetchAll();
         }
 
         .job-address-card {
-            background: rgba(15, 23, 42, 0.8);
+            background: rgba(15, 23, 42, 0.6);
             border-radius: 12px;
             padding: 10px 12px;
             margin: 12px 0;
@@ -485,7 +493,7 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             align-items: center;
             justify-content: space-between;
             gap: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .address-icon-box {
@@ -975,10 +983,10 @@ $equiposMochila = $stmtUserEquip->fetchAll();
 
             <div style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none;">
                 <?php foreach ($equiposMochila as $eq): ?>
-                    <div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px 14px; min-width: 170px; flex-shrink: 0; backdrop-filter: blur(8px);">
-                        <div style="font-size: 0.75rem; color: #10b981; font-weight: 700; font-family: monospace;"><?php echo htmlspecialchars($eq['sku_code']); ?></div>
-                        <div style="font-size: 0.85rem; font-weight: 700; color: #fff; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo htmlspecialchars($eq['product_name']); ?></div>
-                        <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 4px;"><i class="ph-fill ph-tag"></i> En Tránsito</div>
+                    <div style="background: linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 14px; min-width: 170px; flex-shrink: 0; backdrop-filter: blur(12px); box-shadow: 0 8px 20px rgba(0,0,0,0.2);">
+                        <div style="font-size: 0.75rem; color: #3b82f6; font-weight: 800; display: flex; align-items: center; gap: 4px;"><i class="ph-fill ph-barcode"></i> <?php echo htmlspecialchars($eq['sku_code']); ?></div>
+                        <div style="font-size: 0.88rem; font-weight: 700; color: #f8fafc; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo htmlspecialchars($eq['product_name']); ?></div>
+                        <div style="font-size: 0.72rem; color: #a78bfa; margin-top: 8px; font-weight: 700; background: rgba(139,92,246,0.15); padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(139,92,246,0.3);"><i class="ph-fill ph-truck"></i> En Tránsito</div>
                     </div>
                 <?php endforeach; ?>
             </div>

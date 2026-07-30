@@ -224,6 +224,33 @@ include '../../includes/sidebar.php';
         color: rgba(255,255,255,0.6);
     }
 
+    .message-delete-btn {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: rgba(255,255,255,0.8);
+        color: #ef4444;
+        border: none;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.2s;
+        font-size: 1rem;
+        z-index: 10;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .message-bubble:hover .message-delete-btn {
+        opacity: 1;
+    }
+    body.dark-theme .message-delete-btn {
+        background: rgba(0,0,0,0.6);
+    }
+
     .chat-input-area {
         padding: 15px;
         background: var(--surface-color);
@@ -302,6 +329,10 @@ include '../../includes/sidebar.php';
         .chat-main {
             display: <?php echo $ticket_id > 0 ? 'flex' : 'none'; ?>;
         }
+        .message-delete-btn {
+            opacity: 1; /* Siempre visible en móviles */
+            background: rgba(255,255,255,0.6);
+        }
     }
 </style>
 
@@ -377,6 +408,7 @@ include '../../includes/sidebar.php';
 <script>
     const currentTicketId = <?php echo $ticket_id; ?>;
     const currentUserId = <?php echo $_SESSION['user_id'] ?? 0; ?>;
+    const currentUserRole = '<?php echo $_SESSION['user_role'] ?? 'user'; ?>';
     let lastMessageId = 0;
     let sseSource = null;
     let isFetchingOlder = false;
@@ -447,8 +479,11 @@ include '../../includes/sidebar.php';
             checksHtml = `<span class="message-checks" style="color:${checkColor}; margin-left:5px; font-size:0.8rem;"><i class="ph-bold ph-checks"></i></span>`;
         }
 
+        const canDelete = isMe || currentUserRole === 'admin' || currentUserRole === 'administrador';
+
         const html = `
             <div class="message-bubble ${bubbleClass}" id="msg-${msg.id}">
+                ${canDelete ? `<button class="message-delete-btn" onclick="deleteMessage(${msg.id})" title="Eliminar mensaje"><i class="ph-bold ph-trash"></i></button>` : ''}
                 ${!isMe ? `<div style="font-size:0.75rem; font-weight:700; color:var(--primary-color); margin-bottom:3px;">${userName}</div>` : ''}
                 ${attHtml}
                 <div>${msg.message ? msg.message.replace(/\n/g, '<br>') : ''}</div>
@@ -644,6 +679,27 @@ include '../../includes/sidebar.php';
         }
         
         executeSend();
+    };
+
+    window.deleteMessage = async (messageId) => {
+        if (!confirm('¿Seguro que deseas eliminar este mensaje?')) return;
+        
+        const fd = new FormData();
+        fd.append('action', 'delete_message');
+        fd.append('message_id', messageId);
+        
+        try {
+            const res = await fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd }).then(r=>r.json());
+            if (res.success) {
+                const msgEl = document.getElementById(`msg-${messageId}`);
+                if (msgEl) msgEl.remove();
+                window.showToast('Mensaje eliminado', 'success');
+            } else {
+                window.showToast(res.message || 'Error al eliminar', 'error');
+            }
+        } catch(e) {
+            window.showToast('Error de conexión', 'error');
+        }
     };
 
     window.updateTicketStatus = async (status) => {
