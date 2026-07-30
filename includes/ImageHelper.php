@@ -113,8 +113,8 @@ class ImageHelper {
         // Como la fuente nativa es pequeña, vamos a escalarla dibujándola en un lienzo temporal
         $scale = $newWidth > 800 ? 3 : ($newWidth > 400 ? 2 : 1);
         
-        $lineHeight = $fontHeight + 4;
-        $textBlockHeight = count($lines) * $lineHeight + 10; // 10 padding
+        $lineHeight = $fontHeight + 6;
+        $textBlockHeight = count($lines) * $lineHeight + 16; // Más padding
         
         $scaledTextHeight = $textBlockHeight * $scale;
         
@@ -129,7 +129,7 @@ class ImageHelper {
                 elseif ($logoInfo['mime'] == 'image/jpeg') $logoImg = imagecreatefromjpeg($logoFile);
                 
                 if ($logoImg) {
-                    $targetLogoH = $scaledTextHeight - 20; 
+                    $targetLogoH = (int)($scaledTextHeight * 0.65); // Logo más pequeño (65% del panel)
                     if ($targetLogoH > 0) {
                         $ratio = $targetLogoH / $logoInfo[1];
                         $logoW = (int)($logoInfo[0] * $ratio);
@@ -153,7 +153,7 @@ class ImageHelper {
         $panelHeight = $scaledTextHeight;
         $panelY = $newHeight - $panelHeight;
         
-        $blackAlpha = imagecolorallocatealpha($image, 0, 0, 0, 60); // 60 = 50% opacity in GD
+        $blackAlpha = imagecolorallocatealpha($image, 0, 0, 0, 45); // Panel más oscuro para mejorar el contraste
         imagefilledrectangle($image, 0, $panelY, $newWidth, $newHeight, $blackAlpha);
         
         // Dibujar textos en un lienzo pequeño transparente y luego escalar
@@ -170,10 +170,10 @@ class ImageHelper {
         $white = imagecolorallocate($textCanvas, 255, 255, 255);
         $yellow = imagecolorallocate($textCanvas, 255, 235, 59);
         
-        $y = 5;
+        $y = 8; // Más margen superior
         foreach ($lines as $i => $line) {
             $color = ($i >= 2) ? $yellow : $white; // Coordenadas en amarillo
-            imagestring($textCanvas, $fontSize, 10, $y, $line, $color);
+            imagestring($textCanvas, $fontSize, 15, $y, $line, $color); // Más margen izquierdo
             $y += $lineHeight;
         }
         
@@ -184,8 +184,8 @@ class ImageHelper {
         
         // Dibujar logo a la derecha
         if ($logoImg) {
-            $logoX = $newWidth - $logoW - 10;
-            $logoY = $newHeight - $logoH - 10;
+            $logoX = $newWidth - $logoW - (10 * $scale); // Mayor margen a la derecha
+            $logoY = $panelY + (int)(($panelHeight - $logoH) / 2); // Logo centrado verticalmente
             imagecopy($image, $logoImg, $logoX, $logoY, 0, 0, $logoW, $logoH);
             imagedestroy($logoImg);
         }
