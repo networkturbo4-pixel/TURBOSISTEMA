@@ -16,6 +16,11 @@ if (isset($_SESSION['user_id'])) {
     exit;
 }
 
+if (isset($_SESSION['public_cliente_id'])) {
+    header("Location: portal.php");
+    exit;
+}
+
 // Fetch global settings for colors
 $globalSettings = [];
 try {
