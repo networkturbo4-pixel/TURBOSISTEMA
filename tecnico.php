@@ -97,114 +97,129 @@ $equiposMochila = $stmtUserEquip->fetchAll();
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
     <style>
-        :root {
-            --app-bg: #0b0f19;
-            --app-card-bg: rgba(30, 41, 59, 0.7);
-            --app-card-border: rgba(255, 255, 255, 0.08);
-            --app-text-main: #f8fafc;
-            --app-text-sub: #94a3b8;
-            --app-accent: #10b981;
-            --app-accent-gradient: linear-gradient(135deg, #10b981, #059669);
-        }
+        /* ============================================ */
+        /* PORTAL TÉCNICO — Estilos del Sistema        */
+        /* Usa CSS vars de style.css para Light/Dark    */
+        /* ============================================ */
 
-        html, body, body.dark-theme {
+        /* === Base Layout === */
+        html, body {
             display: block !important;
             height: auto !important;
             min-height: 100vh !important;
             overflow-x: hidden !important;
             overflow-y: auto !important;
-            background-color: var(--app-bg) !important;
-            color: var(--app-text-main) !important;
+            background-color: var(--bg-color) !important;
+            color: var(--text-color) !important;
             margin: 0 !important;
             padding: 0 !important;
             padding-bottom: 20px !important;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* Top Bar Header */
+        /* === Top Bar Header === */
         .app-header {
             position: sticky;
             top: 0;
             z-index: 100;
-            background: rgba(11, 15, 25, 0.95);
-            backdrop-filter: blur(16px);
-            border-bottom: 1px solid var(--app-card-border);
-            padding: 14px 20px;
+            background-color: var(--surface-color);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 16px;
             width: 100%;
             box-sizing: border-box;
+            transition: var(--transition);
         }
 
         .header-top {
             max-width: 680px;
             margin: 0 auto;
             display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .header-row-main {
+            display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 10px;
             width: 100%;
         }
 
         .user-profile-info {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .greeting-info {
+            min-width: 0;
+            flex: 1;
         }
 
         .avatar-container {
             position: relative;
-            width: 48px;
-            height: 48px;
+            width: 42px;
+            height: 42px;
             flex-shrink: 0;
         }
 
         .avatar-img {
             width: 100%;
             height: 100%;
-            border-radius: 14px;
+            border-radius: 12px;
             object-fit: cover;
-            border: 2px solid var(--app-accent);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+            border: 2px solid var(--primary-color);
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.15);
+        }
+
+        body.dark-theme .avatar-img {
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.25);
         }
 
         .avatar-placeholder {
             width: 100%;
             height: 100%;
-            border-radius: 14px;
-            background: var(--app-accent-gradient);
+            border-radius: 12px;
+            background: var(--primary-color);
             color: white;
             font-weight: 800;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.2);
         }
 
         .status-dot {
             position: absolute;
             bottom: -2px;
             right: -2px;
-            width: 14px;
-            height: 14px;
-            background: #10b981;
-            border: 2px solid var(--app-bg);
+            width: 12px;
+            height: 12px;
+            background: var(--success-color, #06d6a0);
+            border: 2px solid var(--surface-color);
             border-radius: 50%;
-            box-shadow: 0 0 8px #10b981;
         }
 
         .greeting-text {
-            font-size: 1.15rem;
-            font-weight: 800;
+            font-size: 1rem;
+            font-weight: 700;
             letter-spacing: -0.3px;
-            color: #ffffff;
+            color: var(--text-color);
             margin: 0;
             line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .greeting-subtext {
-            font-size: 0.78rem;
-            color: var(--app-text-sub);
+            font-size: 0.75rem;
+            color: var(--text-muted);
             margin-top: 2px;
             display: flex;
             align-items: center;
@@ -212,45 +227,61 @@ $equiposMochila = $stmtUserEquip->fetchAll();
         }
 
         .role-badge {
-            background: rgba(16, 185, 129, 0.15);
-            color: #10b981;
+            background: rgba(67, 97, 238, 0.1);
+            color: var(--primary-color);
             padding: 2px 8px;
             border-radius: 6px;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            border: 1px solid rgba(67, 97, 238, 0.2);
+        }
+
+        body.dark-theme .role-badge {
+            background: rgba(67, 97, 238, 0.15);
+            border-color: rgba(67, 97, 238, 0.3);
         }
 
         .header-actions {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
+            flex-shrink: 0;
         }
 
         .icon-btn-app {
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--app-card-border);
-            color: #e2e8f0;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             cursor: pointer;
             text-decoration: none;
-            transition: all 0.2s;
+            transition: var(--transition);
+        }
+
+        .icon-btn-app:hover {
+            color: var(--text-color);
         }
 
         .icon-btn-app:active {
             transform: scale(0.92);
-            background: rgba(255, 255, 255, 0.1);
         }
 
-        /* Contenedor Principal Centrado */
+        /* Header theme row */
+        .header-row-theme {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* === Main Content Container === */
         .tech-portal-wrapper {
             display: block !important;
             max-width: 680px !important;
@@ -260,16 +291,7 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             box-sizing: border-box !important;
         }
 
-        .bottom-nav-inner {
-            max-width: 680px;
-            margin: 0 auto;
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: space-around;
-        }
-
-        /* Stats Cards Carousel / Grid */
+        /* === Stats Cards Grid === */
         .stats-grid {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
@@ -279,28 +301,31 @@ $equiposMochila = $stmtUserEquip->fetchAll();
         }
 
         .stat-card-app {
-            background: linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95)) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            border-radius: 20px !important;
+            background: var(--surface-color) !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: var(--border-radius) !important;
             padding: 16px !important;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
-            backdrop-filter: blur(12px) !important;
-            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s !important;
+            box-shadow: var(--shadow) !important;
+            transition: transform 0.2s ease, box-shadow 0.2s ease !important;
         }
-        
+
         .stat-card-app:hover {
             transform: translateY(-2px) !important;
-            border-color: rgba(59, 130, 246, 0.4) !important;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08) !important;
+        }
+
+        body.dark-theme .stat-card-app:hover {
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3) !important;
         }
 
         .stat-icon {
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.25rem;
+            font-size: 1.6rem;
             margin-bottom: 10px;
         }
 
@@ -309,30 +334,31 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             font-weight: 800;
             line-height: 1;
             margin-bottom: 4px;
-            color: #ffffff;
+            color: var(--text-color);
         }
 
         .stat-label {
             font-size: 0.75rem;
-            color: var(--app-text-sub);
+            color: var(--text-muted);
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
-        /* Quick Action Grid */
+        /* === Section Titles === */
         .section-title {
             font-size: 0.88rem;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: var(--app-text-sub);
+            color: var(--text-muted);
             margin-bottom: 12px;
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
 
+        /* === Quick Actions Grid === */
         .quick-actions-grid {
             display: grid !important;
             grid-template-columns: repeat(4, 1fr) !important;
@@ -358,31 +384,36 @@ $equiposMochila = $stmtUserEquip->fetchAll();
         .quick-action-icon {
             width: 56px !important;
             height: 56px !important;
-            border-radius: 18px !important;
+            border-radius: 16px !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
             font-size: 1.6rem !important;
             color: #ffffff !important;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
-            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+            transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+            border: none !important;
         }
 
-        .quick-action-item:active .quick-action-icon, .quick-action-item:hover .quick-action-icon {
-            transform: translateY(-4px) scale(0.95) !important;
-            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4) !important;
+        body.dark-theme .quick-action-icon {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        }
+
+        .quick-action-item:active .quick-action-icon,
+        .quick-action-item:hover .quick-action-icon {
+            transform: translateY(-3px) scale(0.97) !important;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15) !important;
         }
 
         .quick-action-label {
             font-size: 0.74rem !important;
             font-weight: 700 !important;
-            color: #f8fafc !important;
+            color: var(--text-color) !important;
             text-align: center !important;
             line-height: 1.2 !important;
         }
 
-        /* Feed Filter Pills */
+        /* === Feed Filter Pills === */
         .feed-filter-pills {
             display: flex;
             gap: 8px;
@@ -397,50 +428,68 @@ $equiposMochila = $stmtUserEquip->fetchAll();
         .pill-btn {
             padding: 8px 16px;
             border-radius: 20px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--app-card-border);
-            color: var(--app-text-sub);
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
             font-size: 0.8rem;
             font-weight: 600;
             white-space: nowrap;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: var(--transition);
+        }
+
+        .pill-btn:hover {
+            color: var(--text-color);
+            border-color: var(--primary-color);
         }
 
         .pill-btn.active {
-            background: var(--app-accent-gradient);
+            background: var(--primary-color);
             color: white;
-            border-color: transparent;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.25);
         }
 
-        /* --- Tarjeta de Trabajo Ultra-Moderna --- */
+        body.dark-theme .pill-btn.active {
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.35);
+        }
+
+        /* === Job/Ticket Card === */
         .job-card-modern {
-            background: linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95)) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            border-radius: 20px !important;
+            background: var(--surface-color) !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: var(--border-radius) !important;
             padding: 18px !important;
             margin-bottom: 16px !important;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
-            backdrop-filter: blur(12px) !important;
+            box-shadow: var(--shadow) !important;
             position: relative !important;
-            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s !important;
+            transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+            animation: fadeUp 0.4s ease forwards;
         }
 
         .job-card-modern:hover {
-            border-color: rgba(59, 130, 246, 0.4) !important;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08) !important;
             transform: translateY(-2px) !important;
         }
 
+        body.dark-theme .job-card-modern:hover {
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3) !important;
+        }
+
         .ticket-id-badge {
-            background: rgba(16, 185, 129, 0.15);
-            color: #10b981;
+            background: rgba(67, 97, 238, 0.1);
+            color: var(--primary-color);
             font-weight: 800;
             font-size: 0.78rem;
             padding: 3px 8px;
             border-radius: 8px;
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            border: 1px solid rgba(67, 97, 238, 0.2);
             font-family: monospace;
+        }
+
+        body.dark-theme .ticket-id-badge {
+            background: rgba(67, 97, 238, 0.15);
+            border-color: rgba(67, 97, 238, 0.3);
         }
 
         .status-pill {
@@ -462,44 +511,49 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             background: currentColor;
         }
 
-        .status-nuevo { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
-        .status-en_proceso { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
-        .status-terminado { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
-        .status-pendiente { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .status-nuevo { background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.2); }
+        .status-en_proceso { background: rgba(245, 158, 11, 0.1); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.2); }
+        .status-terminado { background: rgba(16, 185, 129, 0.1); color: #059669; border: 1px solid rgba(16, 185, 129, 0.2); }
+        .status-pendiente { background: rgba(239, 68, 68, 0.1); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.2); }
+
+        body.dark-theme .status-nuevo { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border-color: rgba(59, 130, 246, 0.3); }
+        body.dark-theme .status-en_proceso { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.3); }
+        body.dark-theme .status-terminado { background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.3); }
+        body.dark-theme .status-pendiente { background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3); }
 
         .job-card-title {
             font-size: 1.05rem !important;
-            font-weight: 800 !important;
-            color: #ffffff !important;
+            font-weight: 700 !important;
+            color: var(--text-color) !important;
             margin: 8px 0 4px 0 !important;
             line-height: 1.3 !important;
         }
 
         .job-client-name {
             font-size: 0.88rem !important;
-            font-weight: 700 !important;
-            color: #3b82f6 !important;
+            font-weight: 600 !important;
+            color: var(--primary-color) !important;
             display: flex !important;
             align-items: center !important;
             gap: 6px !important;
         }
 
         .job-address-card {
-            background: rgba(15, 23, 42, 0.6);
-            border-radius: 12px;
+            background: var(--bg-color);
+            border-radius: 10px;
             padding: 10px 12px;
             margin: 12px 0;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
         }
 
         .address-icon-box {
             width: 32px;
             height: 32px;
-            background: rgba(239, 68, 68, 0.15);
+            background: rgba(239, 68, 68, 0.1);
             color: #ef4444;
             border-radius: 8px;
             display: flex;
@@ -511,7 +565,7 @@ $equiposMochila = $stmtUserEquip->fetchAll();
 
         .address-text {
             font-size: 0.8rem;
-            color: #cbd5e1;
+            color: var(--text-muted);
             font-weight: 500;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -519,7 +573,7 @@ $equiposMochila = $stmtUserEquip->fetchAll();
         }
 
         .btn-map-nav {
-            background: linear-gradient(135deg, #10b981, #059669);
+            background: var(--primary-color);
             color: white;
             border: none;
             padding: 6px 12px;
@@ -530,8 +584,14 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             display: flex;
             align-items: center;
             gap: 5px;
-            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+            box-shadow: 0 2px 6px rgba(67, 97, 238, 0.2);
             flex-shrink: 0;
+            transition: var(--transition);
+        }
+
+        .btn-map-nav:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(67, 97, 238, 0.3);
         }
 
         .job-meta-row {
@@ -539,14 +599,14 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             align-items: center;
             justify-content: space-between;
             padding: 8px 0;
-            border-top: 1px dashed rgba(255, 255, 255, 0.08);
+            border-top: 1px dashed var(--border-color);
             font-size: 0.78rem;
-            color: #94a3b8;
+            color: var(--text-muted);
         }
 
         .meta-tag span {
             font-weight: 700;
-            color: #e2e8f0;
+            color: var(--text-color);
         }
 
         .job-card-actions {
@@ -566,7 +626,7 @@ $equiposMochila = $stmtUserEquip->fetchAll();
         .btn-app-action {
             flex: 1;
             padding: 11px;
-            border-radius: 12px;
+            border-radius: 10px;
             font-size: 0.86rem;
             font-weight: 700;
             border: none;
@@ -576,23 +636,33 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             justify-content: center;
             gap: 8px;
             text-decoration: none;
-            transition: all 0.2s;
+            transition: var(--transition);
         }
 
         .btn-chat-live {
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            background: var(--primary-color);
             color: white;
-            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+            box-shadow: 0 2px 8px rgba(67, 97, 238, 0.2);
+        }
+
+        .btn-chat-live:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(67, 97, 238, 0.3);
         }
 
         .btn-acta {
-            background: linear-gradient(135deg, #059669, #10b981);
+            background: var(--success-color, #06d6a0);
             color: white;
-            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+            box-shadow: 0 2px 8px rgba(6, 214, 160, 0.2);
+        }
+
+        .btn-acta:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(6, 214, 160, 0.3);
         }
 
         .badge-unread {
-            background: #ef4444;
+            background: var(--danger-color, #ef476f);
             color: white;
             border-radius: 10px;
             padding: 2px 7px;
@@ -600,47 +670,104 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             font-weight: 800;
         }
 
-        /* Bottom App Navigation Bar */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 65px;
-            background: rgba(11, 15, 25, 0.95);
-            backdrop-filter: blur(20px);
-            border-top: 1px solid var(--app-card-border);
-            z-index: 1000;
-            padding-bottom: env(safe-area-inset-bottom);
-        }
-
-        .nav-tab {
+        /* === Mochila Equipment Cards === */
+        .mochila-scroll-container {
             display: flex;
-            flex-direction: column;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            scrollbar-width: none;
+        }
+        .mochila-scroll-container::-webkit-scrollbar { display: none; }
+
+        .mochila-equip-card {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 14px;
+            min-width: 170px;
+            flex-shrink: 0;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s ease;
+        }
+        .mochila-equip-card:hover {
+            transform: translateY(-2px);
+        }
+
+        /* === Empty State === */
+        .tech-empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            background: var(--surface-color);
+            border-radius: var(--border-radius);
+            border: 1px dashed var(--border-color);
+        }
+
+        /* === Chat Modal Overrides (theme-aware) === */
+        #techChatModal {
+            background: rgba(0, 0, 0, 0.6) !important;
+            backdrop-filter: blur(14px) !important;
+        }
+        body.dark-theme #techChatModal {
+            background: rgba(0, 0, 0, 0.85) !important;
+        }
+        #techChatModal > div {
+            background: var(--surface-color) !important;
+            color: var(--text-color) !important;
+        }
+        /* Chat header */
+        .tech-chat-header {
+            padding: 14px 18px;
+            background: var(--surface-color);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
             align-items: center;
-            gap: 3px;
-            color: var(--app-text-sub);
-            text-decoration: none;
-            font-size: 0.7rem;
-            font-weight: 600;
-            transition: color 0.2s;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        /* Chat messages area */
+        .tech-chat-messages {
+            background: var(--bg-color) !important;
+        }
+        /* Chat input area */
+        .tech-chat-input {
+            background: var(--surface-color) !important;
+            border-top: 1px solid var(--border-color) !important;
+        }
+        /* Chat input bubble */
+        .tech-chat-input-bubble {
+            background: var(--bg-color) !important;
+            border: 1px solid var(--border-color) !important;
+        }
+        .tech-chat-input-bubble textarea {
+            color: var(--text-color) !important;
         }
 
-        .nav-tab i {
-            font-size: 1.4rem;
+        /* === App Module Modal Overrides === */
+        #techAppViewModal {
+            background: rgba(0, 0, 0, 0.6) !important;
+            backdrop-filter: blur(14px) !important;
+        }
+        body.dark-theme #techAppViewModal {
+            background: rgba(0, 0, 0, 0.85) !important;
+        }
+        #techAppViewModal > div {
+            background: var(--surface-color) !important;
+            color: var(--text-color) !important;
         }
 
-        .nav-tab.active {
-            color: #10b981;
-        }
-        /* Upload Banner Styles */
+        /* === Upload Banner (System Styled) === */
         .chat-upload-banner {
-            background: linear-gradient(145deg, #1e293b, #0f172a);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            border-radius: 16px;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
             padding: 16px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255,255,255,0.05) inset;
+            box-shadow: var(--shadow);
             animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        body.dark-theme .chat-upload-banner {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
         }
 
         .chat-upload-content {
@@ -653,12 +780,11 @@ $equiposMochila = $stmtUserEquip->fetchAll();
         .chat-upload-spinner {
             width: 32px;
             height: 32px;
-            border: 3px solid rgba(59, 130, 246, 0.2);
-            border-top-color: #3b82f6;
+            border: 3px solid rgba(67, 97, 238, 0.2);
+            border-top-color: var(--primary-color);
             border-radius: 50%;
             animation: spin 1s linear infinite;
             flex-shrink: 0;
-            box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
         }
 
         .chat-upload-text {
@@ -670,7 +796,7 @@ $equiposMochila = $stmtUserEquip->fetchAll();
         }
 
         .upload-title {
-            color: #f8fafc;
+            color: var(--text-color);
             font-weight: 700;
             font-size: 0.95rem;
             display: flex;
@@ -679,13 +805,13 @@ $equiposMochila = $stmtUserEquip->fetchAll();
         }
 
         .upload-title i {
-            color: #3b82f6;
+            color: var(--primary-color);
             font-size: 1.1rem;
             animation: bounce 2s infinite;
         }
 
         .upload-filename {
-            color: #94a3b8;
+            color: var(--text-muted);
             font-size: 0.8rem;
             white-space: nowrap;
             overflow: hidden;
@@ -695,23 +821,22 @@ $equiposMochila = $stmtUserEquip->fetchAll();
 
         .chat-upload-progress {
             height: 8px;
-            background: rgba(15, 23, 42, 0.8);
+            background: var(--bg-color);
             border-radius: 6px;
             overflow: hidden;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.05);
+            border: 1px solid var(--border-color);
         }
 
         .progress-bar-inner {
             height: 100%;
-            background: linear-gradient(90deg, #3b82f6, #60a5fa, #3b82f6);
+            background: linear-gradient(90deg, var(--primary-color), #60a5fa, var(--primary-color));
             background-size: 200% 100%;
             border-radius: 6px;
             transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             animation: shimmerProgress 2s linear infinite;
-            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
         }
 
+        /* === Animations === */
         @keyframes shimmerProgress {
             0% { background-position: 100% 0; }
             100% { background-position: -100% 0; }
@@ -726,39 +851,117 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-3px); }
         }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes pulse-red {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .tech-theme-btn i {
+            font-size: 1rem;
+        }
+
+        .tech-theme-btn span {
+            font-size: 0.78rem;
+        }
+
+        .tech-theme-switch {
+            display: flex;
+            background-color: var(--bg-color);
+            border-radius: 50px;
+            padding: 3px;
+            border: 1px solid var(--border-color);
+            width: 100%;
+            max-width: 220px;
+        }
+
+        .tech-theme-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            padding: 7px 14px;
+            border: none;
+            background: transparent;
+            border-radius: 50px;
+            color: var(--text-muted);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .tech-theme-btn.active {
+            background-color: var(--surface-color);
+            color: var(--text-color);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        body.dark-theme .tech-theme-btn.active {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
     </style>
 </head>
 <body class="tecnico-portal-page">
+    <script>
+        (function() {
+            try {
+                var theme = localStorage.getItem('theme');
+                if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.body.classList.add('dark-theme');
+                }
+            } catch (e) {}
+        })();
+    </script>
 
     <!-- Header Estilo App con Saludo Dinámico -->
     <header class="app-header">
         <div class="header-top">
-            <div class="user-profile-info">
-                <div class="avatar-container">
-                    <?php if ($profile_picture): ?>
-                        <img src="<?php echo BASE_URL . '/' . htmlspecialchars($profile_picture); ?>" class="avatar-img" alt="Perfil">
-                    <?php else: ?>
-                        <div class="avatar-placeholder">
-                            <?php echo strtoupper(substr($user_name, 0, 1)); ?>
+            <!-- Row 1: Avatar + Greeting + Action Buttons -->
+            <div class="header-row-main">
+                <div class="user-profile-info">
+                    <div class="avatar-container">
+                        <?php if ($profile_picture): ?>
+                            <img src="<?php echo BASE_URL . '/' . htmlspecialchars($profile_picture); ?>" class="avatar-img" alt="Perfil">
+                        <?php else: ?>
+                            <div class="avatar-placeholder">
+                                <?php echo strtoupper(substr($user_name, 0, 1)); ?>
+                            </div>
+                        <?php endif; ?>
+                        <div class="status-dot"></div>
+                    </div>
+                    <div class="greeting-info">
+                        <h1 class="greeting-text"><?php echo $saludo; ?>, <?php echo htmlspecialchars(explode(' ', $user_name)[0]); ?>! <?php echo $emojiSaludo; ?></h1>
+                        <div class="greeting-subtext">
+                            <span class="role-badge"><?php echo htmlspecialchars($user_role); ?></span>
+                            <span>• En servicio 🟢</span>
                         </div>
-                    <?php endif; ?>
-                    <div class="status-dot"></div>
-                </div>
-                <div>
-                    <h1 class="greeting-text"><?php echo $saludo; ?>, <?php echo htmlspecialchars(explode(' ', $user_name)[0]); ?>! <?php echo $emojiSaludo; ?></h1>
-                    <div class="greeting-subtext">
-                        <span class="role-badge"><?php echo htmlspecialchars($user_role); ?></span>
-                        <span>• En servicio 🟢</span>
                     </div>
                 </div>
+                <div class="header-actions">
+                    <button class="icon-btn-app" onclick="location.reload();" title="Actualizar">
+                        <i class="ph-bold ph-arrows-clockwise"></i>
+                    </button>
+                    <a href="<?php echo BASE_URL; ?>/login.php?action=logout" class="icon-btn-app" style="color: #ef4444;" title="Cerrar Sesión">
+                        <i class="ph-bold ph-sign-out"></i>
+                    </a>
+                </div>
             </div>
-            <div class="header-actions">
-                <button class="icon-btn-app" onclick="location.reload();" title="Actualizar">
-                    <i class="ph-bold ph-arrows-clockwise"></i>
-                </button>
-                <a href="<?php echo BASE_URL; ?>/login.php?action=logout" class="icon-btn-app" style="color: #ef4444;" title="Cerrar Sesión">
-                    <i class="ph-bold ph-sign-out"></i>
-                </a>
+            <!-- Row 2: Theme Switcher -->
+            <div class="header-row-theme">
+                <div class="tech-theme-switch">
+                    <button type="button" class="tech-theme-btn light" id="techBtnLight" title="Modo Claro">
+                        <i class="ph-fill ph-sun"></i> <span>Light</span>
+                    </button>
+                    <button type="button" class="tech-theme-btn dark" id="techBtnDark" title="Modo Oscuro">
+                        <i class="ph ph-moon"></i> <span>Dark</span>
+                    </button>
+                </div>
             </div>
         </div>
     </header>
@@ -895,7 +1098,7 @@ $equiposMochila = $stmtUserEquip->fetchAll();
         <!-- Feed de Trabajos y Tickets Asignados -->
         <div class="section-title">
             <span>Mis Trabajos Asignados</span>
-            <span style="font-size: 0.75rem; color: #10b981; font-weight: 700;"><?php echo count($tickets); ?> Total</span>
+            <span style="font-size: 0.75rem; color: var(--primary-color); font-weight: 700;"><?php echo count($tickets); ?> Total</span>
         </div>
 
         <!-- Filtros Rápidos -->
@@ -909,10 +1112,10 @@ $equiposMochila = $stmtUserEquip->fetchAll();
         <!-- Lista de Tarjetas de Trabajo Ultra-Modernas -->
         <div id="jobsContainer">
             <?php if (empty($tickets)): ?>
-                <div style="text-align: center; padding: 40px 20px; background: rgba(30, 41, 59, 0.7); border-radius: 20px; border: 1px dashed rgba(255,255,255,0.1);">
-                    <i class="ph-fill ph-check-circle" style="font-size: 3rem; color: #10b981; margin-bottom: 10px;"></i>
-                    <div style="font-size: 1.1rem; font-weight: 700;">¡Todo al día!</div>
-                    <div style="font-size: 0.82rem; color: #94a3b8; margin-top: 4px;">No tienes trabajos o tickets pendientes asignados en este momento.</div>
+                <div class="tech-empty-state">
+                    <i class="ph-fill ph-check-circle" style="font-size: 3rem; color: var(--success-color, #06d6a0); margin-bottom: 10px;"></i>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-color);">¡Todo al día!</div>
+                    <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 4px;">No tienes trabajos o tickets pendientes asignados en este momento.</div>
                 </div>
             <?php else: ?>
                 <?php foreach ($tickets as $t): ?>
@@ -976,15 +1179,15 @@ $equiposMochila = $stmtUserEquip->fetchAll();
         <?php if (!empty($equiposMochila)): ?>
             <div class="section-title" style="margin-top: 25px;">
                 <span>Materiales en Mi Mochila</span>
-                <button type="button" onclick="openTechAppModule('<?php echo BASE_URL; ?>/modules/mochila/tecnico.php', 'Mi Mochila')" style="background:none; border:none; font-size: 0.75rem; color: #3b82f6; cursor:pointer; font-weight: 700;">Ver todos &rarr;</button>
+                <button type="button" onclick="openTechAppModule('<?php echo BASE_URL; ?>/modules/mochila/tecnico.php', 'Mi Mochila')" style="background:none; border:none; font-size: 0.75rem; color: var(--primary-color); cursor:pointer; font-weight: 700;">Ver todos &rarr;</button>
             </div>
 
-            <div style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none;">
+            <div class="mochila-scroll-container">
                 <?php foreach ($equiposMochila as $eq): ?>
-                    <div style="background: linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 14px; min-width: 170px; flex-shrink: 0; backdrop-filter: blur(12px); box-shadow: 0 8px 20px rgba(0,0,0,0.2);">
-                        <div style="font-size: 0.75rem; color: #3b82f6; font-weight: 800; display: flex; align-items: center; gap: 4px;"><i class="ph-fill ph-barcode"></i> <?php echo htmlspecialchars($eq['sku_code']); ?></div>
-                        <div style="font-size: 0.88rem; font-weight: 700; color: #f8fafc; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo htmlspecialchars($eq['product_name']); ?></div>
-                        <div style="font-size: 0.72rem; color: #a78bfa; margin-top: 8px; font-weight: 700; background: rgba(139,92,246,0.15); padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(139,92,246,0.3);"><i class="ph-fill ph-truck"></i> En Tránsito</div>
+                    <div class="mochila-equip-card">
+                        <div style="font-size: 0.75rem; color: var(--primary-color); font-weight: 800; display: flex; align-items: center; gap: 4px;"><i class="ph-fill ph-barcode"></i> <?php echo htmlspecialchars($eq['sku_code']); ?></div>
+                        <div style="font-size: 0.88rem; font-weight: 700; color: var(--text-color); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo htmlspecialchars($eq['product_name']); ?></div>
+                        <div style="font-size: 0.72rem; color: #a78bfa; margin-top: 8px; font-weight: 700; background: rgba(139,92,246,0.1); padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(139,92,246,0.2);"><i class="ph-fill ph-truck"></i> En Tránsito</div>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -993,25 +1196,25 @@ $equiposMochila = $stmtUserEquip->fetchAll();
     </div>
 
     <!-- Modal de Chat En Vivo para Técnico (100% Dentro del Portal) -->
-    <div class="modal-overlay" id="techChatModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; height: 100dvh; width: 100%; z-index: 99999; background: rgba(11, 15, 25, 0.96); backdrop-filter: blur(14px); display: none; padding: 0;">
-        <div style="width: 100%; height: 100%; max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; background: #0f172a; color: white;">
+    <div class="modal-overlay" id="techChatModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; height: 100dvh; width: 100%; z-index: 99999; display: none; padding: 0;">
+        <div style="width: 100%; height: 100%; max-width: 680px; margin: 0 auto; display: flex; flex-direction: column;">
             
             <!-- Header Chat App -->
-            <div style="padding: 14px 18px; background: #1e293b; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;">
+            <div class="tech-chat-header" style="padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;">
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <button onclick="closeTechChat()" style="background: rgba(255,255,255,0.1); border: none; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                    <button onclick="closeTechChat()" style="background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
                         <i class="ph-bold ph-arrow-left" style="font-size: 1.2rem;"></i>
                     </button>
                     <div>
-                        <div id="techChatTicketTitle" style="font-weight: 800; font-size: 0.98rem; color: #fff;">#0012 - Ticket</div>
-                        <div id="techChatClientName" style="font-size: 0.78rem; color: #10b981; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                        <div id="techChatTicketTitle" style="font-weight: 800; font-size: 0.98rem; color: var(--text-color);">#0012 - Ticket</div>
+                        <div id="techChatClientName" style="font-size: 0.78rem; color: var(--primary-color); font-weight: 600; display: flex; align-items: center; gap: 4px;">
                             <i class="ph-fill ph-user-circle"></i> Cliente
                         </div>
                     </div>
                 </div>
 
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <select id="techTicketStatusSelect" onchange="updateTechTicketStatusFromChat(this.value)" style="background: #0f172a; color: #34d399; border: 1px solid rgba(16,185,129,0.4); padding: 6px 10px; border-radius: 10px; font-size: 0.78rem; font-weight: 700; outline: none; cursor: pointer;">
+                    <select id="techTicketStatusSelect" onchange="updateTechTicketStatusFromChat(this.value)" style="background: var(--bg-color); color: var(--primary-color); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 10px; font-size: 0.78rem; font-weight: 700; outline: none; cursor: pointer;">
                         <option value="en_proceso">🟡 En Proceso</option>
                         <option value="terminado">🟢 Terminado</option>
                         <option value="pendiente">🔴 Pendiente</option>
@@ -1020,16 +1223,16 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             </div>
 
             <!-- Chat Stream Area -->
-            <div id="techChatMessages" style="flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 0); background-size: 20px 20px;">
+            <div id="techChatMessages" class="tech-chat-messages" style="flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
             </div>
 
             <!-- File Preview Container -->
-            <div id="techFilePreviewContainer" style="display: none; padding: 8px 16px; background: #1e293b; border-top: 1px solid rgba(255,255,255,0.08); align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 8px; color: #3b82f6; font-size: 0.85rem; font-weight: 600;">
+            <div id="techFilePreviewContainer" style="display: none; padding: 8px 16px; background: var(--surface-color); border-top: 1px solid var(--border-color); align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 8px; color: var(--primary-color); font-size: 0.85rem; font-weight: 600;">
                     <i class="ph-fill ph-file"></i>
                     <span id="techFilePreviewName" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
                 </div>
-                <button onclick="clearTechFileSelection()" style="background: rgba(255,255,255,0.1); border: none; color: white; border-radius: 50%; width: 22px; height: 22px; cursor: pointer;">✕</button>
+                <button onclick="clearTechFileSelection()" style="background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 50%; width: 22px; height: 22px; cursor: pointer;">✕</button>
             </div>
 
             <!-- Banner de Carga Animado -->
@@ -1057,14 +1260,14 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             </div>
 
             <!-- Input Area Footer -->
-            <div style="box-sizing: border-box; width: 100%; padding: 10px 10px calc(16px + env(safe-area-inset-bottom, 0px)); background: #0f172a; display: flex; align-items: flex-end; gap: 6px; position: relative; flex-wrap: nowrap; border-top: 1px solid rgba(255,255,255,0.05); overflow: visible; flex-shrink: 0;">
+            <div class="tech-chat-input" style="box-sizing: border-box; width: 100%; padding: 10px 10px calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: flex-end; gap: 6px; position: relative; flex-wrap: nowrap; overflow: visible; flex-shrink: 0;">
                 
                 <!-- Inputs ocultos -->
                 <input type="file" id="techFileInput" accept="image/*,video/*,application/pdf" style="display:none;" onchange="handleFileSelect(this)">
                 <input type="file" id="chatCameraInput" accept="image/*" capture="environment" style="display:none;" onchange="handleFileSelect(this)">
                 
                 <!-- Menú de Adjuntos (Estilo Grid Bottom) -->
-                <div id="techChatActionMenu" style="display: none; position: absolute; bottom: 100%; left: 14px; right: 70px; margin-bottom: 12px; background: #1e293b; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); padding: 20px; z-index: 100;">
+                <div id="techChatActionMenu" style="display: none; position: absolute; bottom: 100%; left: 14px; right: 70px; margin-bottom: 12px; background: var(--surface-color); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 20px; z-index: 100;">
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px 10px; text-align: center;">
                         
                         <div onclick="openGalleryInput(); toggleTechActionMenu();" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
@@ -1092,12 +1295,12 @@ $equiposMochila = $stmtUserEquip->fetchAll();
                 </div>
 
                 <!-- Emoji Picker -->
-                <div id="emojiPicker" style="display: none; position: absolute; bottom: 100%; left: 0; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; margin-bottom: 8px; z-index: 100; box-shadow: 0 10px 25px rgba(0,0,0,0.5); overflow: hidden;">
+                <div id="emojiPicker" style="display: none; position: absolute; bottom: 100%; left: 0; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 8px; z-index: 100; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: hidden;">
                     <emoji-picker class="dark" style="--background: #1e293b; --border-color: rgba(255,255,255,0.1); --num-columns: 7; --category-font-size: 0.9rem; --indicator-color: #10b981; --input-border-color: rgba(255,255,255,0.2); --input-font-color: white; height: 350px; width: 320px;"></emoji-picker>
                 </div>
 
                 <!-- Input Bubble (WhatsApp style) -->
-                <div style="flex: 1; display: flex; align-items: flex-end; background: #1e293b; border-radius: 24px; padding: 4px 6px; gap: 4px; border: 1px solid rgba(255,255,255,0.05); box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);">
+                <div class="tech-chat-input-bubble" style="flex: 1; display: flex; align-items: flex-end; border-radius: 24px; padding: 4px 6px; gap: 4px;">
                     
                     <button type="button" onclick="toggleEmojiPicker()" style="background: transparent; border: none; font-size: 1.4rem; color: #94a3b8; cursor: pointer; padding: 6px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#94a3b8'">
                         <i class="ph-bold ph-smiley"></i>
@@ -1116,7 +1319,7 @@ $equiposMochila = $stmtUserEquip->fetchAll();
                 </div>
 
                 <!-- Send / Mic Button outside -->
-                <button type="button" id="btnTechSend" onclick="handleTechMainAction()" style="flex-shrink: 0; min-width: 44px; width: 44px; height: 44px; background: #10b981; border: none; border-radius: 50%; color: white; font-size: 1.3rem; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(16,185,129,0.35); transition: background 0.2s;">
+                <button type="button" id="btnTechSend" onclick="handleTechMainAction()" style="flex-shrink: 0; min-width: 44px; width: 44px; height: 44px; background: var(--primary-color); border: none; border-radius: 50%; color: white; font-size: 1.3rem; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(67,97,238,0.25); transition: background 0.2s;">
                     <i id="btnTechSendIcon" class="ph-fill ph-microphone"></i>
                 </button>
             </div>
@@ -1679,25 +1882,25 @@ $equiposMochila = $stmtUserEquip->fetchAll();
     </script>
 
     <!-- Modal de Vista App Embebida (Para Crear Actas, Mochila, Mapas, etc. 100% Dentro del Portal) -->
-    <div class="modal-overlay" id="techAppViewModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; height: 100vh; width: 100vw; z-index: 100000; background: rgba(11, 15, 25, 0.96); backdrop-filter: blur(14px); display: none; padding: 0;">
-        <div style="width: 100%; height: 100%; max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; background: #0f172a; color: white;">
+    <div class="modal-overlay" id="techAppViewModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; height: 100vh; width: 100vw; z-index: 100000; display: none; padding: 0;">
+        <div style="width: 100%; height: 100%; max-width: 680px; margin: 0 auto; display: flex; flex-direction: column;">
             
             <!-- Header Drawer App -->
-            <div style="padding: 14px 18px; background: #1e293b; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;">
+            <div class="tech-chat-header" style="padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;">
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <button type="button" onclick="closeTechAppModal()" style="background: rgba(255,255,255,0.1); border: none; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                    <button type="button" onclick="closeTechAppModal()" style="background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
                         <i class="ph-bold ph-arrow-left" style="font-size: 1.2rem;"></i>
                     </button>
-                    <div id="techAppModalTitle" style="font-weight: 800; font-size: 0.98rem; color: #fff;">Módulo</div>
+                    <div id="techAppModalTitle" style="font-weight: 800; font-size: 0.98rem; color: var(--text-color);">Módulo</div>
                 </div>
-                <button type="button" onclick="closeTechAppModal()" style="background: #334155; border: none; color: white; padding: 6px 14px; border-radius: 10px; font-size: 0.78rem; font-weight: 700; cursor: pointer;">
+                <button type="button" onclick="closeTechAppModal()" style="background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color); padding: 6px 14px; border-radius: 10px; font-size: 0.78rem; font-weight: 700; cursor: pointer;">
                     Volver al Portal
                 </button>
             </div>
 
             <!-- Frame Content -->
-            <div style="flex: 1; position: relative; background: #0f172a;">
-                <iframe id="techAppModalIframe" src="" style="width: 100%; height: 100%; border: none; background: #0f172a;" loading="lazy"></iframe>
+            <div style="flex: 1; position: relative; background: var(--bg-color);">
+                <iframe id="techAppModalIframe" src="" style="width: 100%; height: 100%; border: none; background: var(--bg-color);" loading="lazy"></iframe>
             </div>
         </div>
     </div>
@@ -1757,5 +1960,34 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             document.getElementById('techLightboxImage').src = '';
         }
     </script>
+
+    <!-- Theme Switcher Logic -->
+    <script>
+    (function() {
+        const btnLight = document.getElementById('techBtnLight');
+        const btnDark = document.getElementById('techBtnDark');
+        
+        const applyTheme = (isDark) => {
+            if (isDark) {
+                document.body.classList.add('dark-theme');
+                localStorage.setItem('theme', 'dark');
+                if (btnDark) { btnDark.classList.add('active'); btnLight.classList.remove('active'); }
+            } else {
+                document.body.classList.remove('dark-theme');
+                localStorage.setItem('theme', 'light');
+                if (btnLight) { btnLight.classList.add('active'); btnDark.classList.remove('active'); }
+            }
+        };
+
+        // Initialize state from current theme
+        const isDark = document.body.classList.contains('dark-theme');
+        applyTheme(isDark);
+
+        // Event listeners
+        if (btnLight) btnLight.addEventListener('click', () => applyTheme(false));
+        if (btnDark) btnDark.addEventListener('click', () => applyTheme(true));
+    })();
+    </script>
+
 </body>
 </html>
