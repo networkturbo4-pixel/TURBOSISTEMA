@@ -4,13 +4,14 @@ requireLogin();
 
 header('Content-Type: application/json');
 
-// Verificar permisos al módulo
-if (!hasAccess($pdo, 'mochila')) {
+$action = $_POST['action'] ?? $_GET['action'] ?? '';
+$req_user = intval($_POST['user_id'] ?? $_GET['user_id'] ?? 0);
+
+// Verificar permisos al módulo (permitir bypass si el técnico consulta su propia mochila)
+if (!hasAccess($pdo, 'mochila') && !($action === 'get_user_backpack' && $req_user === (int)$_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'message' => 'Acceso denegado. No tienes permisos para este módulo.']);
     exit;
 }
-
-$action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 try {
     switch ($action) {

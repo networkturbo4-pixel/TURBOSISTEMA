@@ -813,14 +813,12 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             </button>
             <?php endif; ?>
 
-            <?php if (hasAccess($pdo, 'mochila')): ?>
             <button type="button" onclick="openTechAppModule('<?php echo BASE_URL; ?>/modules/mochila/tecnico.php', 'Mi Mochila de Materiales')" class="quick-action-item">
                 <div class="quick-action-icon" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">
                     <i class="ph-fill ph-backpack"></i>
                 </div>
                 <span class="quick-action-label">Mi Mochila</span>
             </button>
-            <?php endif; ?>
 
             <button type="button" onclick="triggerSmartCameraInput()" class="quick-action-item">
                 <div class="quick-action-icon" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
