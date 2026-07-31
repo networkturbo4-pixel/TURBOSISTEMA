@@ -216,6 +216,10 @@ window.addEventListener('error', function(e) {
                         <span>Categoría</span>
                         <button class="cf-btn" onclick="ColFilter.open('categoria', this)" title="Filtrar"><i class="ph ph-funnel-simple"></i></button>
                     </th>
+                    <th class="cf-th" data-col="costo">
+                        <span>Costo</span>
+                        <button class="cf-btn" onclick="ColFilter.open('costo', this)" title="Filtrar"><i class="ph ph-funnel-simple"></i></button>
+                    </th>
                     <th class="cf-th" data-col="total">
                         <span>Total</span>
                         <button class="cf-btn" onclick="ColFilter.open('total', this)" title="Filtrar"><i class="ph ph-funnel-simple"></i></button>
@@ -623,8 +627,8 @@ window.addEventListener('error', function(e) {
                             </div>
                         </div>
 
-                        <!-- Stock Mínimo + Crítico -->
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;">
+                        <!-- Stock Mínimo + Crítico + Costo -->
+                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:14px;">
                             <div class="inv-form-field">
                                 <label class="form-label">Stock Mínimo</label>
                                 <input type="number" class="form-control" id="prodStockMin" min="0" value="10" placeholder="10">
@@ -632,6 +636,10 @@ window.addEventListener('error', function(e) {
                             <div class="inv-form-field">
                                 <label class="form-label">Stock Crítico</label>
                                 <input type="number" class="form-control" id="prodStockCrit" min="0" value="3" placeholder="3">
+                            </div>
+                            <div class="inv-form-field">
+                                <label class="form-label">Costo Referencial</label>
+                                <input type="number" class="form-control" id="prodCosto" step="0.01" min="0" value="0.00" placeholder="0.00">
                             </div>
                         </div>
 
@@ -745,6 +753,10 @@ window.addEventListener('error', function(e) {
                         <!-- Variants Table (dynamic columns) -->
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
                             <label class="form-label" style="margin:0;"><i class="ph ph-stack" style="color:#8b5cf6;"></i> Variantes <span id="variantCountBadge" style="font-size:0.75rem;color:var(--text-muted);font-weight:400;">0 variantes</span></label>
+                            <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer; color:var(--text-color);">
+                                <input type="checkbox" class="form-check-input" id="varHasCustomCost" onchange="toggleVariantCustomCost()"> 
+                                Costo distinto por variante
+                            </label>
                         </div>
                         <div class="table-responsive" id="variantsTableWrap" style="border:1px solid var(--border-color);border-radius:10px;max-height:350px;overflow-y:auto;">
                             <table class="inv-table" style="margin:0;">
@@ -887,20 +899,20 @@ window.addEventListener('error', function(e) {
                         <button type="button" class="btn btn-secondary" onclick="openManageCategories()" title="Gestionar categorías" style="padding:10px;flex-shrink:0;"><i class="ph ph-gear"></i></button>
                     </div>
                 </div>
-                <div class="row" style="margin-top:12px;">
-                    <div class="col-6">
-                        <div class="inv-form-field">
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:12px; margin-bottom:14px;">
+                        <div>
                             <label class="form-label">Stock Mínimo</label>
                             <input type="number" class="form-control" id="editProductStockMin" value="10">
                         </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="inv-form-field">
+                        <div>
                             <label class="form-label">Stock Crítico</label>
                             <input type="number" class="form-control" id="editProductStockCritico" value="3">
                         </div>
+                        <div>
+                            <label class="form-label">Costo Referencial</label>
+                            <input type="number" class="form-control" id="editProductCosto" step="0.01" min="0" value="0.00">
+                        </div>
                     </div>
-                </div>
                 <div class="inv-form-field" style="margin-top:12px;">
                     <label class="form-label">Descripción</label>
                     <textarea class="form-control" id="editProductDesc" rows="2"></textarea>

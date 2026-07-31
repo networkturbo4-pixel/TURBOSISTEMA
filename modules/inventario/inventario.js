@@ -239,6 +239,7 @@
                             </div>
                         </td>
                         <td data-label="Categoría"><span class="cat-badge">${esc(p.category_name||'Sin cat.')}</span></td>
+                        <td data-label="Costo"><span style="font-weight:700;color:var(--text-color);">S/ ${parseFloat(p.costo_producto||0).toFixed(2)}</span></td>
                         <td data-label="Total">
                             <span style="font-weight:700;color:#6366f1;">${p.total_quantity}</span>
                             ${p.is_bulk == 1 && p.product_type !== 'agrupado' ? `<span style="font-size:0.8rem;color:var(--text-muted);">${esc(p.unit_type||'Und')}</span>` : ''}
@@ -690,6 +691,7 @@
             if (aliases) { description = description ? description + '\nNombres alternativos: ' + aliases : 'Nombres alternativos: ' + aliases; }
             const stock_minimo = parseInt(document.getElementById('prodStockMin').value) || 0;
             const stock_critico = parseInt(document.getElementById('prodStockCrit').value) || 0;
+            const costo_producto = parseFloat(document.getElementById('prodCosto').value) || 0;
             const is_bulk = selectedProductType === 'granel' ? 1 : 0;
             const unit_type = document.getElementById('prodUnitType').value;
             const master_sku = document.getElementById('prodMasterSku').value.trim();
@@ -711,6 +713,7 @@
             fd.append('description', description);
             fd.append('stock_minimo', stock_minimo);
             fd.append('stock_critico', stock_critico);
+            fd.append('costo_producto', costo_producto);
             fd.append('is_bulk', is_bulk);
             fd.append('unit_type', unit_type);
             fd.append('master_sku', master_sku);
@@ -759,6 +762,7 @@
         document.getElementById('prodDesc').value = '';
         document.getElementById('prodStockMin').value = 10;
         document.getElementById('prodStockCrit').value = 3;
+        document.getElementById('prodCosto').value = 0.00;
         document.getElementById('prodRequiresPhotos').checked = false;
         createProductPhotos = [];
         renderProductPhotoGallery('create');
@@ -883,11 +887,24 @@
             </div>`).join('');
     }
 
+    window.toggleVariantCustomCost = function() {
+        const hasCost = document.getElementById('varHasCustomCost')?.checked;
+        const prodCostoInput = document.getElementById('prodCosto');
+        if (prodCostoInput) {
+            prodCostoInput.disabled = hasCost;
+            if (hasCost) prodCostoInput.value = '';
+        }
+        rebuildVariantTableHeaders();
+        rebuildVariantTableRows();
+    };
+
     function rebuildVariantTableHeaders() {
         const thead = document.getElementById('variantsTableHead');
         if (!thead) return;
+        const hasCost = document.getElementById('varHasCustomCost')?.checked;
         let html = '<tr><th style="min-width:160px;">Nombre</th>';
         variantColumns.forEach(c => { html += `<th style="min-width:100px;">${esc(c.name)}</th>`; });
+        if (hasCost) html += '<th style="min-width:100px;">Costo (S/)</th>';
         html += '<th style="min-width:90px;">Cantidad</th><th style="width:50px;"></th></tr>';
         thead.innerHTML = html;
     }
@@ -898,18 +915,24 @@
         // Preserve existing data
         const existing = [];
         tbody.querySelectorAll('.variant-input-row').forEach(row => {
-            const data = { name: row.querySelector('[data-field="name"]')?.value || '', quantity: row.querySelector('[data-field="quantity"]')?.value || '1', attrs: {} };
+            const data = { 
+                name: row.querySelector('[data-field="name"]')?.value || '', 
+                quantity: row.querySelector('[data-field="quantity"]')?.value || '1', 
+                costo: row.querySelector('[data-field="costo"]')?.value || '', 
+                attrs: {} 
+            };
             row.querySelectorAll('[data-attr]').forEach(inp => { data.attrs[inp.dataset.attr] = inp.value; });
             existing.push(data);
         });
         tbody.innerHTML = '';
         existing.forEach(d => {
-            addVariantRowWithData(d.name, d.quantity, d.attrs);
+            addVariantRowWithData(d.name, d.quantity, d.costo, d.attrs);
         });
     }
 
-    function addVariantRowWithData(name, quantity, attrs) {
+    function addVariantRowWithData(name, quantity, costo, attrs) {
         variantCounter++;
+        const hasCost = document.getElementById('varHasCustomCost')?.checked;
         const tbody = document.getElementById('variantsTableBody');
         const tr = document.createElement('tr');
         tr.className = 'variant-input-row';
@@ -919,6 +942,9 @@
             const val = (attrs && attrs[c.name]) || '';
             html += `<td><input type="text" class="form-control" data-attr="${esc(c.name)}" value="${esc(val)}" placeholder="${esc(c.name)}" style="font-size:0.85rem;"></td>`;
         });
+        if (hasCost) {
+            html += `<td><input type="number" class="form-control" data-field="costo" step="0.01" min="0" value="${costo || ''}" placeholder="0.00" style="font-size:0.85rem;"></td>`;
+        }
         html += `<td><input type="number" class="form-control" data-field="quantity" min="1" value="${quantity || 1}" style="font-size:0.85rem;"></td>`;
         html += `<td><button type="button" class="btn-delete-row" onclick="removeVariantRow(this)" title="Eliminar"><i class="ph ph-x"></i></button></td>`;
         tr.innerHTML = html;
@@ -927,10 +953,33 @@
     }
 
     window.addVariantRow = function() {
-        addVariantRowWithData('', '1', {});
+        addVariantRowWithData('', '1', '', {});
         const rows = document.querySelectorAll('#variantsTableBody .variant-input-row');
         const last = rows[rows.length - 1];
         if (last) last.querySelector('[data-field="name"]')?.focus();
+    };
+
+    window.collectVariants = function() {
+        const rows = document.querySelectorAll('#variantsTableBody .variant-input-row');
+        const hasCost = document.getElementById('varHasCustomCost')?.checked;
+        const result = [];
+        rows.forEach(r => {
+            const name = r.querySelector('[data-field="name"]')?.value.trim();
+            const qty = parseInt(r.querySelector('[data-field="quantity"]')?.value) || 0;
+            const costInput = r.querySelector('[data-field="costo"]');
+            let costVal = null;
+            if (hasCost && costInput && costInput.value !== '') costVal = parseFloat(costInput.value) || 0;
+
+            if (name && qty > 0) {
+                const attrs = {};
+                r.querySelectorAll('[data-attr]').forEach(inp => {
+                    const val = inp.value.trim();
+                    if (val) attrs[inp.dataset.attr] = val;
+                });
+                result.push({ name, quantity: qty, attributes: attrs, costo: costVal });
+            }
+        });
+        return result;
     };
 
     window.removeVariantRow = function(btn) {
@@ -945,13 +994,6 @@
         if (badge) badge.textContent = count + ' variante' + (count !== 1 ? 's' : '');
     }
 
-    window.collectVariants = function() {
-        const rows = document.querySelectorAll('#variantsTableBody .variant-input-row');
-        const variants = [];
-        rows.forEach(row => {
-            const name = (row.querySelector('[data-field="name"]')?.value || '').trim();
-            const quantity = parseInt(row.querySelector('[data-field="quantity"]')?.value || 0);
-            if (!name || quantity < 1) return;
             const attributes = {};
             row.querySelectorAll('[data-attr]').forEach(inp => {
                 if (inp.value.trim()) attributes[inp.dataset.attr] = inp.value.trim();
@@ -1009,6 +1051,7 @@
                             </div>
                         </td>
                         <td data-label="Categoría"></td>
+                        <td data-label="Costo"><span style="font-weight:700;color:var(--text-color);">S/ ${parseFloat(child.costo_producto||0).toFixed(2)}</span></td>
                         <td data-label="Total"><span style="font-weight:700;color:#6366f1;">${child.total_quantity}</span></td>
                         <td data-label="Disponibles"><span style="font-weight:700;color:#10b981;">${child.total_quantity}</span></td>
                         <td data-label="Instalados"><span style="font-weight:700;color:#3b82f6;">0</span></td>
@@ -1323,6 +1366,7 @@
             document.getElementById('editProductName').value = prod.name;
             document.getElementById('editProductStockMin').value = prod.stock_minimo || 10;
             document.getElementById('editProductStockCritico').value = prod.stock_critico || 3;
+            document.getElementById('editProductCosto').value = prod.costo_producto || 0.00;
             document.getElementById('editRequiresPhotos').checked = (prod.requires_photos == 1);
 
             editProductPhotosNew = [];
@@ -1567,6 +1611,7 @@
         fd.append('category_id', document.getElementById('editProductCategory').value);
         fd.append('stock_minimo', document.getElementById('editProductStockMin').value);
         fd.append('stock_critico', document.getElementById('editProductStockCritico').value);
+        fd.append('costo_producto', document.getElementById('editProductCosto').value);
         fd.append('description', desc);
         fd.append('requires_photos', document.getElementById('editRequiresPhotos').checked ? 1 : 0);
         // Append new product photos

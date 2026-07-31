@@ -217,6 +217,7 @@ try {
             $description = trim($_POST['description'] ?? '');
             $stock_minimo = intval($_POST['stock_minimo'] ?? 10);
             $stock_critico = intval($_POST['stock_critico'] ?? 3);
+            $costo_producto = floatval($_POST['costo_producto'] ?? 0);
             $custom_columns = $_POST['custom_columns'] ?? '[]';
 
             $is_bulk = isset($_POST['is_bulk']) && $_POST['is_bulk'] == '1' ? 1 : 0;
@@ -259,9 +260,9 @@ try {
                 $master_sku = null;
             }
 
-            $stmt = $pdo->prepare("INSERT INTO inventory_products (name, description, category_id, total_quantity, stock_minimo, stock_critico, custom_columns, is_bulk, unit_type, master_sku, requires_photos, product_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO inventory_products (name, description, category_id, total_quantity, stock_minimo, stock_critico, costo_producto, custom_columns, is_bulk, unit_type, master_sku, requires_photos, product_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $requires_photos = isset($_POST['requires_photos']) && $_POST['requires_photos'] == '1' ? 1 : 0;
-            $stmt->execute([$name, $description, $category_id, $quantity, $stock_minimo, $stock_critico, $custom_columns, $is_bulk, $unit_type, $master_sku, $requires_photos, $product_type]);
+            $stmt->execute([$name, $description, $category_id, $quantity, $stock_minimo, $stock_critico, $costo_producto, $custom_columns, $is_bulk, $unit_type, $master_sku, $requires_photos, $product_type]);
             $product_id = $pdo->lastInsertId();
 
             // Handle multiple product photo uploads
@@ -329,14 +330,15 @@ try {
                 $variantCols = $_POST['variant_columns'] ?? '[]';
                 $pdo->prepare("UPDATE inventory_products SET custom_columns = ? WHERE id = ?")->execute([$variantCols, $product_id]);
 
-                $stmtVariant = $pdo->prepare("INSERT INTO inventory_products (name, description, category_id, total_quantity, stock_minimo, stock_critico, is_bulk, unit_type, product_type, parent_product_id, variant_attributes) VALUES (?, ?, ?, ?, ?, ?, 1, 'Unidades', 'granel', ?, ?)");
+                $stmtVariant = $pdo->prepare("INSERT INTO inventory_products (name, description, category_id, total_quantity, stock_minimo, stock_critico, costo_producto, is_bulk, unit_type, product_type, parent_product_id, variant_attributes) VALUES (?, ?, ?, ?, ?, ?, ?, 1, 'Unidades', 'granel', ?, ?)");
                 foreach ($variants as $v) {
                     $vName = trim($v['name'] ?? '');
                     $vQty = intval($v['quantity'] ?? 0);
                     if (!$vName || $vQty < 1) continue;
                     // Extract attributes (everything except name and quantity)
                     $attrs = $v['attributes'] ?? [];
-                    $stmtVariant->execute([$vName, $description, $category_id, $vQty, $stock_minimo, $stock_critico, $product_id, json_encode($attrs, JSON_UNESCAPED_UNICODE)]);
+                    $vCosto = isset($v['costo']) && $v['costo'] !== null ? floatval($v['costo']) : $costo_producto;
+                    $stmtVariant->execute([$vName, $description, $category_id, $vQty, $stock_minimo, $stock_critico, $vCosto, $product_id, json_encode($attrs, JSON_UNESCAPED_UNICODE)]);
                 }
             }
 
@@ -461,6 +463,7 @@ try {
             $category_id = $_POST['category_id'] ?? null;
             $stock_minimo = intval($_POST['stock_minimo'] ?? 10);
             $stock_critico = intval($_POST['stock_critico'] ?? 3);
+            $costo_producto = floatval($_POST['costo_producto'] ?? 0);
             $description = trim($_POST['description'] ?? '');
             $custom_columns = $_POST['custom_columns'] ?? '[]';
             
@@ -471,8 +474,8 @@ try {
             
             $requires_photos = isset($_POST['requires_photos']) && $_POST['requires_photos'] == '1' ? 1 : 0;
             
-            $stmt = $pdo->prepare("UPDATE inventory_products SET name = ?, category_id = ?, stock_minimo = ?, stock_critico = ?, description = ?, custom_columns = ?, requires_photos = ? WHERE id = ?");
-            $stmt->execute([$name, $category_id ?: null, $stock_minimo, $stock_critico, $description, $custom_columns, $requires_photos, $product_id]);
+            $stmt = $pdo->prepare("UPDATE inventory_products SET name = ?, category_id = ?, stock_minimo = ?, stock_critico = ?, costo_producto = ?, description = ?, custom_columns = ?, requires_photos = ? WHERE id = ?");
+            $stmt->execute([$name, $category_id ?: null, $stock_minimo, $stock_critico, $costo_producto, $description, $custom_columns, $requires_photos, $product_id]);
 
             // Handle multiple product photo uploads
             if (!empty($_FILES['product_photos'])) {
