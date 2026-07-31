@@ -55,8 +55,17 @@ document.addEventListener('DOMContentLoaded', () => {
         loadDashboardData();
     };
 
-    // Formateador de moneda
-    const formatMoney = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+    // Formateador de moneda (Regla global)
+    const appCurrency = (window.appSettings && window.appSettings.currency) ? window.appSettings.currency : 'USD';
+    const currencyLocales = {
+        'USD': 'en-US',
+        'EUR': 'es-ES',
+        'MXN': 'es-MX',
+        'COP': 'es-CO',
+        'PEN': 'es-PE'
+    };
+    const appLocale = currencyLocales[appCurrency] || 'en-US';
+    const formatMoney = (val) => new Intl.NumberFormat(appLocale, { style: 'currency', currency: appCurrency }).format(val);
 
     // Carga inicial
     loadDashboardData();
