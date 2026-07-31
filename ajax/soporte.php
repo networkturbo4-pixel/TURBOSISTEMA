@@ -280,7 +280,23 @@ try {
                 }
             }
 
-            echo json_encode(['success' => true, 'data' => $messages]);
+            // Get live location
+            $stmtTkt = $pdo->prepare("SELECT live_lat, live_lng, live_expires_at FROM tickets WHERE id = ?");
+            $stmtTkt->execute([$ticket_id]);
+            $tkt = $stmtTkt->fetch(PDO::FETCH_ASSOC);
+            $live_lat = null;
+            $live_lng = null;
+            if ($tkt && $tkt['live_expires_at'] && strtotime($tkt['live_expires_at']) > time()) {
+                $live_lat = $tkt['live_lat'];
+                $live_lng = $tkt['live_lng'];
+            }
+
+            echo json_encode([
+                'success' => true,
+                'data' => $messages,
+                'live_lat' => $live_lat,
+                'live_lng' => $live_lng
+            ]);
             break;
 
         case 'mark_as_read':
@@ -519,6 +535,24 @@ try {
             if ($has_session) {
                 $pdo->prepare("UPDATE tickets SET active_tech_id = NULL, active_tech_ping = NULL WHERE id = ? AND active_tech_id = ?")->execute([$ticket_id, $user_id]);
             }
+            echo json_encode(['success' => true]);
+            break;
+
+        case 'update_live_location':
+            $ticket_id = $_POST['ticket_id'] ?? 0;
+            $lat = $_POST['lat'] ?? 0;
+            $lng = $_POST['lng'] ?? 0;
+            
+            if (!$has_session && !validateToken($pdo, $ticket_id, $token)) throw new Exception('No autorizado');
+            
+            // Current user or client
+            $live_user_id = $has_session ? $user_id : null;
+            // Extend expiration to 1 hour from now
+            $expire = date('Y-m-d H:i:s', time() + 3600);
+            
+            $stmt = $pdo->prepare("UPDATE tickets SET live_lat = ?, live_lng = ?, live_user_id = ?, live_expires_at = ? WHERE id = ?");
+            $stmt->execute([$lat, $lng, $live_user_id, $expire, $ticket_id]);
+            
             echo json_encode(['success' => true]);
             break;
 

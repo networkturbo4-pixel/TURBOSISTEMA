@@ -1027,7 +1027,6 @@
     let assignGroupedProductId = null;
 
     window.openAssignGrouped = async function(productId) {
-        alert('Botón clickeado para el producto: ' + productId);
         try {
             assignGroupedProductId = productId;
             document.getElementById('assignGroupedTitle').textContent = 'Cargando...';

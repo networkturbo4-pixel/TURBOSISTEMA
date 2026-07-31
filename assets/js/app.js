@@ -198,7 +198,6 @@ function initModals() {
             const overlay = btn.closest('.modal-overlay') || btn.closest('.modal') || btn.closest('.modal-backdrop');
             if (overlay) {
                 overlay.classList.remove('active');
-                overlay.style.display = 'none';
             }
         });
     });

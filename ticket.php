@@ -303,6 +303,8 @@ $primaryColor = '#064e3b'; // Default
             100% { transform: scale(1); opacity: 1; }
         }
     </style>
+    <!-- Añadir script de Google Maps para el modal de envío -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAzf2GmB9lw1k7ONXk1VHScmd-pe-FtMtE&libraries=places"></script>
 </head>
 <body>
 
@@ -359,7 +361,7 @@ $primaryColor = '#064e3b'; // Default
                 <button type="button" onclick="openGalleryInput(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.95rem; font-weight: 500; color: #333;">
                     <i class="ph-fill ph-image" style="font-size: 1.3rem; color: #3b82f6;"></i> Fotos y Videos
                 </button>
-                <button type="button" onclick="sendLocation(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.95rem; font-weight: 500; color: #333;">
+                <button type="button" onclick="openLocationModal(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.95rem; font-weight: 500; color: #333;">
                     <i class="ph-fill ph-map-pin" style="font-size: 1.3rem; color: #ef4444;"></i> Ubicación
                 </button>
             </div>
@@ -466,16 +468,17 @@ $primaryColor = '#064e3b'; // Default
                         
                         // Parse Location
                         if (msgContent.startsWith('[LOCATION:') && msgContent.endsWith(']')) {
-                            const coords = msgContent.replace('[LOCATION:', '').replace(']', '');
-                            msgContent = `
-                                <div onclick="openLocationViewer('${coords}')" class="loc-card" style="cursor: pointer;">
-                                    <div style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 10px; border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(16,185,129,0.3);"><i class="ph-fill ph-navigation-arrow" style="font-size: 1.3rem;"></i></div>
-                                    <div>
-                                        <div style="font-weight: 700; font-size: 0.88rem; color: #0f172a;">Ubicación compartida</div>
-                                        <div style="font-size: 0.75rem; color: #10b981; font-weight: 600; display: flex; align-items: center; gap: 4px; margin-top: 2px;"><i class="ph-fill ph-map-pin"></i> Ver en Mapa App Interactivo</div>
-                                    </div>
-                                </div>
-                            `;
+                            const coords = msgContent.replace('[LOCATION:', '').replace(']', '').split(',');
+                            const lat = coords[0];
+                            const lng = coords[1];
+                            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=300x150&markers=color:red%7C${lat},${lng}&key=AIzaSyAzf2GmB9lw1k7ONXk1VHScmd-pe-FtMtE`;
+                            msgContent = `<div style="margin-bottom:8px;"><a href="https://maps.google.com/?q=${lat},${lng}" target="_blank"><img src="${mapUrl}" style="max-width:100%; border-radius:8px; cursor:pointer;" alt="Ubicación estática"></a><br><small style="color:var(--primary-color);">Ubicación estática</small></div>`;
+                        } else if (msgContent.startsWith('[LIVE_LOCATION:') && msgContent.endsWith(']')) {
+                            const coords = msgContent.replace('[LIVE_LOCATION:', '').replace(']', '').split(',');
+                            const lat = coords[0];
+                            const lng = coords[1];
+                            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=300x150&markers=color:blue%7C${lat},${lng}&key=AIzaSyAzf2GmB9lw1k7ONXk1VHScmd-pe-FtMtE`;
+                            msgContent = `<div style="margin-bottom:8px;" class="live-location-container" data-user="${msg.user_id || 'client'}"><a href="https://maps.google.com/?q=${lat},${lng}" target="_blank"><img src="${mapUrl}" style="max-width:100%; border-radius:8px; cursor:pointer;" alt="Ubicación en tiempo real"></a><br><small style="color:var(--primary-color);">📍 Ubicación en tiempo real iniciada</small></div>`;
                         }
 
                         // Attachments
@@ -527,6 +530,15 @@ $primaryColor = '#064e3b'; // Default
                     lastMessageId = msg.id;
                 });
                 container.scrollTop = container.scrollHeight;
+            }
+            if (res.success && res.live_lat && res.live_lng) {
+                document.querySelectorAll('.live-location-container img').forEach(img => {
+                    const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${res.live_lat},${res.live_lng}&zoom=15&size=300x150&markers=color:blue%7C${res.live_lat},${res.live_lng}&key=AIzaSyAzf2GmB9lw1k7ONXk1VHScmd-pe-FtMtE`;
+                    if (img.src !== mapUrl) {
+                        img.src = mapUrl;
+                        img.parentElement.href = `https://maps.google.com/?q=${res.live_lat},${res.live_lng}`;
+                    }
+                });
             }
         } catch(e) {}
         isPollingMessages = false;
@@ -650,30 +662,124 @@ $primaryColor = '#064e3b'; // Default
         }
     };
 
-    const sendLocation = () => {
+    // -- Modal de Ubicación Start --
+    let locationMap = null;
+    let locationMarker = null;
+    let selectedLat = 0;
+    let selectedLng = 0;
+    
+    const openLocationModal = () => {
         if (!navigator.geolocation) {
-            alert('Tu navegador no soporta geolocalización');
+            alert('Geolocalización no soportada por el navegador');
             return;
         }
-        navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
+        
+        document.getElementById('locationSendModal').style.display = 'flex';
+        
+        navigator.geolocation.getCurrentPosition((pos) => {
+            selectedLat = pos.coords.latitude;
+            selectedLng = pos.coords.longitude;
+            initMap(selectedLat, selectedLng);
+        }, (err) => {
+            alert('No se pudo obtener la ubicación actual');
+            selectedLat = -12.046374;
+            selectedLng = -77.042793;
+            initMap(selectedLat, selectedLng);
+        });
+    };
+
+    const initMap = (lat, lng) => {
+        const center = { lat: lat, lng: lng };
+        if (!locationMap) {
+            locationMap = new google.maps.Map(document.getElementById("mapSendContainer"), {
+                zoom: 15,
+                center: center,
+                mapTypeControl: false,
+                streetViewControl: false
+            });
+            locationMarker = new google.maps.Marker({
+                position: center,
+                map: locationMap,
+                draggable: true,
+                title: "Tu ubicación"
+            });
+            
+            google.maps.event.addListener(locationMarker, 'dragend', function() {
+                const pos = locationMarker.getPosition();
+                selectedLat = pos.lat();
+                selectedLng = pos.lng();
+            });
+            
+            google.maps.event.addListener(locationMap, 'click', function(event) {
+                locationMarker.setPosition(event.latLng);
+                selectedLat = event.latLng.lat();
+                selectedLng = event.latLng.lng();
+            });
+        } else {
+            locationMap.setCenter(center);
+            locationMarker.setPosition(center);
+        }
+    };
+
+    const closeLocationSendModal = () => {
+        document.getElementById('locationSendModal').style.display = 'none';
+    };
+
+    document.getElementById('btnSendLocationModal').addEventListener('click', () => {
+        if (selectedLat && selectedLng) {
+            sendLocationMessage(selectedLat, selectedLng, false);
+            closeLocationSendModal();
+        }
+    });
+
+    document.getElementById('btnLiveLocation').addEventListener('click', () => {
+        if (selectedLat && selectedLng) {
+            sendLocationMessage(selectedLat, selectedLng, true);
+            closeLocationSendModal();
+            startLiveLocationUpdates();
+        }
+    });
+
+    const sendLocationMessage = async (lat, lng, isLive) => {
+        const text = isLive ? `[LIVE_LOCATION:${lat},${lng}]` : `[LOCATION:${lat},${lng}]`;
+        const fd = new FormData();
+        fd.append('action', 'send_message');
+        fd.append('ticket_id', currentTicketId);
+        fd.append('token', token);
+        fd.append('message', text);
+        try {
+            const res = await fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd }).then(r=>r.json());
+            if(res.success) loadMessages();
+        } catch(e) {}
+    };
+
+    let liveLocationInterval = null;
+    const startLiveLocationUpdates = () => {
+        if (liveLocationInterval) return;
+        
+        const sendUpdate = () => {
+            navigator.geolocation.getCurrentPosition((pos) => {
                 const fd = new FormData();
-                fd.append('action', 'send_message');
+                fd.append('action', 'update_live_location');
                 fd.append('ticket_id', currentTicketId);
                 fd.append('token', token);
-                fd.append('message', `[LOCATION:${lat},${lng}]`);
-                try {
-                    const res = await fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd }).then(r=>r.json());
-                    if(res.success) loadMessages();
-                } catch(e) {}
-            },
-            (error) => {
-                alert('No se pudo obtener la ubicación. Verifica los permisos.');
+                fd.append('lat', pos.coords.latitude);
+                fd.append('lng', pos.coords.longitude);
+                fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd });
+            });
+        };
+        
+        sendUpdate();
+        liveLocationInterval = setInterval(sendUpdate, 15000);
+        
+        setTimeout(() => {
+            if(liveLocationInterval) {
+                clearInterval(liveLocationInterval);
+                liveLocationInterval = null;
             }
-        );
+        }, 60 * 60 * 1000);
     };
+    // -- Modal de Ubicación End --
 
     // Voice Notes Logic
     let isRecording = false;
@@ -894,6 +1000,23 @@ $primaryColor = '#064e3b'; // Default
         });
     });
 </script>
+
+<!-- Modal de Enviar Ubicación -->
+<div id="locationSendModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:99999; align-items:center; justify-content:center;">
+    <div style="background:#ffffff; padding:20px; border-radius:12px; width:90%; max-width:500px; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+        <h4 style="margin-top:0; margin-bottom:15px; font-weight:bold; color: #0f172a;">Enviar Ubicación</h4>
+        <div id="mapSendContainer" style="width:100%; height:300px; background:#e2e8f0; border-radius:8px; margin-bottom:15px;"></div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <button type="button" style="padding: 8px 12px; background: transparent; color: #3b82f6; border: 1px solid #3b82f6; border-radius: 8px; cursor: pointer; font-weight: 600;" id="btnLiveLocation">En Vivo</button>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button type="button" style="padding: 8px 12px; background: #e2e8f0; color: #334155; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;" onclick="closeLocationSendModal()">Cancelar</button>
+                <button type="button" style="padding: 8px 12px; background: #00a884; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;" id="btnSendLocationModal">Enviar</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 </body>
 </html>

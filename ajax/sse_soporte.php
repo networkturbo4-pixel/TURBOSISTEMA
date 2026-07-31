@@ -88,8 +88,8 @@ while (true) {
     
     $last_read_id = $stmtRead->fetchColumn() ?: 0;
 
-    // 3. Verificar estado "Escribiendo..."
-    $stmtTkt = $pdo->prepare("SELECT tech_typing_at, client_typing_at FROM tickets WHERE id = ?");
+    // 3. Verificar estado "Escribiendo..." y "Ubicación en tiempo real"
+    $stmtTkt = $pdo->prepare("SELECT tech_typing_at, client_typing_at, live_lat, live_lng, live_expires_at FROM tickets WHERE id = ?");
     $stmtTkt->execute([$ticket_id]);
     $tkt = $stmtTkt->fetch(PDO::FETCH_ASSOC);
     
@@ -105,8 +105,15 @@ while (true) {
 
     $status_data = [
         'is_typing' => $is_typing,
-        'last_read_id' => $last_read_id
+        'last_read_id' => $last_read_id,
+        'live_lat' => null,
+        'live_lng' => null
     ];
+    
+    if ($tkt && $tkt['live_expires_at'] && strtotime($tkt['live_expires_at']) > time()) {
+        $status_data['live_lat'] = $tkt['live_lat'];
+        $status_data['live_lng'] = $tkt['live_lng'];
+    }
     
     echo "event: status_update\n";
     echo "data: " . json_encode($status_data) . "\n\n";

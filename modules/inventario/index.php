@@ -1736,6 +1736,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (hm && hm.parentElement !== document.body) {
         document.body.appendChild(hm);
     }
+    var agm = document.getElementById('assignGroupedModal');
+    if (agm && agm.parentElement !== document.body) {
+        document.body.appendChild(agm);
+    }
 });
 </script>
 

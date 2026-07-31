@@ -22,6 +22,8 @@ if ($ticket_id > 0) {
 include '../../includes/header.php';
 include '../../includes/sidebar.php';
 ?>
+<!-- Añadir script de Google Maps -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAzf2GmB9lw1k7ONXk1VHScmd-pe-FtMtE&libraries=places"></script>
 
 <style>
     .chat-layout {
@@ -389,6 +391,7 @@ include '../../includes/sidebar.php';
         <div class="chat-input-area">
             <input type="file" id="chatFileInput" style="display:none;" accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx">
             <button class="btn-icon" title="Adjuntar archivo" onclick="document.getElementById('chatFileInput').click();"><i class="ph ph-paperclip"></i></button>
+            <button class="btn-icon" title="Enviar Ubicación" onclick="openLocationModal();"><i class="ph ph-map-pin"></i></button>
             <div class="chat-input-wrapper">
                 <div id="chatFilePreview" style="display:none; font-size:0.8rem; background:#f1f5f9; padding:4px 8px; border-radius:4px; margin-bottom:4px; font-weight:600; color:#3b82f6;"></div>
                 <textarea id="messageInput" placeholder="Escribe un mensaje..." rows="1" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"></textarea>
@@ -481,12 +484,27 @@ include '../../includes/sidebar.php';
 
         const canDelete = isMe || currentUserRole === 'admin' || currentUserRole === 'administrador';
 
+        let msgContent = msg.message ? msg.message.replace(/\n/g, '<br>') : '';
+        if (msg.message && msg.message.startsWith('[LOCATION:')) {
+            const coords = msg.message.replace('[LOCATION:', '').replace(']', '').split(',');
+            const lat = coords[0];
+            const lng = coords[1];
+            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=300x150&markers=color:red%7C${lat},${lng}&key=AIzaSyAzf2GmB9lw1k7ONXk1VHScmd-pe-FtMtE`;
+            msgContent = `<div style="margin-bottom:8px;"><a href="https://maps.google.com/?q=${lat},${lng}" target="_blank"><img src="${mapUrl}" style="max-width:100%; border-radius:8px; cursor:pointer;" alt="Ubicación estática"></a><br><small>Ubicación (haz clic para abrir)</small></div>`;
+        } else if (msg.message && msg.message.startsWith('[LIVE_LOCATION:')) {
+            const parts = msg.message.replace('[LIVE_LOCATION:', '').replace(']', '').split(',');
+            const lat = parts[0];
+            const lng = parts[1];
+            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=300x150&markers=color:blue%7C${lat},${lng}&key=AIzaSyAzf2GmB9lw1k7ONXk1VHScmd-pe-FtMtE`;
+            msgContent = `<div style="margin-bottom:8px;" class="live-location-container" data-user="${msg.user_id || 'client'}"><a href="https://maps.google.com/?q=${lat},${lng}" target="_blank"><img src="${mapUrl}" style="max-width:100%; border-radius:8px; cursor:pointer;" alt="Ubicación en tiempo real"></a><br><small style="color:var(--primary-color);">📍 Ubicación en tiempo real iniciada</small></div>`;
+        }
+
         const html = `
             <div class="message-bubble ${bubbleClass}" id="msg-${msg.id}">
                 ${canDelete ? `<button class="message-delete-btn" onclick="deleteMessage(${msg.id})" title="Eliminar mensaje"><i class="ph-bold ph-trash"></i></button>` : ''}
                 ${!isMe ? `<div style="font-size:0.75rem; font-weight:700; color:var(--primary-color); margin-bottom:3px;">${userName}</div>` : ''}
                 ${attHtml}
-                <div>${msg.message ? msg.message.replace(/\n/g, '<br>') : ''}</div>
+                <div>${msgContent}</div>
                 <div style="display:flex; justify-content:flex-end; align-items:center; margin-top:5px;">
                     <span class="message-time">${formatTime(msg.created_at)}</span>
                     ${checksHtml}
@@ -573,6 +591,16 @@ include '../../includes/sidebar.php';
                     const mId = parseInt(msgDiv.id.replace('msg-', ''));
                     if (mId <= status.last_read_id) {
                         el.style.color = '#3b82f6';
+                    }
+                });
+            }
+            if (status.live_lat && status.live_lng) {
+                document.querySelectorAll('.live-location-container img').forEach(img => {
+                    // Update only if it's the other person's live location (or both for simplicity)
+                    const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${status.live_lat},${status.live_lng}&zoom=15&size=300x150&markers=color:blue%7C${status.live_lat},${status.live_lng}&key=AIzaSyAzf2GmB9lw1k7ONXk1VHScmd-pe-FtMtE`;
+                    if (img.src !== mapUrl) {
+                        img.src = mapUrl;
+                        img.parentElement.href = `https://maps.google.com/?q=${status.live_lat},${status.live_lng}`;
                     }
                 });
             }
@@ -756,6 +784,141 @@ include '../../includes/sidebar.php';
             navigator.sendBeacon('<?php echo BASE_URL; ?>/ajax/soporte.php', fd);
         }
     });
+
+    // --- Lógica del Modal de Ubicación y Tiempo Real ---
+    let locationMap = null;
+    let locationMarker = null;
+    let selectedLat = 0;
+    let selectedLng = 0;
+    
+    function openLocationModal() {
+        if (!navigator.geolocation) {
+            window.showToast('Geolocalización no soportada por el navegador', 'error');
+            return;
+        }
+        
+        document.getElementById('locationModal').style.display = 'flex';
+        
+        navigator.geolocation.getCurrentPosition((pos) => {
+            selectedLat = pos.coords.latitude;
+            selectedLng = pos.coords.longitude;
+            initMap(selectedLat, selectedLng);
+        }, (err) => {
+            window.showToast('No se pudo obtener la ubicación actual', 'warning');
+            selectedLat = -12.046374;
+            selectedLng = -77.042793;
+            initMap(selectedLat, selectedLng);
+        });
+    }
+
+    function initMap(lat, lng) {
+        const center = { lat: lat, lng: lng };
+        if (!locationMap) {
+            locationMap = new google.maps.Map(document.getElementById("mapContainer"), {
+                zoom: 15,
+                center: center,
+                mapTypeControl: false,
+                streetViewControl: false
+            });
+            locationMarker = new google.maps.Marker({
+                position: center,
+                map: locationMap,
+                draggable: true,
+                title: "Tu ubicación"
+            });
+            
+            google.maps.event.addListener(locationMarker, 'dragend', function() {
+                const pos = locationMarker.getPosition();
+                selectedLat = pos.lat();
+                selectedLng = pos.lng();
+            });
+            
+            google.maps.event.addListener(locationMap, 'click', function(event) {
+                locationMarker.setPosition(event.latLng);
+                selectedLat = event.latLng.lat();
+                selectedLng = event.latLng.lng();
+            });
+        } else {
+            locationMap.setCenter(center);
+            locationMarker.setPosition(center);
+        }
+    }
+
+    function closeLocationModal() {
+        document.getElementById('locationModal').style.display = 'none';
+    }
+
+    document.getElementById('btnSendLocationModal').addEventListener('click', () => {
+        if (selectedLat && selectedLng) {
+            sendLocationMessage(selectedLat, selectedLng, false);
+            closeLocationModal();
+        }
+    });
+
+    document.getElementById('btnLiveLocation').addEventListener('click', () => {
+        if (selectedLat && selectedLng) {
+            sendLocationMessage(selectedLat, selectedLng, true);
+            closeLocationModal();
+            startLiveLocationUpdates();
+        }
+    });
+
+    const sendLocationMessage = async (lat, lng, isLive) => {
+        const text = isLive ? `[LIVE_LOCATION:${lat},${lng}]` : `[LOCATION:${lat},${lng}]`;
+        const fd = new FormData();
+        fd.append('action', 'send_message');
+        fd.append('ticket_id', currentTicketId);
+        fd.append('message', text);
+        try {
+            await fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd }).then(r=>r.json());
+        } catch(e) {}
+    };
+
+    let liveLocationInterval = null;
+    function startLiveLocationUpdates() {
+        if (liveLocationInterval) return;
+        window.showToast('Ubicación en tiempo real iniciada (1h)', 'success');
+        
+        const sendUpdate = () => {
+            navigator.geolocation.getCurrentPosition((pos) => {
+                const fd = new FormData();
+                fd.append('action', 'update_live_location');
+                fd.append('ticket_id', currentTicketId);
+                fd.append('lat', pos.coords.latitude);
+                fd.append('lng', pos.coords.longitude);
+                fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd });
+            });
+        };
+        
+        sendUpdate(); // Send initial update
+        liveLocationInterval = setInterval(sendUpdate, 15000); // Update every 15 seconds
+        
+        // stop after 1 hour
+        setTimeout(() => {
+            if(liveLocationInterval) {
+                clearInterval(liveLocationInterval);
+                liveLocationInterval = null;
+                window.showToast('Ubicación en tiempo real finalizada', 'info');
+            }
+        }, 60 * 60 * 1000);
+    }
 </script>
+
+<!-- Modal de Ubicación -->
+<div id="locationModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:var(--surface-color); padding:20px; border-radius:12px; width:90%; max-width:500px; box-shadow:var(--shadow);">
+        <h4 style="margin-top:0; margin-bottom:15px; font-weight:bold;">Enviar Ubicación</h4>
+        <div id="mapContainer" style="width:100%; height:300px; background:#e2e8f0; border-radius:8px; margin-bottom:15px;"></div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <button class="btn btn-sm btn-outline-primary" id="btnLiveLocation">Compartir en Tiempo Real</button>
+            </div>
+            <div>
+                <button class="btn btn-sm btn-secondary" onclick="closeLocationModal()">Cancelar</button>
+                <button class="btn btn-sm btn-primary" id="btnSendLocationModal">Enviar</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <?php include '../../includes/footer.php'; ?>
