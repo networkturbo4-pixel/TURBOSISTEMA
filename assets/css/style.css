@@ -782,10 +782,13 @@ body.dark-theme .table-badge-dark {
         border: none;
         border-bottom: 1px solid var(--border-color); 
         position: relative;
-        padding-left: 50%; 
+        padding-left: 45% !important;
+        padding-right: 15px;
         min-height: 40px;
         display: flex;
+        justify-content: flex-end;
         align-items: center;
+        text-align: right;
     }
     
     .table-responsive td:before { 
@@ -793,9 +796,10 @@ body.dark-theme .table-badge-dark {
         top: 50%;
         left: 15px;
         transform: translateY(-50%);
-        width: 45%; 
+        width: 40%; 
         padding-right: 10px; 
-        white-space: nowrap;
+        white-space: normal;
+        text-align: left;
         content: attr(data-label);
         font-weight: bold;
         color: var(--text-muted);
