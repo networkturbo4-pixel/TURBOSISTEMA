@@ -68,7 +68,18 @@
                 document.querySelectorAll('.inv-tab-pane').forEach(p => p.classList.remove('active'));
                 btn.classList.add('active');
                 document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+                
+                // Hide specific controls depending on tab
                 document.getElementById('btnNewProduct').style.display = btn.dataset.tab === 'productos' ? 'flex' : 'none';
+                const toolbarRight = document.querySelector('.inv-toolbar-right');
+                if (toolbarRight) {
+                    toolbarRight.style.display = btn.dataset.tab === 'dashboard' ? 'none' : 'flex';
+                }
+                const btnHistorial = document.getElementById('btnHistorial');
+                if (btnHistorial) {
+                    btnHistorial.style.display = btn.dataset.tab === 'dashboard' ? 'none' : 'flex';
+                }
+
                 if (btn.dataset.tab === 'stock') loadAllSkus();
                 if (btn.dataset.tab === 'etiquetas') populateLabelProducts();
                 if (btn.dataset.tab === 'papelera' && window.loadPapelera) window.loadPapelera();

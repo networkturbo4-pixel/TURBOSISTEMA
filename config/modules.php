@@ -47,7 +47,21 @@ $system_modules = [
         'icon' => 'ph-package',
         'url' => '/modules/inventario',
         'description' => 'Gestión de productos, control de stock y etiquetas',
-        'default_access' => false
+        'default_access' => false,
+        'submodules' => [
+            'dashboard' => [
+                'name' => 'Dashboard',
+                'url' => '/modules/inventario/?tab=dashboard',
+            ],
+            'productos' => [
+                'name' => 'Productos',
+                'url' => '/modules/inventario',
+            ],
+            'activos' => [
+                'name' => 'Activos',
+                'url' => '/modules/inventario/Activos',
+            ]
+        ]
     ],
     'perfil' => [
         'name' => 'Mi Perfil',

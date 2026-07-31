@@ -2693,3 +2693,50 @@ body.dark-theme .modal-close-btn:hover {
     background: rgba(239,68,68,0.2);
     transform: scale(1.1);
 }
+
+/* =========================================
+   DASHBOARD DARK MODE FIXES
+   ========================================= */
+body.dark-theme .dashboard-filters {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+}
+body.dark-theme .d-quick-filters {
+    border-right-color: #334155 !important;
+}
+body.dark-theme .btn-light {
+    background: #334155 !important;
+    color: #cbd5e1 !important;
+    border-color: transparent !important;
+}
+body.dark-theme .btn-light:hover {
+    background: #475569 !important;
+    color: #f8fafc !important;
+}
+body.dark-theme .dashboard-filters input[type="date"] {
+    background: #0f172a !important;
+    color: #cbd5e1 !important;
+    border-color: #334155 !important;
+}
+body.dark-theme .btn-outline-primary {
+    color: #cbd5e1 !important;
+    border-color: #3b82f6 !important;
+}
+body.dark-theme .btn-outline-primary:hover {
+    background: rgba(59,130,246,0.15) !important;
+    color: #f8fafc !important;
+}
+body.dark-theme .inv-metric-title {
+    color: #94a3b8 !important;
+}
+body.dark-theme .settings-section h4 {
+    color: #cbd5e1 !important;
+}
+body.dark-theme #metricCardsFin .inv-metric-card,
+body.dark-theme .inv-metric-card {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+}
+body.dark-theme .inv-metric-value {
+    color: #f8fafc !important;
+}

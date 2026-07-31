@@ -47,13 +47,41 @@ $appNameSidebar = $globalSettings['app_name'] ?? 'Turbo SaaS';
                     } elseif ($module['url'] !== '/' && strpos($current_path, BASE_URL . $module['url']) === 0) {
                         $isActive = true;
                     }
+                    
+                    $hasSubmodules = isset($module['submodules']) && is_array($module['submodules']) && count($module['submodules']) > 0;
             ?>
-                <a href="<?php echo BASE_URL . $module['url']; ?>" class="nav-link <?php echo $isActive ? 'active' : ''; ?>" title="<?php echo htmlspecialchars($module['name']); ?>">
-                    <div class="nav-link-left">
-                        <i class="ph <?php echo htmlspecialchars($module['icon']); ?>"></i>
-                        <span class="nav-text"><?php echo htmlspecialchars($module['name']); ?></span>
+                <?php if ($hasSubmodules): ?>
+                    <div class="sidebar-item <?php echo $isActive ? 'open' : ''; ?>">
+                        <a href="#" class="nav-link sidebar-toggle" title="<?php echo htmlspecialchars($module['name']); ?>">
+                            <div class="nav-link-left">
+                                <i class="ph <?php echo htmlspecialchars($module['icon']); ?>"></i>
+                                <span class="nav-text"><?php echo htmlspecialchars($module['name']); ?></span>
+                            </div>
+                            <i class="ph ph-caret-down toggle-icon" style="margin-left: auto;"></i>
+                        </a>
+                        <div class="sidebar-submenu" style="display: <?php echo $isActive ? 'flex' : 'none'; ?>; flex-direction: column;">
+                            <?php foreach ($module['submodules'] as $subKey => $subMod): 
+                                $subUrl = BASE_URL . $subMod['url'];
+                                if ($subMod['url'] === $module['url']) {
+                                    $isSubActive = ($current_path === $subUrl || $current_path === $subUrl . '/' || $current_path === $subUrl . '/index.php');
+                                } else {
+                                    $isSubActive = (strpos($current_path, $subUrl) === 0);
+                                }
+                            ?>
+                                <a href="<?php echo $subUrl; ?>" class="nav-link submenu-link <?php echo $isSubActive ? 'active' : ''; ?>" style="padding-left: 3rem;">
+                                    <div class="nav-link-left"><span class="nav-text"><?php echo htmlspecialchars($subMod['name']); ?></span></div>
+                                </a>
+                            <?php endforeach; ?>
+                        </div>
                     </div>
-                </a>
+                <?php else: ?>
+                    <a href="<?php echo BASE_URL . $module['url']; ?>" class="nav-link <?php echo $isActive ? 'active' : ''; ?>" title="<?php echo htmlspecialchars($module['name']); ?>">
+                        <div class="nav-link-left">
+                            <i class="ph <?php echo htmlspecialchars($module['icon']); ?>"></i>
+                            <span class="nav-text"><?php echo htmlspecialchars($module['name']); ?></span>
+                        </div>
+                    </a>
+                <?php endif; ?>
             <?php 
                 endif;
             endforeach; 

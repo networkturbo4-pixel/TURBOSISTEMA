@@ -33,49 +33,27 @@ window.addEventListener('error', function(e) {
 
 
 
-<!-- Metric Cards -->
-<div id="metricCards">
-    <div class="inv-metric-card">
-        <div class="inv-metric-icon" style="background:rgba(236,72,153,0.1);"><i class="ph ph-list-numbers" style="color:#ec4899;"></i></div>
-        <div class="text-end"><p class="inv-metric-value" id="metricProductos" style="color:#ec4899;">0</p><h3 class="inv-metric-title">Productos Registrados</h3></div>
-    </div>
-    <div class="inv-metric-card">
-        <div class="inv-metric-icon" style="background:rgba(99,102,241,0.1);"><i class="ph ph-cube" style="color:#6366f1;"></i></div>
-        <div class="text-end"><p class="inv-metric-value" id="metricTotal" style="color:#6366f1;">0</p><h3 class="inv-metric-title">Total Unidades</h3></div>
-    </div>
-    <div class="inv-metric-card">
-        <div class="inv-metric-icon" style="background:rgba(16,185,129,0.1);"><i class="ph ph-check-circle" style="color:#10b981;"></i></div>
-        <div class="text-end"><p class="inv-metric-value" id="metricDisponible" style="color:#10b981;">0</p><h3 class="inv-metric-title">Disponibles</h3></div>
-    </div>
-    <div class="inv-metric-card">
-        <div class="inv-metric-icon" style="background:rgba(59,130,246,0.1);"><i class="ph ph-arrow-circle-up" style="color:#3b82f6;"></i></div>
-        <div class="text-end"><p class="inv-metric-value" id="metricInstalado" style="color:#3b82f6;">0</p><h3 class="inv-metric-title">Instalados</h3></div>
-    </div>
-    <div class="inv-metric-card">
-        <div class="inv-metric-icon" style="background:rgba(245,158,11,0.1);"><i class="ph ph-warning" style="color:#f59e0b;"></i></div>
-        <div class="text-end"><p class="inv-metric-value" id="metricLowStock" style="color:#f59e0b;">0</p><h3 class="inv-metric-title">Por Agotarse</h3></div>
-    </div>
-</div>
+
 
 <!-- Card contenedor unificado -->
 <div class="inv-content-card">
 
 <!-- Unified Toolbar: Tabs + Filters -->
-<div class="inv-toolbar">
-    <!-- Tabs (izquierda) -->
+<?php $activeTab = isset($_GET['tab']) ? $_GET['tab'] : 'productos'; ?>
+<div class="inv-toolbar" style="<?php echo $activeTab === 'dashboard' ? 'display:none;' : ''; ?>">
     <div class="inv-toolbar-tabs">
-        <button class="inv-tab active" data-tab="productos"><i class="ph ph-package"></i> Productos</button>
-        <button class="inv-tab" data-tab="stock"><i class="ph ph-chart-bar"></i> Control de Stock</button>
-        <button class="inv-tab" data-tab="etiquetas"><i class="ph ph-tag"></i> Etiquetas</button>
-        <button class="inv-tab" data-tab="escaner"><i class="ph ph-barcode"></i> Escáner</button>
-        <button class="inv-tab" data-tab="papelera"><i class="ph ph-trash"></i> Papelera</button>
+        <button class="inv-tab <?php echo $activeTab === 'productos' ? 'active' : ''; ?>" data-tab="productos"><i class="ph ph-package"></i> Productos</button>
+        <button class="inv-tab <?php echo $activeTab === 'stock' ? 'active' : ''; ?>" data-tab="stock"><i class="ph ph-chart-bar"></i> Control de Stock</button>
+        <button class="inv-tab <?php echo $activeTab === 'etiquetas' ? 'active' : ''; ?>" data-tab="etiquetas"><i class="ph ph-tag"></i> Etiquetas</button>
+        <button class="inv-tab <?php echo $activeTab === 'escaner' ? 'active' : ''; ?>" data-tab="escaner"><i class="ph ph-barcode"></i> Escáner</button>
+        <button class="inv-tab <?php echo $activeTab === 'papelera' ? 'active' : ''; ?>" data-tab="papelera"><i class="ph ph-trash"></i> Papelera</button>
     </div>
     <!-- History button -->
-    <button class="inv-tab" style="margin-left:8px; background:rgba(99,102,241,0.1); color:#6366f1; border:1px solid rgba(99,102,241,0.2);" onclick="openHistoryModal()" title="Historial de inventario">
+    <button id="btnHistorial" class="inv-tab" style="margin-left:8px; background:rgba(99,102,241,0.1); color:#6366f1; border:1px solid rgba(99,102,241,0.2); <?php echo $activeTab === 'dashboard' ? 'display:none;' : ''; ?>" onclick="openHistoryModal()" title="Historial de inventario">
         <i class="ph ph-clock-counter-clockwise"></i> Historial
     </button>
     <!-- Filtros + Sheets (derecha) -->
-    <div class="inv-toolbar-right">
+    <div class="inv-toolbar-right" style="<?php echo $activeTab === 'dashboard' ? 'display:none;' : 'display:flex;'; ?>">
         <!-- New Product Button (moved from FAB) -->
         <button id="btnNewProduct" style="display:flex; align-items:center; gap:6px; background:var(--primary-color); color:#fff; border:none; padding:6px 14px; border-radius:8px; font-size:0.85rem; font-weight:500; cursor:pointer; transition:all 0.2s;" title="Crear un nuevo producto">
             <i class="ph ph-plus-circle" style="font-size:1.1rem;"></i> Nuevo Producto
@@ -181,7 +159,7 @@ window.addEventListener('error', function(e) {
 </div>
 
 <!-- Tab: Productos -->
-<div class="inv-tab-pane active" id="tab-productos">
+<div class="inv-tab-pane <?php echo $activeTab === 'productos' ? 'active' : ''; ?>" id="tab-productos">
     <!-- Active filters bar -->
     <div id="cfActiveBar" style="display:none; gap:8px; flex-wrap:wrap; align-items:center; padding:8px 0; animation:fadeIn 0.2s ease;">
         <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600;"><i class="ph ph-funnel"></i> Filtros activos:</span>
@@ -544,7 +522,191 @@ window.addEventListener('error', function(e) {
     </div>
 </div>
 
-<!-- FAB Removed (moved to toolbar) -->
+    <div class="inv-tab-pane <?php echo $activeTab === 'dashboard' ? 'active' : ''; ?>" id="tab-dashboard" style="padding: 20px; position:relative;">
+        
+        <!-- Dashboard Header & Tabs -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; flex-wrap:wrap; gap:15px;">
+            <div class="dashboard-tabs" style="display:flex; gap:10px;">
+                <button type="button" class="btn btn-primary d-tab-btn active" data-dtab="general"><i class="ph ph-squares-four"></i> General</button>
+                <button type="button" class="btn btn-outline-primary d-tab-btn" data-dtab="financiero"><i class="ph ph-currency-dollar"></i> Financiero</button>
+                <button type="button" class="btn btn-outline-primary d-tab-btn" data-dtab="operativo"><i class="ph ph-users"></i> Operativo</button>
+            </div>
+            
+            <div class="dashboard-filters" style="display:flex; gap:10px; align-items:center; background:#fff; padding:10px; border-radius:12px; border:1px solid var(--border-color);">
+                <div class="d-quick-filters" style="display:flex; gap:5px; border-right:1px solid #e2e8f0; padding-right:10px; margin-right:5px;">
+                    <button type="button" class="btn btn-sm btn-light" onclick="setDashFilter('today')">Hoy</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="setDashFilter('week')">Semana</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="setDashFilter('month')">Mes</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="setDashFilter('year')">Año</button>
+                </div>
+                <form id="dashboard-filter-form" style="display:flex; gap:10px; margin:0; align-items:center;">
+                    <input type="date" class="form-control form-control-sm" id="filter_start_date" name="start_date" value="<?php echo date('Y-m-01'); ?>">
+                    <span style="color:#64748b;">-</span>
+                    <input type="date" class="form-control form-control-sm" id="filter_end_date" name="end_date" value="<?php echo date('Y-m-d'); ?>">
+                    <button type="submit" class="btn btn-sm btn-primary"><i class="ph ph-funnel"></i></button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Tab Content: General -->
+        <div class="d-tab-content active" id="dtab-general">
+            <!-- Metric Cards -->
+            <div id="metricCards" style="margin-bottom: 20px;">
+                <div class="inv-metric-card" style="position:relative; overflow:hidden;">
+                    <canvas id="spark-productos" style="position:absolute; bottom:0; left:0; width:100%; height:40px; opacity:0.2;"></canvas>
+                    <div class="inv-metric-icon" style="background:rgba(236,72,153,0.1); position:relative; z-index:2;"><i class="ph ph-list-numbers" style="color:#ec4899;"></i></div>
+                    <div class="text-end" style="position:relative; z-index:2;">
+                        <p class="inv-metric-value" id="metricProductos" style="color:#ec4899;">0</p>
+                        <h3 class="inv-metric-title">Productos Registrados <span id="trendProductos" style="font-size:0.75rem; font-weight:bold;"></span></h3>
+                    </div>
+                </div>
+                <div class="inv-metric-card" style="position:relative; overflow:hidden;">
+                    <canvas id="spark-total" style="position:absolute; bottom:0; left:0; width:100%; height:40px; opacity:0.2;"></canvas>
+                    <div class="inv-metric-icon" style="background:rgba(99,102,241,0.1); position:relative; z-index:2;"><i class="ph ph-cube" style="color:#6366f1;"></i></div>
+                    <div class="text-end" style="position:relative; z-index:2;">
+                        <p class="inv-metric-value" id="metricTotal" style="color:#6366f1;">0</p>
+                        <h3 class="inv-metric-title">Total Unidades <span id="trendTotal" style="font-size:0.75rem; font-weight:bold;"></span></h3>
+                    </div>
+                </div>
+                <div class="inv-metric-card" style="position:relative; overflow:hidden;">
+                    <canvas id="spark-disponible" style="position:absolute; bottom:0; left:0; width:100%; height:40px; opacity:0.2;"></canvas>
+                    <div class="inv-metric-icon" style="background:rgba(16,185,129,0.1); position:relative; z-index:2;"><i class="ph ph-check-circle" style="color:#10b981;"></i></div>
+                    <div class="text-end" style="position:relative; z-index:2;">
+                        <p class="inv-metric-value" id="metricDisponible" style="color:#10b981;">0</p>
+                        <h3 class="inv-metric-title">Disponibles <span id="trendDisponible" style="font-size:0.75rem; font-weight:bold;"></span></h3>
+                    </div>
+                </div>
+                <div class="inv-metric-card" style="position:relative; overflow:hidden;">
+                    <canvas id="spark-instalado" style="position:absolute; bottom:0; left:0; width:100%; height:40px; opacity:0.2;"></canvas>
+                    <div class="inv-metric-icon" style="background:rgba(59,130,246,0.1); position:relative; z-index:2;"><i class="ph ph-arrow-circle-up" style="color:#3b82f6;"></i></div>
+                    <div class="text-end" style="position:relative; z-index:2;">
+                        <p class="inv-metric-value" id="metricInstalado" style="color:#3b82f6;">0</p>
+                        <h3 class="inv-metric-title">Instalados <span id="trendInstalado" style="font-size:0.75rem; font-weight:bold;"></span></h3>
+                    </div>
+                </div>
+                <div class="inv-metric-card" style="position:relative; overflow:hidden;">
+                    <div class="inv-metric-icon" style="background:rgba(245,158,11,0.1); position:relative; z-index:2;"><i class="ph ph-warning" style="color:#f59e0b;"></i></div>
+                    <div class="text-end" style="position:relative; z-index:2;">
+                        <p class="inv-metric-value" id="metricLowStock" style="color:#f59e0b;">0</p>
+                        <h3 class="inv-metric-title">Por Agotarse</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row gx-4 gy-4 dashboard-charts-container">
+                <div class="col-md-6">
+                    <div class="settings-section" style="padding: 20px; height: 100%;">
+                        <h4 class="mb-3">Estado Histórico (Filtro Aplicado)</h4>
+                        <div style="position: relative; height: 300px; width: 100%;"><canvas id="chart-status"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="settings-section" style="padding: 20px; height: 100%;">
+                        <h4 class="mb-3">Top 5: Menos Stock (Actual)</h4>
+                        <div style="position: relative; height: 300px; width: 100%;"><canvas id="chart-low-stock"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="settings-section" style="padding: 20px; height: 100%;">
+                        <h4 class="mb-3">Top 5: Más Usados</h4>
+                        <div style="position: relative; height: 300px; width: 100%;"><canvas id="chart-most-used"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="settings-section" style="padding: 20px; height: 100%;">
+                        <h4 class="mb-3">Top 5: Menos Usados</h4>
+                        <div style="position: relative; height: 300px; width: 100%;"><canvas id="chart-least-used"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Financiero -->
+        <div class="d-tab-content" id="dtab-financiero" style="display:none;">
+            <div id="metricCardsFin" style="margin-bottom: 20px; display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:20px;">
+                <div class="inv-metric-card">
+                    <div class="inv-metric-icon" style="background:rgba(16,185,129,0.1);"><i class="ph ph-currency-dollar" style="color:#10b981;"></i></div>
+                    <div class="text-end">
+                        <p class="inv-metric-value" id="metricValorTotal" style="color:#10b981;">$0.00</p>
+                        <h3 class="inv-metric-title">Valor Total del Inventario</h3>
+                    </div>
+                </div>
+                <div class="inv-metric-card">
+                    <div class="inv-metric-icon" style="background:rgba(239,68,68,0.1);"><i class="ph ph-lock-key" style="color:#ef4444;"></i></div>
+                    <div class="text-end">
+                        <p class="inv-metric-value" id="metricCapitalInmovilizado" style="color:#ef4444;">$0.00</p>
+                        <h3 class="inv-metric-title">Capital en Stock Crítico</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="settings-section" style="padding: 20px;">
+                <h4 class="mb-3">Evolución Aproximada del Valor</h4>
+                <div style="position: relative; height: 400px; width: 100%;"><canvas id="chart-value-evolution"></canvas></div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Operativo -->
+        <div class="d-tab-content" id="dtab-operativo" style="display:none;">
+            <div class="row gx-4 gy-4">
+                <div class="col-md-6">
+                    <div class="settings-section" style="padding: 20px; height: 100%;">
+                        <h4 class="mb-3">Tasa de Retorno (Devoluciones)</h4>
+                        <div style="position: relative; height: 300px; width: 100%;"><canvas id="chart-returns"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="settings-section" style="padding: 20px; height: 100%;">
+                        <h4 class="mb-3">Top 5 Técnicos (Asignaciones)</h4>
+                        <div style="position: relative; height: 300px; width: 100%;"><canvas id="chart-top-techs"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Custom HTML Tooltip Container -->
+        <div id="chartjs-tooltip" style="opacity: 0; position: absolute; background: rgba(15,23,42,0.95); color: white; border-radius: 8px; pointer-events: none; padding: 10px; transition: all 0.1s ease; z-index: 100; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+            <table style="margin:0; font-size: 13px; font-family: Inter;"></table>
+        </div>
+
+    </div>
+
+    <!-- Modal para Drill-Down de Gráficos -->
+    <div class="modal-overlay" id="drilldownModal">
+        <div class="modal-content" style="max-width:800px;">
+            <div class="modal-header">
+                <h3><i class="ph ph-chart-bar"></i> Detalle del Producto</h3>
+                <button class="close-modal" onclick="document.getElementById('drilldownModal').classList.remove('active')">&times;</button>
+            </div>
+            <div class="modal-body" style="max-height:60vh; overflow-y:auto; padding: 20px;">
+                <div style="display:flex; gap:20px; align-items:flex-start; margin-bottom:20px;">
+                    <img id="ddProductImage" src="" alt="Producto" style="width:100px; height:100px; object-fit:cover; border-radius:8px; border:1px solid #e2e8f0; display:none;">
+                    <div>
+                        <h4 id="ddProductName" style="margin-bottom:5px; color:var(--text-color);">Nombre del Producto</h4>
+                        <p style="color:#64748b; font-size:0.9rem;">Últimos 20 movimientos</p>
+                    </div>
+                </div>
+                <table class="inv-table" style="width:100%;">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Acción</th>
+                            <th>Técnico/Usuario</th>
+                            <th>Cantidad</th>
+                            <th>Notas</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ddTableBody">
+                        <!-- Llenado dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="<?php echo BASE_URL; ?>/modules/inventario/dashboard/dashboard.js"></script>
+
 
 <!-- Modal: Selector de Tipo de Producto -->
 <div class="modal-overlay" id="productTypeModal">
@@ -1756,4 +1918,3 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <?php include '../../includes/footer.php'; ?>
-
