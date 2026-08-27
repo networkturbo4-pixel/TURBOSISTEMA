@@ -23,8 +23,8 @@ include '../../includes/sidebar.php';
 ?>
 
 <!-- Google Maps API -->
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBNXLdtgdStVUGqNeDFdaHRTpCjaVHF6RE&libraries=drawing,places,geometry,elevation,marker&v=3.64"></script>
-<!-- Turf.js para mediciÃ³n de distancias y polÃ­gonos -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBNXLdtgdStVUGqNeDFdaHRTpCjaVHF6RE&libraries=drawing,places,geometry,elevation,marker"></script>
+<!-- Turf.js para mediciÃƒÂ³n de distancias y polÃƒÂ­gonos -->
 <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js"></script>
 
@@ -110,7 +110,7 @@ include '../../includes/sidebar.php';
         background: rgba(56, 189, 248, 0.2);
     }
 
-    /* Modal Elemento (Restringido al Ã¡rea del mapa) */
+    /* Modal Elemento (Restringido al ÃƒÂ¡rea del mapa) */
     .element-modal {
         position: absolute;
         top: 0; left: 0; right: 0; bottom: 0;
@@ -133,7 +133,7 @@ include '../../includes/sidebar.php';
         transform: translateY(0) scale(1);
     }
 
-    /* Variante Modal PequeÃ±o (Para LÃ­neas y PolÃ­gonos) */
+    /* Variante Modal PequeÃƒÂ±o (Para LÃƒÂ­neas y PolÃƒÂ­gonos) */
     .element-modal.modal-compact {
         width: 420px;
         height: auto;
@@ -271,7 +271,7 @@ include '../../includes/sidebar.php';
 
     #fileUploadInput { display: none; }
 
-    /* Visor de ImÃ¡genes (Lightbox) */
+    /* Visor de ImÃƒÂ¡genes (Lightbox) */
     #lightboxOverlay {
         position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
         background: rgba(0, 0, 0, 0.95); backdrop-filter: blur(10px);
@@ -393,7 +393,7 @@ include '../../includes/sidebar.php';
     }
     .geocoder-container input::placeholder { color: #94a3b8 !important; }
     
-    /* Distancia de MediciÃ³n */
+    /* Distancia de MediciÃƒÂ³n */
     .measurement-box {
         position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
         background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px);
@@ -497,7 +497,7 @@ include '../../includes/sidebar.php';
     }
     body:not(.dark-theme) .geocoder-container input::placeholder { color: #94a3b8 !important; }
 
-    /* Estilo general para selects dinÃ¡micos */
+    /* Estilo general para selects dinÃƒÂ¡micos */
     select.map-select { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.1); }
     select.map-select option { color: black; }
     body:not(.dark-theme) select.map-select { background: white; color: #0f172a; border-color: rgba(0,0,0,0.1); }
@@ -565,7 +565,7 @@ include '../../includes/sidebar.php';
             <h4>Vista del Mapa</h4>
             <select id="styleSwitcher" class="form-select form-select-sm map-select">
                 <option value="mapbox://styles/mapbox/dark-v11">Oscuro Premium</option>
-                <option value="mapbox://styles/mapbox/satellite-streets-v12">SatÃ©lite</option>
+                <option value="mapbox://styles/mapbox/satellite-streets-v12">SatÃƒÂ©lite</option>
                 <option value="mapbox://styles/mapbox/streets-v12">Calles</option>
             </select>
         </div>
@@ -578,9 +578,9 @@ include '../../includes/sidebar.php';
             <button class="btn-close-modal" onclick="closeModal()"><i class="ph-bold ph-x"></i></button>
         </div>
         <div class="modal-layout">
-            <!-- Izquierda: Detalles TÃ©cnicos -->
+            <!-- Izquierda: Detalles TÃƒÂ©cnicos -->
             <div class="modal-col-left">
-                <textarea id="modalDesc" class="modal-desc" rows="2" placeholder="AÃ±adir descripciÃ³n o notas..."></textarea>
+                <textarea id="modalDesc" class="modal-desc" rows="2" placeholder="AÃƒÂ±adir descripciÃƒÂ³n o notas..."></textarea>
                 
                 <div class="carousel" id="carousel">
                     <div class="no-image">
@@ -593,13 +593,13 @@ include '../../includes/sidebar.php';
                     <div class="coord-box">
                         <i class="ph-fill ph-map-pin"></i> <span id="modalCoords">-11.84, -77.11</span>
                     </div>
-                    <button class="btn-whatsapp-share" onclick="shareLocationWhatsApp()" title="Compartir ubicaciÃ³n por WhatsApp">
+                    <button class="btn-whatsapp-share" onclick="shareLocationWhatsApp()" title="Compartir ubicaciÃƒÂ³n por WhatsApp">
                         <i class="ph-bold ph-whatsapp-logo"></i>
                     </button>
                 </div>
                 
                 <div id="techPointContainer" style="margin-top: 10px;">
-                    <h5 style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 10px;">DATOS TÃ‰CNICOS</h5>
+                    <h5 style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 10px;">DATOS TÃƒâ€°CNICOS</h5>
                     <div class="tech-field">
                         <i class="ph-fill ph-plugs" style="color: #38bdf8;"></i>
                         <input type="text" id="techCable" placeholder="Tubo/Hilo Troncal (Ej: Tubo Verde, Hilo Azul)">
@@ -643,15 +643,15 @@ include '../../includes/sidebar.php';
                     </label>
                     <input type="file" id="fileUploadInput" class="no-dropzone" accept="image/*" capture="environment" style="display:none;" multiple>
                     <button class="action-btn" title="Cambiar Color" onclick="toggleStylePicker(event)"><i class="ph-bold ph-palette"></i></button>
-                    <button class="action-btn btn-nav" title="CÃ³mo llegar" id="btnNav"><i class="ph-bold ph-navigation-arrow"></i></button>
+                    <button class="action-btn btn-nav" title="CÃƒÂ³mo llegar" id="btnNav"><i class="ph-bold ph-navigation-arrow"></i></button>
                     <button class="action-btn btn-del" title="Eliminar" onclick="deleteElement()"><i class="ph-bold ph-trash"></i></button>
                 </div>
             </div>
             
-            <!-- Derecha: GestiÃ³n de Hilos -->
+            <!-- Derecha: GestiÃƒÂ³n de Hilos -->
             <div class="modal-col-right" id="portsContainer">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h4 style="margin:0;"><i class="ph-fill ph-graph"></i> GestiÃ³n de Hilos</h4>
+                    <h4 style="margin:0;"><i class="ph-fill ph-graph"></i> GestiÃƒÂ³n de Hilos</h4>
                     <select id="techCapacidad" class="form-select form-select-sm map-select" style="width: auto;">
                         <option value="0">Sin Hilos</option>
                         <option value="8">Caja de 8 Hilos</option>
@@ -673,7 +673,7 @@ include '../../includes/sidebar.php';
                 <div class="color-grid" id="colorGrid"></div>
             </div>
             <div>
-                <div class="style-section-title">Ãcono</div>
+                <div class="style-section-title">ÃƒÂcono</div>
                 <div class="icon-grid" id="iconGrid"></div>
                 <div style="margin-top: 10px;">
                     <label class="btn btn-sm btn-outline-primary w-100" style="cursor: pointer;">
@@ -690,11 +690,11 @@ include '../../includes/sidebar.php';
         <div class="toolbar-tools">
             <button class="tool-btn tool-btn-back" onclick="window.location.href='index.php'" title="Volver a Proyectos"><i class="ph-bold ph-arrow-left"></i></button>
             <div class="toolbar-divider"></div>
-            <button class="tool-btn" onclick="document.querySelector('.map-sidebar').classList.toggle('sidebar-active');" title="MenÃº"><i class="ph-bold ph-list"></i></button>
+            <button class="tool-btn" onclick="document.querySelector('.map-sidebar').classList.toggle('sidebar-active');" title="MenÃƒÂº"><i class="ph-bold ph-list"></i></button>
             <button class="tool-btn active" id="tool-hand" title="Mover mapa (Esc)" onclick="setTool('simple_select', this)"><i class="ph-bold ph-hand-palm"></i></button>
-            <button class="tool-btn" id="tool-point" title="AÃ±adir Punto" onclick="setTool('draw_point', this)"><i class="ph-bold ph-map-pin-plus"></i></button>
-            <button class="tool-btn" id="tool-line" title="Dibujar LÃ­nea" onclick="setTool('draw_line_string', this)"><i class="ph-bold ph-trend-up"></i></button>
-            <button class="tool-btn" id="tool-polygon" title="Dibujar PolÃ­gono" onclick="setTool('draw_polygon', this)"><i class="ph-bold ph-hexagon"></i></button>
+            <button class="tool-btn" id="tool-point" title="AÃƒÂ±adir Punto" onclick="setTool('draw_point', this)"><i class="ph-bold ph-map-pin-plus"></i></button>
+            <button class="tool-btn" id="tool-line" title="Dibujar LÃƒÂ­nea" onclick="setTool('draw_line_string', this)"><i class="ph-bold ph-trend-up"></i></button>
+            <button class="tool-btn" id="tool-polygon" title="Dibujar PolÃƒÂ­gono" onclick="setTool('draw_polygon', this)"><i class="ph-bold ph-hexagon"></i></button>
             <button class="tool-btn" id="tool-measure" title="Medir Distancia" onclick="toggleMeasure(this)"><i class="ph-bold ph-ruler"></i></button>
         </div>
         <div class="geocoder-container" id="geocoder">
@@ -706,16 +706,16 @@ include '../../includes/sidebar.php';
     <!-- Panel Estilo Google Earth -->
     <div class="earth-panel" id="earthPanel">
         <div class="earth-panel-header">
-            <span id="epTitle">Ruta o polÃ­gono</span>
+            <span id="epTitle">Ruta o polÃƒÂ­gono</span>
             <button onclick="cancelDrawing()" style="background:none;border:none;color:white;cursor:pointer;"><i class="ph-bold ph-x"></i></button>
         </div>
         <div class="earth-panel-body">
             <div id="epLengthArea"></div>
             
             <div id="epElevation" style="display:none; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
-                <div class="earth-stat-label">Perfil de elevaciÃ³n</div>
+                <div class="earth-stat-label">Perfil de elevaciÃƒÂ³n</div>
                 <div class="earth-stat-label" style="margin-top: 5px;">
-                    MÃ­n.: <span id="epMinElev" style="color:white">-</span> | Media: <span id="epAvgElev" style="color:white">-</span> | MÃ¡x.: <span id="epMaxElev" style="color:white">-</span>
+                    MÃƒÂ­n.: <span id="epMinElev" style="color:white">-</span> | Media: <span id="epAvgElev" style="color:white">-</span> | MÃƒÂ¡x.: <span id="epMaxElev" style="color:white">-</span>
                 </div>
                 <canvas id="elevationChart" class="elevation-chart"></canvas>
             </div>
@@ -726,7 +726,7 @@ include '../../includes/sidebar.php';
 
 </div>
 
-<!-- Visor de ImÃ¡genes a Pantalla Completa -->
+<!-- Visor de ImÃƒÂ¡genes a Pantalla Completa -->
 <div id="lightboxOverlay" onclick="closeLightbox(event)">
     <button id="lightboxClose" class="lb-btn lb-close" onclick="closeLightbox(event)">&times;</button>
     <button class="lb-btn lb-prev" onclick="lbChangeImg(-1, event)"><i class="ph-bold ph-caret-left"></i></button>
@@ -765,7 +765,7 @@ function initMap() {
     map = new google.maps.Map(document.getElementById("map"), {
         center: { lat: -11.865, lng: -77.086 },
         zoom: 15,
-        mapTypeId: google.maps.MapTypeId.HYBRID, // SatÃ©lite con calles
+        mapTypeId: google.maps.MapTypeId.HYBRID, // SatÃƒÂ©lite con calles
         tilt: 45, // Modo Earth 3D
         streetViewControl: true,
         mapTypeControl: false,
@@ -829,13 +829,13 @@ function initMap() {
             currentDrawingFeature = turf.lineString(path);
             showEarthPanel(currentDrawingFeature, 'LineString');
             
-            // Re-calcular si el usuario edita la lÃ­nea
+            // Re-calcular si el usuario edita la lÃƒÂ­nea
             google.maps.event.addListener(currentDrawing.getPath(), 'set_at', () => updateEarthPanelStats());
             google.maps.event.addListener(currentDrawing.getPath(), 'insert_at', () => updateEarthPanelStats());
             
         } else if (tipo === 'Polygon') {
             let path = currentDrawing.getPath().getArray().map(p => [p.lng(), p.lat()]);
-            path.push(path[0]); // Cerrar polÃ­gono
+            path.push(path[0]); // Cerrar polÃƒÂ­gono
             currentDrawingFeature = turf.polygon([path]);
             showEarthPanel(currentDrawingFeature, 'Polygon');
             
@@ -877,7 +877,7 @@ function initMap() {
 // PANEL EARTH
 function showEarthPanel(feature, type) {
     document.getElementById('earthPanel').classList.add('active');
-    document.getElementById('epTitle').innerText = type === 'LineString' ? 'Ruta de Cable' : 'Zona PolÃ­gono';
+    document.getElementById('epTitle').innerText = type === 'LineString' ? 'Ruta de Cable' : 'Zona PolÃƒÂ­gono';
     updateEarthPanelStats();
 }
 
@@ -911,15 +911,15 @@ function updateEarthPanelStats() {
         let area = turf.area(currentDrawingFeature);
         let perim = turf.length(turf.polygonToLine(currentDrawingFeature), {units: 'meters'});
         
-        let areaTxt = area > 1000000 ? (area/1000000).toFixed(2) + ' kmÂ²' : area.toFixed(2) + ' mÂ²';
+        let areaTxt = area > 1000000 ? (area/1000000).toFixed(2) + ' kmÃ‚Â²' : area.toFixed(2) + ' mÃ‚Â²';
         let perimTxt = perim > 1000 ? (perim/1000).toFixed(2) + ' km' : perim.toFixed(2) + ' m';
         
         html = `<div class="earth-stat">
-                    <span class="earth-stat-label">PerÃ­metro</span>
+                    <span class="earth-stat-label">PerÃƒÂ­metro</span>
                     <span class="earth-stat-value">${perimTxt}</span>
                 </div>
                 <div class="earth-stat">
-                    <span class="earth-stat-label">Ãrea</span>
+                    <span class="earth-stat-label">ÃƒÂrea</span>
                     <span class="earth-stat-value">${areaTxt}</span>
                 </div>`;
                 
@@ -1043,7 +1043,7 @@ function setTool(mode, btn) {
 }
 
 function toggleMeasure(btn) {
-    // La medidÃ³n se maneja usando draw_line_string que ahora abre el panel Earth
+    // La medidÃƒÂ³n se maneja usando draw_line_string que ahora abre el panel Earth
     setTool('draw_line_string', btn);
 }
 
@@ -1074,7 +1074,7 @@ function renderMarkers() {
             const icono = f.properties.icono || 'ph-map-pin';
             const color = f.properties.color || '#a78bfa';
             
-            // Usar AdvancedMarkerElement si es posible, o Marker clÃ¡sico
+            // Usar AdvancedMarkerElement si es posible, o Marker clÃƒÂ¡sico
             let iconUrl;
             if (icono.includes('/')) {
                 iconUrl = '../../' + icono; // Ruta a PNG
@@ -1182,13 +1182,13 @@ kmlDropZone.addEventListener('drop', (e) => {
     }
 });
 
-// MODAL LOGIC (Se mantiene prÃ¡cticamente igual)
+// MODAL LOGIC (Se mantiene prÃƒÂ¡cticamente igual)
 let activePuertos = [];
 
 function shareLocationWhatsApp() {
     if (!activeElementId) return;
     const coordsText = document.getElementById('modalCoords').innerText;
-    const title = document.getElementById('modalTitle').value || 'UbicaciÃ³n';
+    const title = document.getElementById('modalTitle').value || 'UbicaciÃƒÂ³n';
     const url = `https://www.google.com/maps/search/?api=1&query=${coordsText.replace(/ /g, '')}`;
     const message = `*${title}*\nCoordenadas: ${coordsText}\nMapa: ${url}`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
@@ -1236,7 +1236,7 @@ function openModal(id, coords, name, color, icono, descripcion, type = 'Point', 
         if (type === 'Polygon' && feature) {
             techPoly.style.display = 'block';
             let area = turf.area(feature);
-            document.getElementById('techArea').value = area > 1000000 ? (area/1000000).toFixed(2) + ' kmÂ²' : area.toFixed(2) + ' mÂ²';
+            document.getElementById('techArea').value = area > 1000000 ? (area/1000000).toFixed(2) + ' kmÃ‚Â²' : area.toFixed(2) + ' mÃ‚Â²';
         } else {
             techPoly.style.display = 'none';
         }
@@ -1263,7 +1263,7 @@ function openModal(id, coords, name, color, icono, descripcion, type = 'Point', 
                     renderCarousel();
                 }
                 
-                // Datos TÃ©cnicos
+                // Datos TÃƒÂ©cnicos
                 document.getElementById('techCable').value = res.data.cable_origen || '';
                 document.getElementById('techDbm').value = res.data.potencia_dbm || '';
                 document.getElementById('techSplitter').value = res.data.splitter_tipo || '';
@@ -1303,7 +1303,7 @@ function closeModal() {
     fetch('api.php', {method: 'POST', body: formData}).then(() => loadMapData());
 }
 
-// LÃ“GICA DE PUERTOS
+// LÃƒâ€œGICA DE PUERTOS
 document.getElementById('techCapacidad').addEventListener('change', () => {
     closeModal();
     setTimeout(() => {
@@ -1596,7 +1596,7 @@ carouselEl.addEventListener('drop', (e) => {
 });
 
 function deleteElement() {
-    if(confirm('Â¿Seguro que deseas eliminar este elemento del mapa?')) {
+    if(confirm('Ã‚Â¿Seguro que deseas eliminar este elemento del mapa?')) {
         const formData = new FormData();
         formData.append('action', 'delete_element');
         formData.append('id', activeElementId);
