@@ -1,0 +1,7 @@
+config/env.php
+scratch/
+uploads/
+sessions/
+vendor/
+*.zip
+*.log

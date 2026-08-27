@@ -1,0 +1,1044 @@
+/**
+ * TurboSaaS - Módulo Sistema (Estilos Modernos)
+ * Compatible con Modo Claro / Modo Oscuro
+ * Tipografía base: 13px
+ */
+
+:root {
+    --sis-primary: #4361ee;
+    --sis-primary-rgb: 67, 97, 238;
+    --sis-success: #10b981;
+    --sis-success-rgb: 16, 185, 129;
+    --sis-warning: #f59e0b;
+    --sis-warning-rgb: 245, 158, 11;
+    --sis-danger: #ef4444;
+    --sis-danger-rgb: 239, 68, 68;
+    --sis-info: #06b6d4;
+    --sis-info-rgb: 6, 182, 212;
+    --sis-purple: #8b5cf6;
+    --sis-purple-rgb: 139, 92, 246;
+    
+    --sis-card-bg: var(--surface-color, #ffffff);
+    --sis-card-border: var(--border-color, #e2e8f0);
+    --sis-text-main: var(--text-color, #1e293b);
+    --sis-text-muted: var(--text-muted, #64748b);
+    --sis-bg-subtle: rgba(0, 0, 0, 0.02);
+}
+
+body.dark-theme {
+    --sis-card-bg: var(--surface-color, #1a1f2c);
+    --sis-card-border: rgba(255, 255, 255, 0.08);
+    --sis-text-main: #f8fafc;
+    --sis-text-muted: #94a3b8;
+    --sis-bg-subtle: rgba(255, 255, 255, 0.03);
+}
+
+/* ==========================================================================
+   Contenedor Principal y Tipografía
+   ========================================================================== */
+.sistema-module-wrap {
+    font-size: 13px;
+    color: var(--sis-text-main);
+    line-height: 1.5;
+}
+
+.sistema-module-wrap h1,
+.sistema-module-wrap h2,
+.sistema-module-wrap h3,
+.sistema-module-wrap h4,
+.sistema-module-wrap h5,
+.sistema-module-wrap h6 {
+    color: var(--sis-text-main);
+    font-weight: 600;
+}
+
+/* ==========================================================================
+   Cabecera de Página (Page Header Enhancement)
+   ========================================================================== */
+.sistema-header {
+    background: var(--sis-card-bg);
+    border: 1px solid var(--sis-card-border);
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+
+body.dark-theme .sistema-header {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.sistema-header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.sistema-header-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(67, 97, 238, 0.15), rgba(139, 92, 246, 0.15));
+    color: var(--sis-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    flex-shrink: 0;
+    border: 1px solid rgba(67, 97, 238, 0.2);
+}
+
+.sistema-header-title {
+    margin: 0;
+    font-size: 1.35rem;
+    letter-spacing: -0.01em;
+}
+
+.sistema-header-desc {
+    margin: 3px 0 0 0;
+    color: var(--sis-text-muted);
+    font-size: 0.85rem;
+}
+
+.sistema-header-badge-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 50px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.status-dot-pulse {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #10b981;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    animation: statusPulse 2s infinite;
+}
+
+@keyframes statusPulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* ==========================================================================
+   Tarjetas de Telemetría Superior (Stats Grid)
+   ========================================================================== */
+.sistema-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.sistema-stat-card {
+    background: var(--sis-card-bg);
+    border: 1px solid var(--sis-card-border);
+    border-radius: 14px;
+    padding: 16px 18px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.sistema-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+    border-color: rgba(var(--sis-primary-rgb), 0.3);
+}
+
+body.dark-theme .sistema-stat-card:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.stat-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--sis-text-muted);
+}
+
+.stat-value {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--sis-text-main);
+    margin: 2px 0;
+}
+
+.stat-sub {
+    font-size: 0.76rem;
+    color: var(--sis-text-muted);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.stat-icon.db { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
+.stat-icon.storage { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+.stat-icon.git { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
+.stat-icon.server { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+
+/* ==========================================================================
+   Pestañas de Navegación (Tabs)
+   ========================================================================== */
+.sistema-tabs-nav {
+    background: var(--sis-card-bg);
+    border: 1px solid var(--sis-card-border);
+    border-radius: 12px;
+    padding: 6px;
+    display: flex;
+    gap: 6px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.sistema-tabs-nav::-webkit-scrollbar {
+    display: none;
+}
+
+.sistema-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--sis-text-muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.sistema-tab-btn i {
+    font-size: 1.1rem;
+}
+
+.sistema-tab-btn:hover {
+    color: var(--sis-text-main);
+    background: var(--sis-bg-subtle);
+}
+
+.sistema-tab-btn.active {
+    background: var(--sis-primary);
+    color: #ffffff !important;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(var(--sis-primary-rgb), 0.3);
+}
+
+body.dark-theme .sistema-tab-btn.active {
+    background: var(--sis-primary);
+    color: #ffffff !important;
+}
+
+.sistema-tab-pane {
+    display: none;
+    animation: sisFadeIn 0.3s ease;
+}
+
+.sistema-tab-pane.active {
+    display: block;
+}
+
+@keyframes sisFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   Tarjetas de Contenido (Main Content Cards)
+   ========================================================================== */
+.sistema-card {
+    background: var(--sis-card-bg);
+    border: 1px solid var(--sis-card-border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+
+body.dark-theme .sistema-card {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.sistema-card-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.sistema-card-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sistema-card-title i {
+    font-size: 1.25rem;
+    color: var(--sis-primary);
+}
+
+.sistema-card-subtitle {
+    color: var(--sis-text-muted);
+    font-size: 0.82rem;
+    margin-top: 4px;
+}
+
+/* ==========================================================================
+   Opciones de Copia de Seguridad (Backup Cards Grid)
+   ========================================================================== */
+.backup-options-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.backup-action-card {
+    background: var(--sis-bg-subtle);
+    border: 1px solid var(--sis-card-border);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.backup-action-card:hover {
+    border-color: rgba(var(--sis-primary-rgb), 0.4);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+    transform: translateY(-2px);
+}
+
+body.dark-theme .backup-action-card:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.backup-card-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.backup-card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+}
+
+.backup-card-icon.sql {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.backup-card-icon.zip {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(239, 68, 68, 0.15));
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.backup-card-title {
+    font-size: 0.98rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.backup-card-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+.backup-card-badge.fast {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+}
+
+.backup-card-badge.complete {
+    background: rgba(139, 92, 246, 0.12);
+    color: #8b5cf6;
+}
+
+.backup-features-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: var(--sis-text-muted);
+}
+
+.backup-features-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.backup-features-list li i {
+    color: var(--sis-success);
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Zona Drag & Drop Especializada para Restauración
+   ========================================================================== */
+.restore-dropzone-box {
+    border: 2px dashed var(--sis-card-border);
+    border-radius: 14px;
+    padding: 36px 20px;
+    text-align: center;
+    background: var(--sis-bg-subtle);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.restore-dropzone-box:hover,
+.restore-dropzone-box.dragover {
+    border-color: var(--sis-primary);
+    background: rgba(var(--sis-primary-rgb), 0.04);
+}
+
+.restore-dropzone-icon {
+    font-size: 42px;
+    color: var(--sis-primary);
+    margin-bottom: 12px;
+    display: inline-block;
+    transition: transform 0.2s;
+}
+
+.restore-dropzone-box:hover .restore-dropzone-icon {
+    transform: translateY(-4px) scale(1.05);
+}
+
+.restore-dropzone-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--sis-text-main);
+    margin-bottom: 4px;
+}
+
+.restore-dropzone-subtitle {
+    font-size: 0.78rem;
+    color: var(--sis-text-muted);
+}
+
+.restore-format-pills {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.restore-pill {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--sis-text-muted);
+}
+
+body.dark-theme .restore-pill {
+    background: rgba(255, 255, 255, 0.08);
+    color: #cbd5e1;
+}
+
+/* File Selected State in Dropzone */
+.restore-file-selected-box {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    background: rgba(var(--sis-primary-rgb), 0.08);
+    border: 1px solid rgba(var(--sis-primary-rgb), 0.25);
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+
+.restore-file-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    overflow: hidden;
+}
+
+.restore-file-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--sis-primary);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.restore-file-name {
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: var(--sis-text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 320px;
+}
+
+.restore-file-size {
+    font-size: 0.75rem;
+    color: var(--sis-text-muted);
+}
+
+.btn-remove-file {
+    background: transparent;
+    border: none;
+    color: var(--sis-danger);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.btn-remove-file:hover {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+/* ==========================================================================
+   Advertencias y Checklist de Seguridad
+   ========================================================================== */
+.safety-warning-banner {
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.safety-warning-icon {
+    color: var(--sis-danger);
+    font-size: 24px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.safety-warning-text h5 {
+    color: var(--sis-danger);
+    font-size: 0.88rem;
+    margin: 0 0 4px 0;
+}
+
+.safety-warning-text p {
+    color: var(--sis-text-muted);
+    font-size: 0.8rem;
+    margin: 0;
+}
+
+/* ==========================================================================
+   Actualizaciones y Git Center
+   ========================================================================== */
+.git-status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.git-info-box {
+    background: var(--sis-bg-subtle);
+    border: 1px solid var(--sis-card-border);
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.git-info-label {
+    font-size: 0.75rem;
+    color: var(--sis-text-muted);
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.git-branch-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(var(--sis-primary-rgb), 0.12);
+    color: var(--sis-primary);
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.git-commit-desc {
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: var(--sis-text-main);
+    line-height: 1.4;
+    word-break: break-all;
+    background: rgba(0, 0, 0, 0.03);
+    padding: 8px 10px;
+    border-radius: 6px;
+    margin-top: 4px;
+}
+
+body.dark-theme .git-commit-desc {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* ==========================================================================
+   Consola de Terminal (Live Logs Window)
+   ========================================================================== */
+.sistema-terminal-window {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    margin-top: 20px;
+    display: none;
+}
+
+.terminal-header {
+    background: #1e293b;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #334155;
+}
+
+.terminal-dots {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.terminal-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.dot-red { background: #ef4444; }
+.dot-yellow { background: #f59e0b; }
+.dot-green { background: #10b981; }
+
+.terminal-title {
+    color: #94a3b8;
+    font-family: monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+}
+
+.terminal-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.terminal-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.terminal-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+}
+
+.terminal-body {
+    padding: 16px;
+    color: #38bdf8;
+    font-family: 'Fira Code', 'Courier New', Courier, monospace;
+    font-size: 0.8rem;
+    line-height: 1.6;
+    max-height: 280px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.terminal-body::-webkit-scrollbar {
+    width: 6px;
+}
+.terminal-body::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 6px;
+}
+
+/* ==========================================================================
+   Diagnósticos y Verificaciones del Sistema
+   ========================================================================== */
+.diagnostics-table-wrap {
+    overflow-x: auto;
+}
+
+.diagnostics-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.83rem;
+}
+
+.diagnostics-table th {
+    background: var(--sis-bg-subtle);
+    color: var(--sis-text-muted);
+    font-weight: 600;
+    padding: 12px 16px;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--sis-card-border);
+}
+
+.diagnostics-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--sis-card-border);
+    color: var(--sis-text-main);
+    vertical-align: middle;
+}
+
+.diagnostics-table tr:last-child td {
+    border-bottom: none;
+}
+
+.badge-diag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 50px;
+    font-size: 0.74rem;
+    font-weight: 600;
+}
+
+.badge-diag.ok {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.badge-diag.warn {
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.badge-diag.err {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* ==========================================================================
+   Botones y Micro-interacciones
+   ========================================================================== */
+.btn-sistema {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+}
+
+.btn-sistema i {
+    font-size: 1.1rem;
+}
+
+.btn-sistema:active {
+    transform: scale(0.98);
+}
+
+.btn-sistema-primary {
+    background: var(--sis-primary);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(var(--sis-primary-rgb), 0.25);
+}
+
+.btn-sistema-primary:hover {
+    background: #3651d4;
+    color: #ffffff;
+    box-shadow: 0 6px 16px rgba(var(--sis-primary-rgb), 0.35);
+}
+
+.btn-sistema-success {
+    background: var(--sis-success);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(var(--sis-success-rgb), 0.25);
+}
+
+.btn-sistema-success:hover {
+    background: #0d9e6e;
+    color: #ffffff;
+}
+
+.btn-sistema-warning {
+    background: var(--sis-warning);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(var(--sis-warning-rgb), 0.25);
+}
+
+.btn-sistema-warning:hover {
+    background: #d97706;
+    color: #ffffff;
+}
+
+.btn-sistema-danger {
+    background: var(--sis-danger);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(var(--sis-danger-rgb), 0.25);
+}
+
+.btn-sistema-danger:hover {
+    background: #dc2626;
+    color: #ffffff;
+    box-shadow: 0 6px 16px rgba(var(--sis-danger-rgb), 0.35);
+}
+
+.btn-sistema-outline {
+    background: transparent;
+    border: 1px solid var(--sis-card-border);
+    color: var(--sis-text-main);
+}
+
+.btn-sistema-outline:hover {
+    background: var(--sis-bg-subtle);
+    border-color: rgba(var(--sis-primary-rgb), 0.4);
+    color: var(--sis-primary);
+}
+
+.btn-sistema-dark {
+    background: #0f172a;
+    color: #ffffff;
+    border: 1px solid #334155;
+}
+
+.btn-sistema-dark:hover {
+    background: #1e293b;
+    color: #ffffff;
+}
+
+body.dark-theme .btn-sistema-dark {
+    background: #1e293b;
+    border-color: #475569;
+}
+
+/* ==========================================================================
+   Barra de Progreso y Estados
+   ========================================================================== */
+.sistema-progress-container {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 50px;
+    height: 10px;
+    overflow: hidden;
+    margin: 16px 0;
+    display: none;
+}
+
+body.dark-theme .sistema-progress-container {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.sistema-progress-bar {
+    height: 100%;
+    border-radius: 50px;
+    background: linear-gradient(90deg, var(--sis-primary), var(--sis-purple));
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.sistema-progress-bar.danger {
+    background: linear-gradient(90deg, #f59e0b, #ef4444);
+}
+
+.sistema-alert {
+    padding: 14px 18px;
+    border-radius: 12px;
+    font-size: 0.83rem;
+    margin-top: 16px;
+    display: none;
+    align-items: center;
+    gap: 12px;
+}
+
+.sistema-alert.success {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    display: flex;
+}
+
+.sistema-alert.danger {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    display: flex;
+}
+
+.sistema-alert.info {
+    background: rgba(6, 182, 212, 0.12);
+    color: #06b6d4;
+    border: 1px solid rgba(6, 182, 212, 0.25);
+    display: flex;
+}
+
+/* ==========================================================================
+   Modal de Confirmación de Seguridad
+   ========================================================================== */
+.sistema-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.sistema-modal-box {
+    background: var(--sis-card-bg);
+    border: 1px solid var(--sis-card-border);
+    border-radius: 18px;
+    max-width: 480px;
+    width: 100%;
+    padding: 28px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+    animation: modalPop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalPop {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.modal-danger-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: rgba(239, 68, 68, 0.12);
+    color: var(--sis-danger);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin-bottom: 16px;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* ==========================================================================
+   Responsive Breakpoints
+   ========================================================================== */
+@media (max-width: 768px) {
+    .sistema-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 16px;
+    }
+    
+    .sistema-stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .backup-options-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .restore-dropzone-box {
+        padding: 24px 16px;
+    }
+    
+    .restore-file-name {
+        max-width: 180px;
+    }
+}

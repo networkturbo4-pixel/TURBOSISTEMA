@@ -1,0 +1,1666 @@
+<?php
+require_once '../../config/db.php';
+requireLogin();
+requirePermission($pdo, 'mapas');
+
+include '../../includes/header.php';
+include '../../includes/sidebar.php';
+?>
+
+<!-- Google Maps API -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAzf2GmB9lw1k7ONXk1VHScmd-pe-FtMtE&libraries=drawing,places,geometry,elevation,marker&v=3.64"></script>
+<!-- Turf.js y togeojson para KML / GeoJSON -->
+<script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js"></script>
+
+<style>
+/* ══════════════════════════════════════════════════
+   RED DE FIBRA - MODERN TELECOM COMMAND CENTER
+   ══════════════════════════════════════════════════ */
+.fibra-container {
+    padding: 10px 0 30px;
+}
+
+/* Header Banner */
+.fibra-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+}
+
+.fibra-header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.fibra-header-icon {
+    width: 52px;
+    height: 52px;
+    background: linear-gradient(135deg, #ff6b00 0%, #ff2a5f 100%);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    color: #fff;
+    box-shadow: 0 4px 18px rgba(255, 107, 0, 0.45);
+    flex-shrink: 0;
+}
+
+.fibra-header-title {
+    margin: 0;
+    font-size: 1.45rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--text-color);
+}
+
+.fibra-header-desc {
+    margin: 4px 0 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.fibra-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Metric Stats Cards */
+.fibra-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.fibra-stat-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.fibra-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+.fibra-stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+}
+
+.fibra-stat-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.fibra-stat-val {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--text-color);
+    line-height: 1.2;
+}
+
+.fibra-stat-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* Tab Navigation Toolbar */
+.fibra-toolbar {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+}
+
+.fibra-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 12px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.fibra-tab-btn:hover {
+    color: var(--text-color);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.fibra-tab-btn.active {
+    background: linear-gradient(135deg, #ff6b00 0%, #ff2a5f 100%);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(255, 107, 0, 0.4);
+}
+
+.fibra-tab-badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.fibra-tab-content {
+    display: none;
+    animation: fadeInTab 0.25s ease;
+}
+
+.fibra-tab-content.active {
+    display: block;
+}
+
+@keyframes fadeInTab {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ══════════════════════════════════════════════════
+   TAB 1: VISOR CENTRAL / RED GLOBAL
+   ══════════════════════════════════════════════════ */
+.central-map-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+}
+
+.central-map-controls-bar {
+    padding: 14px 20px;
+    background: var(--surface-color);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    z-index: 10;
+}
+
+.map-control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.map-type-btn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+}
+
+.map-type-btn.active, .map-type-btn:hover {
+    background: linear-gradient(135deg, #ff6b00 0%, #ff2a5f 100%);
+    border-color: #ff6b00;
+    color: #fff;
+    box-shadow: 0 2px 10px rgba(255, 107, 0, 0.35);
+}
+
+.map-filter-pill {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    background: rgba(255,255,255,0.03);
+    color: var(--text-color);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    user-select: none;
+    transition: all 0.15s ease;
+}
+
+.map-filter-pill.active {
+    border-color: #ff6b00;
+    background: rgba(255, 107, 0, 0.18);
+    color: #ff7a00;
+    box-shadow: 0 0 10px rgba(255, 107, 0, 0.25);
+}
+
+.central-map-viewport {
+    height: 580px;
+    width: 100%;
+    position: relative;
+    background: #0f172a;
+}
+
+#globalFiberMap {
+    width: 100%;
+    height: 100%;
+}
+
+.map-telemetry-hud {
+    padding: 12px 20px;
+    background: var(--surface-color);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.hud-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.hud-coord {
+    font-family: monospace;
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+.hud-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #00ff9d;
+    box-shadow: 0 0 8px #00ff9d;
+    animation: hudPulse 1.5s infinite;
+}
+
+@keyframes hudPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* Node Info Popover */
+.map-node-popover {
+    position: absolute;
+    bottom: 24px;
+    left: 24px;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 16px;
+    width: 300px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    z-index: 20;
+    display: none;
+    animation: popSlideUp 0.2s ease;
+}
+
+@keyframes popSlideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ══════════════════════════════════════════════════
+   TAB 2: MAPAS DE ZONAS (FILTRO POR ZONAS)
+   ══════════════════════════════════════════════════ */
+.zonas-filter-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.zonas-search-box {
+    position: relative;
+    flex: 1;
+    min-width: 260px;
+    max-width: 480px;
+}
+
+.zonas-search-box i {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 1.1rem;
+}
+
+.zonas-search-input {
+    width: 100%;
+    height: 42px;
+    padding-left: 40px !important;
+    padding-right: 14px !important;
+    border-radius: 10px !important;
+    border: 1px solid var(--border-color) !important;
+    background: var(--surface-color) !important;
+    color: var(--text-color) !important;
+    font-size: 0.9rem !important;
+}
+
+.zonas-search-input:focus {
+    border-color: #ff6b00 !important;
+    box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.2), 0 0 12px rgba(255, 107, 0, 0.15) !important;
+}
+
+.zonas-filter-pills {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.zona-pill {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    background: var(--surface-color);
+    color: var(--text-muted);
+    transition: all 0.15s ease;
+}
+
+.zona-pill.active {
+    background: linear-gradient(135deg, #ff6b00 0%, #ff2a5f 100%);
+    border-color: #ff6b00;
+    color: #fff;
+    box-shadow: 0 2px 10px rgba(255, 107, 0, 0.35);
+}
+
+.projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 22px;
+}
+
+.project-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.project-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 28px rgba(0,0,0,0.25), 0 0 15px rgba(255, 107, 0, 0.15);
+    border-color: rgba(255, 107, 0, 0.45);
+}
+
+.project-cover {
+    height: 170px;
+    background-color: #0f172a;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+.project-badge-top {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.card-actions {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 10;
+}
+
+.btn-card-action {
+    background: rgba(0,0,0,0.5);
+    border: none;
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: all 0.2s;
+    font-size: 1.2rem;
+}
+
+.btn-card-action:hover {
+    background: rgba(0,0,0,0.85);
+    transform: scale(1.08);
+}
+
+.card-menu {
+    position: absolute;
+    top: 45px;
+    right: 0;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 20;
+    min-width: 150px;
+}
+
+.card-menu.show { display: flex; }
+
+.card-menu button {
+    background: transparent;
+    border: none;
+    padding: 10px 16px;
+    text-align: left;
+    color: var(--text-color);
+    font-size: 0.88rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    transition: 0.15s;
+}
+
+.card-menu button:hover { background: rgba(255,255,255,0.06); }
+.card-menu button.text-red { color: #ef4444; }
+.card-menu button.text-red:hover { background: rgba(239,68,68,0.1); }
+
+.project-info {
+    padding: 18px 20px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.project-title {
+    font-weight: 800;
+    font-size: 1.15rem;
+    color: var(--text-color);
+    margin: 0 0 8px 0;
+}
+
+.project-meta {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+/* ══════════════════════════════════════════════════
+   TAB 3: GPS & NODOS
+   ══════════════════════════════════════════════════ */
+.gps-header-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 18px 22px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.gps-loc-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border: none;
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.88rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+    transition: all 0.2s;
+}
+
+.gps-loc-btn:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+}
+
+.gps-table-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.gps-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.gps-table th {
+    background: rgba(0,0,0,0.06);
+    padding: 12px 18px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.gps-table td {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.88rem;
+    color: var(--text-color);
+    vertical-align: middle;
+}
+
+.gps-table tr:hover td {
+    background: rgba(255,255,255,0.02);
+}
+
+/* ══════════════════════════════════════════════════
+   TAB 4: VER ARCHIVOS (KML / GEOJSON)
+   ══════════════════════════════════════════════════ */
+.files-upload-zone {
+    background: var(--surface-color);
+    border: 2px dashed rgba(2, 132, 199, 0.35);
+    border-radius: 16px;
+    padding: 36px 20px;
+    text-align: center;
+    margin-bottom: 24px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.files-upload-zone:hover, .files-upload-zone.dragover {
+    border-color: #0284c7;
+    background: rgba(2, 132, 199, 0.05);
+}
+
+.files-upload-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(2, 132, 199, 0.12);
+    color: #0284c7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    margin: 0 auto 12px;
+}
+
+.files-grid-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 20px;
+}
+
+/* ══════════════════════════════════════════════════
+   MODAL EDITAR / CREAR
+   ══════════════════════════════════════════════════ */
+.edit-modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    display: none; align-items: center; justify-content: center; z-index: 1000;
+}
+.edit-modal-overlay.active { display: flex; }
+.edit-modal-content {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 16px; padding: 24px; width: 440px; max-width: 92%;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+}
+.edit-modal-content h3 { margin-top: 0; color: var(--text-color); margin-bottom: 16px; font-weight: 800; }
+.edit-modal-content input, .edit-modal-content textarea {
+    width: 100%; padding: 12px 16px; border-radius: 10px;
+    border: 1px solid var(--border-color); background: rgba(0,0,0,0.1);
+    color: var(--text-color); font-size: 0.95rem; margin-bottom: 18px;
+}
+.edit-modal-content input:focus, .edit-modal-content textarea:focus {
+    outline: none; border-color: #ff6b00; box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.25), 0 0 12px rgba(255, 107, 0, 0.2);
+}
+.edit-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.edit-modal-actions button {
+    padding: 10px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; border: none; font-size: 0.88rem;
+}
+.btn-cancel { background: transparent; color: var(--text-muted); }
+.btn-cancel:hover { background: rgba(255,255,255,0.06); }
+.btn-save { background: linear-gradient(135deg, #ff6b00 0%, #ff2a5f 100%); color: #fff; box-shadow: 0 4px 14px rgba(255, 107, 0, 0.4); }
+.btn-save:hover { filter: brightness(1.1); transform: translateY(-1px); }
+</style>
+
+<div class="container-fluid fibra-container">
+
+    <!-- Header Banner -->
+    <div class="fibra-header">
+        <div class="fibra-header-left">
+            <div class="fibra-header-icon">
+                <i class="ph-bold ph-map-trifold"></i>
+            </div>
+            <div>
+                <h2 class="fibra-header-title">Red de Fibra Óptica</h2>
+                <p class="fibra-header-desc">Centro de control geográfico, infraestructura FTTH y mapeo satelital de zonas</p>
+            </div>
+        </div>
+        <div class="fibra-header-actions">
+            <button class="btn btn-secondary" onclick="switchFibraTab('archivos')">
+                <i class="ph-bold ph-file-arrow-up"></i> Importar KML
+            </button>
+            <button class="btn btn-primary" onclick="crearProyectoModal()">
+                <i class="ph-bold ph-plus"></i> Nuevo Mapa de Zona
+            </button>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards -->
+    <div class="fibra-stats-grid">
+        <div class="fibra-stat-card">
+            <div class="fibra-stat-icon" style="background: rgba(255, 107, 0, 0.15); color: #ff7a00;">
+                <i class="ph-fill ph-map-pin"></i>
+            </div>
+            <div class="fibra-stat-info">
+                <span class="fibra-stat-val" id="statZonas">0</span>
+                <span class="fibra-stat-label">Zonas / Mapas</span>
+            </div>
+        </div>
+        <div class="fibra-stat-card">
+            <div class="fibra-stat-icon" style="background: rgba(250, 204, 21, 0.12); color: #eab308;">
+                <i class="ph-fill ph-hard-drive"></i>
+            </div>
+            <div class="fibra-stat-info">
+                <span class="fibra-stat-val" id="statNaps">0</span>
+                <span class="fibra-stat-label">Cajas NAP</span>
+            </div>
+        </div>
+        <div class="fibra-stat-card">
+            <div class="fibra-stat-icon" style="background: rgba(249, 115, 22, 0.12); color: #f97316;">
+                <i class="ph-fill ph-git-branch"></i>
+            </div>
+            <div class="fibra-stat-info">
+                <span class="fibra-stat-val" id="statMufas">0</span>
+                <span class="fibra-stat-label">Mufas & Nodos</span>
+            </div>
+        </div>
+        <div class="fibra-stat-card">
+            <div class="fibra-stat-icon" style="background: rgba(56, 189, 248, 0.12); color: #38bdf8;">
+                <i class="ph-fill ph-arrows-split"></i>
+            </div>
+            <div class="fibra-stat-info">
+                <span class="fibra-stat-val" id="statLineas">0</span>
+                <span class="fibra-stat-label">Trazados de Fibra</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs Toolbar -->
+    <div class="fibra-toolbar">
+        <button type="button" class="fibra-tab-btn active" data-tab="central" onclick="switchFibraTab('central')">
+            <i class="ph-bold ph-globe"></i> Visor Central / Red Global
+        </button>
+        <button type="button" class="fibra-tab-btn" data-tab="zonas" onclick="switchFibraTab('zonas')">
+            <i class="ph-bold ph-map-trifold"></i> Mapas de Zonas <span class="fibra-tab-badge" id="badgeZonasCount">0</span>
+        </button>
+        <button type="button" class="fibra-tab-btn" data-tab="gps" onclick="switchFibraTab('gps')">
+            <i class="ph-bold ph-crosshair"></i> GPS & Nodos
+        </button>
+        <button type="button" class="fibra-tab-btn" data-tab="archivos" onclick="switchFibraTab('archivos')">
+            <i class="ph-bold ph-folder"></i> Ver Archivos / KML
+        </button>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════
+         TAB 1: VISOR CENTRAL / RED GLOBAL
+         ══════════════════════════════════════════════════ -->
+    <div class="fibra-tab-content active" id="tab-central">
+        <div class="central-map-card">
+            <!-- Controls Bar -->
+            <div class="central-map-controls-bar">
+                <div class="map-control-group">
+                    <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Vista:</span>
+                    <button type="button" class="map-type-btn active" onclick="setGlobalMapType('hybrid')">
+                        <i class="ph-bold ph-planet"></i> Satelital / Híbrido
+                    </button>
+                    <button type="button" class="map-type-btn" onclick="setGlobalMapType('roadmap')">
+                        <i class="ph-bold ph-road-horizon"></i> Callejero
+                    </button>
+                    <button type="button" class="map-type-btn" onclick="setGlobalMapType('terrain')">
+                        <i class="ph-bold ph-mountains"></i> Relieve
+                    </button>
+                </div>
+                <div class="map-control-group">
+                    <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Capas:</span>
+                    <span class="map-filter-pill active" onclick="toggleGlobalLayer('naps', this)">
+                        <i class="ph-fill ph-check-circle"></i> Cajas NAP
+                    </span>
+                    <span class="map-filter-pill active" onclick="toggleGlobalLayer('mufas', this)">
+                        <i class="ph-fill ph-check-circle"></i> Mufas
+                    </span>
+                    <span class="map-filter-pill active" onclick="toggleGlobalLayer('lines', this)">
+                        <i class="ph-fill ph-check-circle"></i> Trazados
+                    </span>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="centerGlobalMap()" title="Centrar Red">
+                        <i class="ph-bold ph-crosshair"></i> Centrar
+                    </button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="toggleFullscreenMap()" title="Pantalla Completa">
+                        <i class="ph-bold ph-arrows-out"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Viewport -->
+            <div class="central-map-viewport" id="centralMapViewport">
+                <div id="globalFiberMap"></div>
+
+                <!-- Node Details Popover -->
+                <div class="map-node-popover" id="mapNodePopover">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                        <span class="badge" id="popoverNodeType" style="background:#0284c7; color:#fff; font-size:0.72rem;">NODO FTTH</span>
+                        <button type="button" onclick="closeNodePopover()" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:1.1rem;"><i class="ph-bold ph-x"></i></button>
+                    </div>
+                    <h4 id="popoverNodeName" style="margin:0 0 6px; font-size:1.05rem; font-weight:800; color:var(--text-color);">Caja NAP</h4>
+                    <p id="popoverNodeZone" style="margin:0 0 10px; font-size:0.8rem; color:var(--text-muted);"><i class="ph-fill ph-folder"></i> Zona: <span>Zapallal</span></p>
+                    <div style="display:flex; gap:8px; margin-bottom:12px; font-size:0.78rem;">
+                        <span id="popoverNodePower" style="background:rgba(255,255,255,0.06); padding:4px 8px; border-radius:6px;">Potencia: -22 dBm</span>
+                        <span id="popoverNodeCoords" style="background:rgba(255,255,255,0.06); padding:4px 8px; border-radius:6px; font-family:monospace;">-11.84, -77.10</span>
+                    </div>
+                    <a id="popoverOpenZoneBtn" href="#" class="btn btn-sm btn-primary" style="width:100%; justify-content:center;">
+                        <i class="ph-bold ph-arrow-square-out"></i> Abrir en Editor de Zona
+                    </a>
+                </div>
+            </div>
+
+            <!-- HUD Telemetry Footer -->
+            <div class="map-telemetry-hud">
+                <div class="hud-item">
+                    <div class="hud-status-dot"></div>
+                    <span style="font-weight:700; color:#10b981;">Servicio Satelital Activo</span>
+                </div>
+                <div class="hud-item">
+                    <span>Coordenadas Cursor:</span>
+                    <span class="hud-coord" id="hudCoords">-11.847551, -77.107804</span>
+                </div>
+                <div class="hud-item">
+                    <span>Nodos en Vista:</span>
+                    <span class="hud-coord" id="hudVisibleNodes">0</span>
+                </div>
+                <div class="hud-item">
+                    <span>Zoom:</span>
+                    <span class="hud-coord" id="hudZoom">15x</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════
+         TAB 2: MAPAS DE ZONAS (FILTRO POR ZONAS)
+         ══════════════════════════════════════════════════ -->
+    <div class="fibra-tab-content" id="tab-zonas">
+        <div class="zonas-filter-bar">
+            <div class="zonas-search-box">
+                <i class="ph-bold ph-magnifying-glass"></i>
+                <input type="text" id="inputFilterZonas" class="zonas-search-input" placeholder="Buscar mapa de zona o sector..." oninput="filterZonasGrid()">
+            </div>
+            <div class="zonas-filter-pills">
+                <button type="button" class="zona-pill active" data-filter="todas" onclick="setZonasFilter('todas', this)">Todas las Zonas</button>
+                <button type="button" class="zona-pill" data-filter="activas" onclick="setZonasFilter('activas', this)">Activas</button>
+                <button type="button" class="zona-pill" data-filter="archivadas" onclick="setZonasFilter('archivadas', this)">Archivadas</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="crearProyectoModal()" style="margin-left:6px;">
+                    <i class="ph-bold ph-plus"></i> Nueva Zona
+                </button>
+            </div>
+        </div>
+
+        <div class="projects-grid" id="projects-grid">
+            <div style="text-align:center; grid-column: 1 / -1; padding: 40px; color: var(--text-muted);">
+                <i class="ph ph-spinner ph-spin" style="font-size: 2rem;"></i><br>Cargando mapas de zonas...
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════
+         TAB 3: GPS & NODOS
+         ══════════════════════════════════════════════════ -->
+    <div class="fibra-tab-content" id="tab-gps">
+        <div class="gps-header-card">
+            <div>
+                <h3 style="margin:0 0 4px; font-size:1.15rem; font-weight:800; color:var(--text-color);">Geolocalización y Registro de Nodos</h3>
+                <p style="margin:0; font-size:0.82rem; color:var(--text-muted);">Listado de Cajas NAP, Mufas y puntos georreferenciados con coordenadas exactas</p>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button type="button" class="gps-loc-btn" onclick="detectLiveLocation()">
+                    <i class="ph-bold ph-crosshair"></i> Mi Ubicación GPS en Vivo
+                </button>
+            </div>
+        </div>
+
+        <div class="gps-table-card">
+            <div style="padding:14px 18px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+                <input type="text" id="gpsSearchInput" class="zonas-search-input" style="max-width:320px; height:38px;" placeholder="Filtrar por nombre o zona..." oninput="filterGpsTable()">
+                <div style="font-size:0.8rem; color:var(--text-muted);" id="gpsNodesCountBadge">0 nodos registrados</div>
+            </div>
+            <div style="overflow-x:auto;">
+                <table class="gps-table">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Nombre del Nodo</th>
+                            <th>Zona / Proyecto</th>
+                            <th>Coordenadas GPS</th>
+                            <th>Potencia</th>
+                            <th>Puertos</th>
+                            <th style="text-align:center;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gpsTableBody">
+                        <tr>
+                            <td colspan="7" style="text-align:center; padding:30px; color:var(--text-muted);">
+                                <i class="ph ph-spinner ph-spin" style="font-size:1.8rem;"></i><br>Cargando nodos GPS...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════
+         TAB 4: VER ARCHIVOS / KML / GEOJSON
+         ══════════════════════════════════════════════════ -->
+    <div class="fibra-tab-content" id="tab-archivos">
+        <div class="files-upload-zone" id="filesUploadZone" onclick="document.getElementById('kmlFileInput').click()">
+            <input type="file" id="kmlFileInput" accept=".kml,.kmz,.geojson,.json" style="display:none;" onchange="handleKmlFileUpload(event)">
+            <div class="files-upload-icon">
+                <i class="ph-bold ph-cloud-arrow-up"></i>
+            </div>
+            <h3 style="margin:0 0 6px; font-size:1.2rem; font-weight:800; color:var(--text-color);">Importar Archivos de Red (KML, KMZ, GeoJSON)</h3>
+            <p style="margin:0; font-size:0.85rem; color:var(--text-muted); max-width:500px; margin:0 auto;">
+                Arrastra y suelta aquí tus archivos exportados de Google Earth, MyMaps o QGIS para crear una nueva zona de fibra automáticamente.
+            </p>
+        </div>
+
+        <div class="files-grid-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+                <h4 style="margin:0; font-size:1.05rem; font-weight:800; color:var(--text-color);">Exportación y Formatos Soportados</h4>
+                <div style="display:flex; gap:8px;">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="exportAllGeoJson()">
+                        <i class="ph-bold ph-download-simple"></i> Exportar GeoJSON Completo
+                    </button>
+                </div>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:14px;">
+                <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:12px; padding:16px;">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                        <span class="badge" style="background:#0284c7; color:#fff; font-size:0.75rem;">KML / KMZ</span>
+                        <strong style="font-size:0.9rem;">Google Earth & MyMaps</strong>
+                    </div>
+                    <p style="margin:0; font-size:0.8rem; color:var(--text-muted);">Soporta puntos de cajas NAP, mufas, polígonos de zonas y líneas de trazado de cable.</p>
+                </div>
+                <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:12px; padding:16px;">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                        <span class="badge" style="background:#10b981; color:#fff; font-size:0.75rem;">GeoJSON</span>
+                        <strong style="font-size:0.9rem;">Estándar GIS / Web</strong>
+                    </div>
+                    <p style="margin:0; font-size:0.8rem; color:var(--text-muted);">Formato abierto con propiedades personalizadas (potencia dBm, puertos, cable de origen).</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal Editar / Crear Zona -->
+<div class="edit-modal-overlay" id="editModalOverlay">
+    <div class="edit-modal-content">
+        <h3 id="editModalTitle">Editar nombre del proyecto</h3>
+        <input type="text" id="editProjectNameInput" placeholder="Nombre de la zona o sector">
+        <textarea id="editProjectDescInput" placeholder="Descripción de la zona de cobertura (opcional)" rows="3"></textarea>
+        <div class="edit-modal-actions">
+            <button class="btn-cancel" onclick="closeEditModal()">Cancelar</button>
+            <button class="btn-save" onclick="saveEditProject()">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+// GLOBAL VARIABLES & STATE
+// ══════════════════════════════════════════════════
+let globalMapInstance = null;
+let globalMarkers = [];
+let globalPolylines = [];
+let allProjectsData = [];
+let allGpsNodesData = [];
+let currentZonasFilter = 'todas';
+let editProjectId = null;
+let liveUserMarker = null;
+
+// ══════════════════════════════════════════════════
+// INITIALIZATION
+// ══════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+    loadGlobalStats();
+    loadProjects();
+    loadAllElementsForMap();
+    initDragAndDrop();
+});
+
+function switchFibraTab(tabId) {
+    document.querySelectorAll('.fibra-tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
+    });
+    document.querySelectorAll('.fibra-tab-content').forEach(content => {
+        content.classList.toggle('active', content.id === 'tab-' + tabId);
+    });
+
+    if (tabId === 'central') {
+        setTimeout(() => {
+            if (globalMapInstance) {
+                google.maps.event.trigger(globalMapInstance, 'resize');
+                centerGlobalMap();
+            }
+        }, 100);
+    }
+}
+
+// ══════════════════════════════════════════════════
+// STATS & DATA LOADING
+// ══════════════════════════════════════════════════
+async function loadGlobalStats() {
+    try {
+        const res = await fetch('api.php?action=get_global_stats').then(r => r.json());
+        if (res.success && res.data) {
+            const d = res.data;
+            document.getElementById('statZonas').textContent = d.total_proyectos || 0;
+            document.getElementById('statNaps').textContent = d.total_naps || 0;
+            document.getElementById('statMufas').textContent = d.total_mufas || 0;
+            document.getElementById('statLineas').textContent = d.total_lineas || 0;
+            document.getElementById('badgeZonasCount').textContent = d.total_proyectos || 0;
+        }
+    } catch(e) { console.error('Stats error:', e); }
+}
+
+async function loadProjects() {
+    try {
+        const showArchived = currentZonasFilter === 'archivadas' ? 1 : 0;
+        const res = await fetch(`api.php?action=list_projects&show_archived=${showArchived}`).then(r => r.json());
+        const grid = document.getElementById('projects-grid');
+        if (!grid) return;
+        grid.innerHTML = '';
+
+        if (res.success && res.data && res.data.length > 0) {
+            allProjectsData = res.data;
+            renderZonasGrid(allProjectsData);
+        } else {
+            allProjectsData = [];
+            let msg = currentZonasFilter === 'archivadas' ? "No tienes mapas archivados" : "No tienes mapas de zonas todavía";
+            grid.innerHTML = `
+                <div style="text-align:center; grid-column: 1 / -1; padding: 60px; color: var(--text-muted); background: var(--surface-color); border-radius: 16px; border: 1px dashed var(--border-color);">
+                    <i class="ph-fill ph-map-trifold" style="font-size: 3.2rem; margin-bottom: 14px; opacity: 0.35;"></i>
+                    <h4 style="color:var(--text-color); margin:0 0 6px;">${msg}</h4>
+                    <p style="margin:0 0 16px;">${currentZonasFilter === 'archivadas' ? 'Las zonas que archives aparecerán aquí.' : 'Crea tu primera zona de fibra para empezar a mapear la red.'}</p>
+                    <button class="btn btn-primary btn-sm" onclick="crearProyectoModal()">
+                        <i class="ph-bold ph-plus"></i> Crear Nuevo Mapa
+                    </button>
+                </div>
+            `;
+        }
+    } catch(e) { console.error(e); }
+}
+
+function renderZonasGrid(projects) {
+    const grid = document.getElementById('projects-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    projects.forEach(p => {
+        const date = new Date(p.updated_at).toLocaleDateString();
+        let bgImage = "https://images.unsplash.com/photo-1524661135-423995f22d0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80";
+        if (p.preview_geojson) {
+            try {
+                const geo = JSON.parse(p.preview_geojson);
+                if (geo.type === 'Point' && geo.coordinates) {
+                    const lng = geo.coordinates[0];
+                    const lat = geo.coordinates[1];
+                    bgImage = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=500x220&maptype=hybrid&key=AIzaSyAzf2GmB9lw1k7ONXk1VHScmd-pe-FtMtE`;
+                }
+            } catch(e) {}
+        }
+
+        const isArchived = (p.archivado == 1);
+        let archiveBtn = isArchived 
+            ? `<button onclick="unarchiveProject(${p.id}, event)"><i class="ph-bold ph-upload"></i> Desarchivar</button>` 
+            : `<button onclick="archiveProject(${p.id}, event)"><i class="ph-bold ph-archive"></i> Archivar</button>`;
+
+        grid.innerHTML += `
+            <div class="project-card" onclick="window.location.href='view.php?id=${p.id}'">
+                <div class="card-actions">
+                    <button class="btn-card-action" onclick="toggleMenu(${p.id}, event)"><i class="ph-bold ph-dots-three-vertical"></i></button>
+                    <div class="card-menu" id="menu-${p.id}">
+                        <button onclick="openEditModal(${p.id}, '${esc(p.nombre)}', '${esc(p.descripcion||'')}', event)"><i class="ph-bold ph-pencil"></i> Editar Nombre</button>
+                        ${archiveBtn}
+                        <button class="text-red" onclick="deleteProject(${p.id}, event)"><i class="ph-bold ph-trash"></i> Eliminar</button>
+                    </div>
+                </div>
+                <div class="project-cover" style="background-image: url('${bgImage}');">
+                    <div class="project-badge-top">
+                        <i class="ph-fill ph-map-pin"></i> Sector FTTH
+                    </div>
+                </div>
+                <div class="project-info">
+                    <h3 class="project-title">${esc(p.nombre)}</h3>
+                    <div class="project-meta">
+                        <span><i class="ph-fill ph-clock"></i> Actualizado el ${date}</span>
+                        <span style="color:#ff7a00; font-weight:700;">Ver Mapa <i class="ph-bold ph-arrow-right"></i></span>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function filterZonasGrid() {
+    const term = (document.getElementById('inputFilterZonas')?.value || '').toLowerCase().trim();
+    if (!term) {
+        renderZonasGrid(allProjectsData);
+        return;
+    }
+    const filtered = allProjectsData.filter(p => p.nombre.toLowerCase().includes(term) || (p.descripcion && p.descripcion.toLowerCase().includes(term)));
+    renderZonasGrid(filtered);
+}
+
+function setZonasFilter(filterType, btn) {
+    currentZonasFilter = filterType;
+    document.querySelectorAll('.zona-pill').forEach(p => p.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    loadProjects();
+}
+
+// ══════════════════════════════════════════════════
+// GLOBAL MAP LOGIC (VISOR CENTRAL)
+// ═══════════════════════════════════════════════
+async function loadAllElementsForMap() {
+    try {
+        const res = await fetch('api.php?action=get_all_elements_summary').then(r => r.json());
+        if (res.success) {
+            initCentralMap(res.geojson, res.gps_nodes);
+            allGpsNodesData = res.gps_nodes || [];
+            renderGpsTable(allGpsNodesData);
+        }
+    } catch(e) { console.error('Map elements error:', e); }
+}
+
+function initCentralMap(geojson, gpsNodes) {
+    const mapEl = document.getElementById('globalFiberMap');
+    if (!mapEl) return;
+
+    const defaultCenter = { lat: -11.8475511, lng: -77.1078046 }; // Zapallal / Lima
+    globalMapInstance = new google.maps.Map(mapEl, {
+        center: defaultCenter,
+        zoom: 15,
+        mapTypeId: 'hybrid',
+        disableDefaultUI: false,
+        zoomControl: true,
+        streetViewControl: true,
+        mapTypeControl: false,
+        fullscreenControl: false
+    });
+
+    const hudCoords = document.getElementById('hudCoords');
+    const hudZoom = document.getElementById('hudZoom');
+
+    globalMapInstance.addListener('mousemove', (e) => {
+        if (hudCoords && e.latLng) {
+            hudCoords.textContent = `${e.latLng.lat().toFixed(6)}, ${e.latLng.lng().toFixed(6)}`;
+        }
+    });
+
+    globalMapInstance.addListener('zoom_changed', () => {
+        if (hudZoom) hudZoom.textContent = `${globalMapInstance.getZoom()}x`;
+    });
+
+    const bounds = new google.maps.LatLngBounds();
+    let hasCoords = false;
+
+    // Render features
+    if (geojson && geojson.features) {
+        geojson.features.forEach(f => {
+            const geom = f.geometry;
+            const props = f.properties || {};
+
+            if (geom.type === 'Point' && geom.coordinates) {
+                const lat = geom.coordinates[1];
+                const lng = geom.coordinates[0];
+                const pos = { lat, lng };
+                bounds.extend(pos);
+                hasCoords = true;
+
+                const isNap = props.name && props.name.toUpperCase().includes('NAP');
+                const isMufa = props.name && props.name.toUpperCase().includes('MUFA');
+                const color = isNap ? '#facc15' : (isMufa ? '#fb923c' : (props.color || '#38bdf8'));
+
+                const marker = new google.maps.Marker({
+                    position: pos,
+                    map: globalMapInstance,
+                    title: props.name || 'Nodo',
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 7,
+                        fillColor: color,
+                        fillOpacity: 1,
+                        strokeWeight: 2,
+                        strokeColor: '#ffffff'
+                    }
+                });
+
+                marker.categoryType = isNap ? 'naps' : (isMufa ? 'mufas' : 'other');
+                marker.featureData = props;
+
+                marker.addListener('click', () => {
+                    showNodePopover(props, pos);
+                });
+
+                globalMarkers.push(marker);
+            } else if (geom.type === 'LineString' && geom.coordinates) {
+                const path = geom.coordinates.map(c => {
+                    const pos = { lat: c[1], lng: c[0] };
+                    bounds.extend(pos);
+                    hasCoords = true;
+                    return pos;
+                });
+
+                const poly = new google.maps.Polyline({
+                    path: path,
+                    strokeColor: props.color || '#38bdf8',
+                    strokeOpacity: 0.9,
+                    strokeWeight: 4,
+                    map: globalMapInstance
+                });
+
+                poly.categoryType = 'lines';
+                globalPolylines.push(poly);
+            }
+        });
+    }
+
+    if (hasCoords) {
+        globalMapInstance.fitBounds(bounds);
+    }
+
+    const hudVisible = document.getElementById('hudVisibleNodes');
+    if (hudVisible) hudVisible.textContent = globalMarkers.length;
+}
+
+function setGlobalMapType(type) {
+    if (!globalMapInstance) return;
+    globalMapInstance.setMapTypeId(type);
+    document.querySelectorAll('.map-type-btn').forEach(btn => btn.classList.remove('active'));
+    event?.target?.closest('.map-type-btn')?.classList.add('active');
+}
+
+function toggleGlobalLayer(layerType, pill) {
+    const isActive = pill.classList.toggle('active');
+    if (layerType === 'lines') {
+        globalPolylines.forEach(p => p.setVisible(isActive));
+    } else {
+        globalMarkers.forEach(m => {
+            if (m.categoryType === layerType) m.setVisible(isActive);
+        });
+    }
+}
+
+function centerGlobalMap() {
+    if (!globalMapInstance) return;
+    if (globalMarkers.length > 0) {
+        const bounds = new google.maps.LatLngBounds();
+        globalMarkers.forEach(m => bounds.extend(m.getPosition()));
+        globalMapInstance.fitBounds(bounds);
+    } else {
+        globalMapInstance.setCenter({ lat: -11.8475511, lng: -77.1078046 });
+        globalMapInstance.setZoom(15);
+    }
+}
+
+function toggleFullscreenMap() {
+    const card = document.getElementById('centralMapViewport');
+    if (!card) return;
+    if (!document.fullscreenElement) {
+        card.requestFullscreen?.().catch(e => console.warn(e));
+    } else {
+        document.exitFullscreen?.();
+    }
+}
+
+function showNodePopover(props, pos) {
+    const pop = document.getElementById('mapNodePopover');
+    if (!pop) return;
+    document.getElementById('popoverNodeName').textContent = props.name || 'Nodo de Fibra';
+    document.getElementById('popoverNodeZone').querySelector('span').textContent = props.proyecto_nombre || 'Zona';
+    document.getElementById('popoverNodeType').textContent = props.name && props.name.includes('NAP') ? 'CAJA NAP' : 'NODO / MUFA';
+    document.getElementById('popoverNodePower').textContent = props.potencia_dbm ? `Potencia: ${props.potencia_dbm}` : 'Potencia: N/D';
+    document.getElementById('popoverNodeCoords').textContent = `${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`;
+    document.getElementById('popoverOpenZoneBtn').href = `view.php?id=${props.proyecto_id}`;
+    pop.style.display = 'block';
+}
+
+function closeNodePopover() {
+    const pop = document.getElementById('mapNodePopover');
+    if (pop) pop.style.display = 'none';
+}
+
+// ══════════════════════════════════════════════════
+// GPS TAB LOGIC
+// ══════════════════════════════════════════════════
+function renderGpsTable(nodes) {
+    const tbody = document.getElementById('gpsTableBody');
+    const badge = document.getElementById('gpsNodesCountBadge');
+    if (!tbody) return;
+    if (badge) badge.textContent = `${nodes.length} nodo${nodes.length === 1 ? '' : 's'} registrado${nodes.length === 1 ? '' : 's'}`;
+
+    if (nodes.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:var(--text-muted);">No hay nodos georreferenciados todavía.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = nodes.map(n => {
+        const isNap = n.nombre.toUpperCase().includes('NAP');
+        const isMufa = n.nombre.toUpperCase().includes('MUFA');
+        const badgeColor = isNap ? '#facc15' : (isMufa ? '#fb923c' : '#38bdf8');
+        const icon = isNap ? 'ph-hard-drive' : (isMufa ? 'ph-git-branch' : 'ph-map-pin');
+
+        return `
+            <tr>
+                <td>
+                    <span class="badge" style="background:${badgeColor}25; color:${badgeColor}; display:inline-flex; align-items:center; gap:4px; padding:4px 8px; border-radius:6px; font-size:0.75rem;">
+                        <i class="ph-fill ${icon}"></i> ${isNap ? 'NAP' : (isMufa ? 'MUFA' : 'NODO')}
+                    </span>
+                </td>
+                <td><strong style="font-size:0.92rem;">${esc(n.nombre)}</strong></td>
+                <td><span style="color:var(--text-muted); font-size:0.85rem;"><i class="ph-fill ph-folder"></i> ${esc(n.proyecto_nombre)}</span></td>
+                <td>
+                    <code style="font-family:monospace; font-weight:700; color:#0284c7; background:rgba(2,132,199,0.08); padding:3px 8px; border-radius:6px;">
+                        ${n.lat.toFixed(6)}, ${n.lng.toFixed(6)}
+                    </code>
+                    <button type="button" class="btn btn-sm" onclick="copyCoordinates(${n.lat}, ${n.lng})" title="Copiar Coordenadas" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; padding:2px 4px;">
+                        <i class="ph-bold ph-copy"></i>
+                    </button>
+                </td>
+                <td><span style="font-size:0.82rem;">${n.potencia_dbm ? esc(n.potencia_dbm) : '<span style="color:var(--text-muted);">-</span>'}</span></td>
+                <td><span style="font-size:0.82rem;">${n.capacidad_puertos ? n.capacidad_puertos + ' puertos' : '<span style="color:var(--text-muted);">-</span>'}</span></td>
+                <td style="text-align:center;">
+                    <a href="https://www.google.com/maps/search/?api=1&query=${n.lat},${n.lng}" target="_blank" class="btn btn-sm btn-secondary" style="padding:4px 10px; font-size:0.78rem; display:inline-flex; align-items:center; gap:4px;" title="Abrir en Google Maps">
+                        <i class="ph-bold ph-arrow-square-out"></i> Google Maps
+                    </a>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function filterGpsTable() {
+    const term = (document.getElementById('gpsSearchInput')?.value || '').toLowerCase().trim();
+    if (!term) {
+        renderGpsTable(allGpsNodesData);
+        return;
+    }
+    const filtered = allGpsNodesData.filter(n => n.nombre.toLowerCase().includes(term) || (n.proyecto_nombre && n.proyecto_nombre.toLowerCase().includes(term)));
+    renderGpsTable(filtered);
+}
+
+function copyCoordinates(lat, lng) {
+    navigator.clipboard.writeText(`${lat}, ${lng}`).then(() => {
+        if (window.showToast) window.showToast(`Coordenadas copiadas: ${lat}, ${lng}`, 'success');
+        else alert('Coordenadas copiadas al portapapeles');
+    });
+}
+
+function detectLiveLocation() {
+    if (!navigator.geolocation) {
+        alert('La geolocalización no está soportada en tu navegador');
+        return;
+    }
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            
+            switchFibraTab('central');
+            if (globalMapInstance) {
+                globalMapInstance.setCenter({ lat, lng });
+                globalMapInstance.setZoom(17);
+
+                if (liveUserMarker) liveUserMarker.setMap(null);
+                liveUserMarker = new google.maps.Marker({
+                    position: { lat, lng },
+                    map: globalMapInstance,
+                    title: 'Tu Ubicación Actual',
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 9,
+                        fillColor: '#10b981',
+                        fillOpacity: 1,
+                        strokeWeight: 3,
+                        strokeColor: '#ffffff'
+                    }
+                });
+            }
+            if (window.showToast) window.showToast(`📍 Ubicación encontrada: ${lat.toFixed(5)}, ${lng.toFixed(5)}`, 'success');
+        },
+        err => {
+            alert('No se pudo obtener tu ubicación GPS. Verifica los permisos.');
+        },
+        { enableHighAccuracy: true }
+    );
+}
+
+// ══════════════════════════════════════════════════
+// ARCHIVOS & EXPORT / IMPORT
+// ══════════════════════════════════════════════════
+function initDragAndDrop() {
+    const dropZone = document.getElementById('filesUploadZone');
+    if (!dropZone) return;
+
+    ['dragenter', 'dragover'].forEach(name => {
+        dropZone.addEventListener(name, (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    });
+    ['dragleave', 'drop'].forEach(name => {
+        dropZone.addEventListener(name, (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); });
+    });
+    dropZone.addEventListener('drop', (e) => {
+        const files = e.dataTransfer.files;
+        if (files.length > 0) processUploadedKml(files[0]);
+    });
+}
+
+function handleKmlFileUpload(e) {
+    const file = e.target.files[0];
+    if (file) processUploadedKml(file);
+}
+
+function processUploadedKml(file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    const reader = new FileReader();
+
+    reader.onload = async function(evt) {
+        try {
+            let geojsonData = null;
+            if (ext === 'kml') {
+                const parser = new DOMParser();
+                const kmlDom = parser.parseFromString(evt.target.result, 'text/xml');
+                geojsonData = toGeoJSON.kml(kmlDom);
+            } else if (ext === 'geojson' || ext === 'json') {
+                geojsonData = JSON.parse(evt.target.result);
+            } else {
+                alert('Formato no soportado directamente. Por favor sube un archivo .kml o .geojson');
+                return;
+            }
+
+            if (!geojsonData || !geojsonData.features || geojsonData.features.length === 0) {
+                alert('El archivo no contiene elementos geográficos válidos');
+                return;
+            }
+
+            const projectName = file.name.replace(/\.[^/.]+$/, "");
+            if (!confirm(`Se detectaron ${geojsonData.features.length} elementos en "${file.name}". ¿Deseas crear la zona "${projectName}" e importar los elementos?`)) {
+                return;
+            }
+
+            // 1. Create project
+            const fdProj = new FormData();
+            fdProj.append('action', 'create_project');
+            fdProj.append('nombre', projectName);
+            fdProj.append('descripcion', `Importado desde archivo ${file.name}`);
+            const resProj = await fetch('api.php', { method: 'POST', body: fdProj }).then(r => r.json());
+
+            if (!resProj.success) {
+                alert('Error al crear el proyecto: ' + resProj.message);
+                return;
+            }
+
+            // 2. Import features
+            const fdImp = new FormData();
+            fdImp.append('action', 'import_geojson');
+            fdImp.append('proyecto_id', resProj.id);
+            fdImp.append('features', JSON.stringify(geojsonData.features));
+            const resImp = await fetch('api.php', { method: 'POST', body: fdImp }).then(r => r.json());
+
+            if (resImp.success) {
+                alert(`✅ ${resImp.message}. Redirigiendo al mapa...`);
+                window.location.href = `view.php?id=${resProj.id}`;
+            } else {
+                alert('Error al importar elementos: ' + resImp.message);
+            }
+
+        } catch(err) {
+            console.error(err);
+            alert('Error al procesar el archivo: ' + err.message);
+        }
+    };
+
+    reader.readAsText(file);
+}
+
+function exportAllGeoJson() {
+    fetch('api.php?action=get_all_elements_summary')
+        .then(r => r.json())
+        .then(res => {
+            if (res.success && res.geojson) {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(res.geojson, null, 2));
+                const dl = document.createElement('a');
+                dl.setAttribute("href", dataStr);
+                dl.setAttribute("download", `red_fibra_completa_${new Date().toISOString().slice(0,10)}.geojson`);
+                dl.click();
+            } else {
+                alert('No hay datos para exportar');
+            }
+        });
+}
+
+// ══════════════════════════════════════════════════
+// PROJECT CRUD & MODALS
+// ══════════════════════════════════════════════════
+function toggleMenu(id, e) {
+    e.stopPropagation();
+    document.querySelectorAll('.card-menu').forEach(m => {
+        if(m.id !== 'menu-'+id) m.classList.remove('show');
+    });
+    document.getElementById('menu-'+id)?.classList.toggle('show');
+}
+
+document.addEventListener('click', () => {
+    document.querySelectorAll('.card-menu').forEach(m => m.classList.remove('show'));
+});
+
+function openEditModal(id, nombreActual, descActual, e) {
+    if(e) e.stopPropagation();
+    if(document.getElementById('menu-'+id)) document.getElementById('menu-'+id).classList.remove('show');
+    
+    editProjectId = id;
+    document.getElementById('editModalTitle').innerText = 'Editar Zona de Red';
+    document.getElementById('editProjectNameInput').value = nombreActual;
+    document.getElementById('editProjectDescInput').value = descActual || '';
+    document.getElementById('editModalOverlay').classList.add('active');
+    document.getElementById('editProjectNameInput').focus();
+}
+
+function crearProyectoModal() {
+    editProjectId = 'NEW';
+    document.getElementById('editModalTitle').innerText = 'Crear Nueva Zona de Cobertura';
+    document.getElementById('editProjectNameInput').value = 'Sector ';
+    document.getElementById('editProjectDescInput').value = '';
+    document.getElementById('editModalOverlay').classList.add('active');
+    document.getElementById('editProjectNameInput').focus();
+    document.getElementById('editProjectNameInput').select();
+}
+
+function closeEditModal() {
+    document.getElementById('editModalOverlay').classList.remove('active');
+    editProjectId = null;
+}
+
+function saveEditProject() {
+    if(!editProjectId) return;
+    const nuevoNombre = document.getElementById('editProjectNameInput').value.trim();
+    const nuevaDesc = document.getElementById('editProjectDescInput').value.trim();
+    if(!nuevoNombre) return;
+
+    if (editProjectId === 'NEW') {
+        const formData = new FormData();
+        formData.append('action', 'create_project');
+        formData.append('nombre', nuevoNombre);
+        formData.append('descripcion', nuevaDesc);
+        
+        fetch('api.php', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    window.location.href = 'view.php?id=' + res.id;
+                } else {
+                    alert('Error: ' + (res.message || 'No se pudo crear'));
+                }
+            });
+    } else {
+        const formData = new FormData();
+        formData.append('action', 'edit_project');
+        formData.append('id', editProjectId);
+        formData.append('nombre', nuevoNombre);
+        
+        fetch('api.php', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(res => {
+                if(res.success) {
+                    closeEditModal();
+                    loadProjects();
+                    loadGlobalStats();
+                } else {
+                    alert('Error: ' + res.message);
+                }
+            });
+    }
+}
+
+function archiveProject(id, e) {
+    e.stopPropagation();
+    document.getElementById('menu-'+id)?.classList.remove('show');
+    if(!confirm('¿Estás seguro de archivar este mapa de zona?')) return;
+    
+    const formData = new FormData();
+    formData.append('action', 'archive_project');
+    formData.append('id', id);
+    
+    fetch('api.php', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(res => {
+            if(res.success) {
+                loadProjects();
+                loadGlobalStats();
+            } else alert('Error: ' + res.message);
+        });
+}
+
+function unarchiveProject(id, e) {
+    e.stopPropagation();
+    document.getElementById('menu-'+id)?.classList.remove('show');
+    if(!confirm('¿Deseas desarchivar este mapa y devolverlo a la lista de zonas activas?')) return;
+    
+    const formData = new FormData();
+    formData.append('action', 'unarchive_project');
+    formData.append('id', id);
+    
+    fetch('api.php', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(res => {
+            if(res.success) {
+                loadProjects();
+                loadGlobalStats();
+            } else alert('Error: ' + res.message);
+        });
+}
+
+function deleteProject(id, e) {
+    e.stopPropagation();
+    document.getElementById('menu-'+id)?.classList.remove('show');
+    if(!confirm('¡ATENCIÓN! ¿Estás totalmente seguro de eliminar este mapa? Se borrarán todos los puntos, hilos y fotos. Esto no se puede deshacer.')) return;
+    
+    const formData = new FormData();
+    formData.append('action', 'delete_project');
+    formData.append('id', id);
+    
+    fetch('api.php', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(res => {
+            if(res.success) {
+                loadProjects();
+                loadGlobalStats();
+            } else alert('Error: ' + res.message);
+        });
+}
+
+function esc(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+</script>
+
+<?php include '../../includes/footer.php'; ?>

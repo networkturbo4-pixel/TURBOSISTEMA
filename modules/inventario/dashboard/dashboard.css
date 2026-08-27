@@ -1,0 +1,351 @@
+/* ==========================================================================
+   DASHBOARD DE INVENTARIO - MODERN ANALYTICS SUITE
+   ========================================================================== */
+
+.dash-top-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.dash-view-tabs {
+    display: inline-flex;
+    background: var(--bg-color, #f8fafc);
+    border: 1px solid var(--border-color, #e2e8f0);
+    padding: 4px;
+    border-radius: 12px;
+    gap: 4px;
+}
+
+.dash-view-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted, #64748b);
+    font-size: 0.86rem;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dash-view-btn:hover {
+    color: var(--text-color, #0f172a);
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.dash-view-btn.active {
+    background: #f59e0b;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+}
+
+.dash-view-btn i {
+    font-size: 1.1rem;
+}
+
+.dash-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    padding: 6px 10px;
+    border-radius: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    flex-wrap: wrap;
+}
+
+.dash-quick-chips {
+    display: flex;
+    gap: 4px;
+}
+
+.dash-chip {
+    border: 1px solid var(--border-color, #e2e8f0);
+    background: var(--bg-color, #f8fafc);
+    color: var(--text-muted, #64748b);
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 5px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.dash-chip:hover {
+    color: var(--text-color, #0f172a);
+    background: rgba(245, 158, 11, 0.1);
+    border-color: #f59e0b;
+}
+
+.dash-chip.active {
+    background: #f59e0b;
+    color: #ffffff;
+    border-color: #f59e0b;
+}
+
+.dash-date-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+
+.dash-date-inputs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-color, #f8fafc);
+    border: 1px solid var(--border-color, #e2e8f0);
+    padding: 3px 8px;
+    border-radius: 8px;
+}
+
+.dash-date-field {
+    border: none;
+    background: transparent;
+    font-size: 0.8rem;
+    color: var(--text-color, #0f172a);
+    font-weight: 600;
+    outline: none;
+}
+
+.dash-date-sep {
+    font-size: 0.78rem;
+    color: var(--text-muted, #94a3b8);
+    font-weight: 700;
+}
+
+.dash-btn-apply {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: #f59e0b;
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dash-btn-apply:hover {
+    background: #d97706;
+    transform: scale(1.05);
+}
+
+/* ── 6 KPI Cards Grid ── */
+.dash-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.dash-kpi-card {
+    background: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 14px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.dash-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
+}
+
+.dash-kpi-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.dash-kpi-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-muted, #64748b);
+    letter-spacing: -0.1px;
+}
+
+.dash-kpi-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.dash-kpi-value {
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: var(--text-color, #0f172a);
+    line-height: 1.1;
+    margin: 0 0 6px;
+}
+
+.dash-kpi-foot {
+    font-size: 0.74rem;
+    color: var(--text-muted, #94a3b8);
+    font-weight: 500;
+}
+
+/* KPI Accent Themes */
+.kpi-purple .dash-kpi-icon { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
+.kpi-emerald .dash-kpi-icon { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+.kpi-blue .dash-kpi-icon { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
+.kpi-amber .dash-kpi-icon { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+.kpi-rose .dash-kpi-icon { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
+.kpi-indigo .dash-kpi-icon { background: rgba(99, 102, 241, 0.12); color: #6366f1; }
+
+.text-emerald { color: #10b981 !important; font-weight: 600; }
+.text-blue { color: #3b82f6 !important; font-weight: 600; }
+.text-amber { color: #f59e0b !important; font-weight: 600; }
+.text-rose { color: #ef4444 !important; font-weight: 600; }
+.text-indigo { color: #6366f1 !important; font-weight: 600; }
+
+/* ── 2x2 Charts Grid ── */
+.dash-charts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+@media (max-width: 992px) {
+    .dash-charts-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.dash-chart-card {
+    background: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 16px;
+    padding: 20px 22px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+    display: flex;
+    flex-direction: column;
+}
+
+.dash-chart-header {
+    margin-bottom: 16px;
+}
+
+.dash-chart-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 2px;
+}
+
+.dash-chart-title i {
+    font-size: 1.3rem;
+}
+
+.dash-chart-title h4 {
+    margin: 0;
+    font-size: 1.02rem;
+    font-weight: 800;
+    color: var(--text-color, #0f172a);
+    letter-spacing: -0.2px;
+}
+
+.dash-chart-sub {
+    font-size: 0.78rem;
+    color: var(--text-muted, #64748b);
+    display: block;
+    margin-left: 31px;
+}
+
+.dash-chart-body {
+    flex: 1;
+    position: relative;
+    width: 100%;
+}
+
+/* ── Empty States in Charts ── */
+.dash-empty-state {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--text-muted, #94a3b8);
+    text-align: center;
+}
+
+.dash-empty-state i {
+    font-size: 2.5rem;
+    opacity: 0.4;
+}
+
+.dash-empty-state p {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+/* ── Dark Theme Overrides ── */
+body.dark-theme .dash-view-tabs {
+    background: #18181b;
+    border-color: #27272a;
+}
+
+body.dark-theme .dash-view-btn {
+    color: #94a3b8;
+}
+
+body.dark-theme .dash-view-btn:hover {
+    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+body.dark-theme .dash-filter-bar {
+    background: #18181b;
+    border-color: #27272a;
+}
+
+body.dark-theme .dash-chip {
+    background: #27272a;
+    border-color: #3f3f46;
+    color: #cbd5e1;
+}
+
+body.dark-theme .dash-date-inputs {
+    background: #27272a;
+    border-color: #3f3f46;
+}
+
+body.dark-theme .dash-date-field {
+    color: #f8fafc;
+}
+
+body.dark-theme .dash-kpi-card,
+body.dark-theme .dash-chart-card {
+    background: #18181b;
+    border-color: #27272a;
+}
+
+body.dark-theme .dash-kpi-value,
+body.dark-theme .dash-chart-title h4 {
+    color: #f8fafc;
+}

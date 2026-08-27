@@ -1,0 +1,1022 @@
+<?php
+require_once 'config/db.php';
+
+$ticket_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$token = $_GET['token'] ?? '';
+
+// Verificar ticket y token
+$stmt = $pdo->prepare("
+    SELECT t.*, c.nombre_completo as cliente_nombre 
+    FROM tickets t
+    LEFT JOIN clientes c ON t.cliente_id = c.id
+    WHERE t.id = ? AND t.public_token = ?
+");
+$stmt->execute([$ticket_id, $token]);
+$ticket = $stmt->fetch();
+
+if (!$ticket) {
+    die("Ticket no encontrado o enlace inválido.");
+}
+
+$has_session = isset($_SESSION['user_id']);
+$primaryColor = '#064e3b'; // Default
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
+    <title>Chat de Soporte - Ticket #<?php echo $ticket_id; ?></title>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        // CSRF Fetch Interceptor
+        const originalFetch = window.fetch;
+        window.fetch = async function() {
+            let [resource, config] = arguments;
+            if (!config) config = {};
+            if (config.method && config.method.toUpperCase() === 'POST') {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                if (csrfToken) {
+                    if (config.body instanceof FormData) {
+                        if(!config.body.has('csrf_token')) config.body.append('csrf_token', csrfToken);
+                    } else if (typeof config.body === 'string') {
+                        if (config.headers && config.headers['Content-Type'] === 'application/json') {
+                            try {
+                                let json = JSON.parse(config.body);
+                                json.csrf_token = csrfToken;
+                                config.body = JSON.stringify(json);
+                            } catch(e) {}
+                        } else if (config.headers && config.headers['Content-Type'] === 'application/x-www-form-urlencoded') {
+                            config.body += config.body ? '&csrf_token=' + encodeURIComponent(csrfToken) : 'csrf_token=' + encodeURIComponent(csrfToken);
+                        }
+                    } else if (!config.body) {
+                        config.body = new FormData();
+                        config.body.append('csrf_token', csrfToken);
+                    }
+                }
+            }
+            return originalFetch(resource, config);
+        };
+    </script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #efeae2;
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+        }
+        .public-banner {
+            background-color: #fef08a;
+            color: #854d0e;
+            padding: 10px 20px;
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-bottom: 1px solid #fde047;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+            background: url('<?php echo BASE_URL; ?>/assets/img/chat-bg.png') repeat, #efeae2;
+            box-shadow: 0 0 15px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        .chat-header {
+            padding: 15px 20px;
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .message-bubble {
+            max-width: 75%;
+            padding: 10px 15px;
+            border-radius: 12px;
+            position: relative;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            word-wrap: break-word;
+        }
+        
+        /* En la vista pública, los mensajes con user_id NULO son del cliente (Enviado),
+           y los que tienen user_id son del técnico (Recibido). */
+        .message-sent {
+            align-self: flex-end;
+            background: #d9fdd3;
+            color: #111b21;
+            border-top-right-radius: 0;
+        }
+        .message-received {
+            align-self: flex-start;
+            background: #ffffff;
+            color: #111b21;
+            border-top-left-radius: 0;
+        }
+        .message-time {
+            font-size: 0.65rem;
+            color: rgba(0,0,0,0.45);
+            text-align: right;
+            margin-top: 5px;
+            display: block;
+        }
+        
+        .chat-input-area {
+            padding: 15px;
+            background: #f0f2f5;
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+        }
+        .chat-input-wrapper {
+            flex: 1;
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 0 15px;
+        }
+        .chat-input-wrapper textarea {
+            width: 100%;
+            border: none;
+            background: transparent;
+            padding: 12px 0;
+            max-height: 120px;
+            outline: none;
+            resize: none;
+            color: #333;
+            font-family: inherit;
+        }
+        .btn-send {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: #00a884;
+            color: white;
+            border: none;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .sys-message {
+            text-align: center;
+            margin: 10px 0;
+            font-size: 0.75rem;
+            color: #64748b;
+            background: rgba(0,0,0,0.05);
+            padding: 5px 15px;
+            border-radius: 20px;
+            align-self: center;
+            display: inline-block;
+        }
+        .loc-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 10px;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: inherit;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .loc-card:hover { background: #f1f5f9; }
+        
+        .chat-upload-banner {
+            position: absolute;
+            bottom: 105%;
+            left: 15px;
+            right: 15px;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            border-radius: 12px;
+            padding: 10px 14px;
+            z-index: 150;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 0 0 15px rgba(59, 130, 246, 0.2);
+            animation: slideUpFade 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .chat-upload-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .chat-upload-spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(59, 130, 246, 0.2);
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            flex-shrink: 0;
+        }
+        .chat-upload-text {
+            flex: 1;
+            overflow: hidden;
+        }
+        .chat-upload-text .upload-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #3b82f6;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .chat-upload-text .upload-filename {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .chat-upload-progress {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+        .progress-bar-inner {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+            background-size: 200% 100%;
+            animation: gradientMove 1.5s linear infinite;
+            border-radius: 2px;
+            transition: width 0.15s ease;
+        }
+        .message-bubble.sending-optimistic {
+            opacity: 0.75;
+            position: relative;
+            border: 1px dashed rgba(255, 255, 255, 0.4);
+        }
+        .sending-status-tag {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 4px;
+        }
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+        @keyframes slideUpFade {
+            from { transform: translateY(10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulse-red {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+    <!-- Añadir script de Google Maps para el modal de envío -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAzf2GmB9lw1k7ONXk1VHScmd-pe-FtMtE&libraries=places"></script>
+</head>
+<body>
+
+<?php if (isset($_SESSION['user_id']) && strtolower($_SESSION['user_role'] ?? '') !== 'cliente'): ?>
+<div style="background-color: #dbeafe; color: #1e40af; padding: 10px; text-align: center; font-size: 0.9rem;">
+    Estás viendo la vista pública del ticket. <a href="<?php echo BASE_URL; ?>/modules/soporte/index.php" style="color:#1e3a8a; font-weight:bold;">Volver al Panel Administrativo</a>
+</div>
+<?php elseif (isset($_SESSION['public_cliente_id'])): ?>
+<div style="background-color: #e0f2fe; color: #0369a1; padding: 10px; text-align: center; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 10px;">
+    <i class="ph-fill ph-info"></i> Estás en la sala de chat de tu ticket. <a href="portal.php" style="color:#0284c7; font-weight:bold;">Volver al Portal del Cliente</a>
+</div>
+<?php else: ?>
+<div class="public-banner">
+    <i class="ph-fill ph-warning-circle" style="font-size: 1.2rem;"></i>
+    Atención: Recomendamos iniciar sesión en el <a href="soporte.php" style="color:#854d0e; text-decoration:underline; font-weight:bold;">Portal del Cliente</a> para no perder el historial de su ticket.
+</div>
+<?php endif; ?>
+
+<div class="chat-container">
+    <div class="chat-header">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <?php if (isset($_SESSION['public_cliente_id'])): ?>
+                <a href="portal.php" style="color: #64748b; font-size: 1.5rem; text-decoration: none;"><i class="ph ph-arrow-left"></i></a>
+            <?php else: ?>
+                <a href="<?php echo BASE_URL; ?>/modules/soporte/index.php" style="color: #64748b; font-size: 1.5rem; text-decoration: none;"><i class="ph ph-arrow-left"></i></a>
+            <?php endif; ?>
+            <div>
+                <div style="font-weight: bold; font-size: 1.1rem;">Soporte Técnico</div>
+                <div style="font-size: 0.8rem; color: #64748b;">Ticket #<?php echo str_pad($ticket_id, 4, '0', STR_PAD_LEFT); ?> | <?php echo htmlspecialchars($ticket['asunto']); ?></div>
+            </div>
+        </div>
+        <div style="background: #e2e8f0; padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase;">
+            <?php echo $ticket['estado']; ?>
+        </div>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+        <!-- Messages loaded via AJAX -->
+    </div>
+
+    <?php if ($ticket['estado'] === 'terminado'): ?>
+        <div style="text-align:center; padding:15px; color:#ef4444; font-weight:bold; background:#fee2e2; border-top:1px solid #fca5a5; margin-top: auto;">
+            El ticket ha sido marcado como TERMINADO. Ya no puedes enviar más mensajes.
+        </div>
+    <?php else: ?>
+    <div class="chat-input-area" style="position: relative;">
+        <div style="padding: 10px 15px; background: #f0f2f5; display: flex; align-items: center; gap: 6px; position: relative; flex-wrap: nowrap;">
+            
+            <!-- Actions Menu (Optional now, but kept for location/files) -->
+            <div id="chatActionMenu" style="display: none; position: absolute; bottom: 100%; left: 15px; margin-bottom: 10px; background: #ffffff; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid rgba(0,0,0,0.05); padding: 8px; z-index: 100; min-width: 220px;">
+                <button type="button" onclick="openCameraInput(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.95rem; font-weight: 500; color: #333;">
+                    <i class="ph-fill ph-camera" style="font-size: 1.3rem; color: #10b981;"></i> Cámara
+                </button>
+                <button type="button" onclick="openGalleryInput(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.95rem; font-weight: 500; color: #333;">
+                    <i class="ph-fill ph-image" style="font-size: 1.3rem; color: #3b82f6;"></i> Fotos y Videos
+                </button>
+                <button type="button" onclick="openLocationModal(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.95rem; font-weight: 500; color: #333;">
+                    <i class="ph-fill ph-map-pin" style="font-size: 1.3rem; color: #ef4444;"></i> Ubicación
+                </button>
+            </div>
+
+            <button type="button" onclick="toggleActionMenu()" style="background: transparent; border: none; font-size: 1.5rem; color: #64748b; cursor: pointer; padding: 4px;">
+                <i class="ph-bold ph-plus-circle"></i>
+            </button>
+
+            <div class="chat-input-wrapper" style="flex: 1; display: flex; flex-direction: column;">
+                <textarea id="messageInput" placeholder="Mensaje..." rows="1" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'; updateMainButton();"></textarea>
+            </div>
+        </div>
+        
+        <!-- Banner de Animación de Subida Moderno -->
+        <div id="chatUploadingBanner" class="chat-upload-banner" style="display: none;">
+            <div class="chat-upload-content">
+                <div class="chat-upload-spinner"></div>
+                <div class="chat-upload-text">
+                    <div class="upload-title"><i class="ph-bold ph-cloud-arrow-up"></i> Subiendo a Google Drive...</div>
+                    <div class="upload-filename" id="chatUploadFilename">archivo.png</div>
+                </div>
+                <span id="chatUploadPercentText" style="font-size: 0.8rem; font-weight: 700; color: #3b82f6;">0%</span>
+            </div>
+            <div class="chat-upload-progress">
+                <div class="progress-bar-inner" id="chatUploadProgressFill" style="width: 0%;"></div>
+            </div>
+        </div>
+
+        <div id="filePreviewContainer" style="display: none; position: absolute; bottom: 100%; left: 50px; margin-bottom: 8px; background: #3b82f6; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(59,130,246,0.3); z-index: 50;">
+            <i class="ph-fill ph-image"></i>
+            <span id="filePreviewName" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500;"></span>
+            <button onclick="clearFileSelection()" style="background: rgba(255,255,255,0.2); border:none; color:white; cursor:pointer; padding: 2px; border-radius: 50%; display:flex; align-items:center; justify-content:center; width: 18px; height: 18px;"><i class="ph-bold ph-x" style="font-size: 0.6rem;"></i></button>
+        </div>
+        
+        <div class="chat-input-wrapper" style="flex: 1; display: flex; flex-direction: column;">
+            <textarea id="messageInput" placeholder="Escribe un mensaje..." rows="1" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'; updateMainButton();"></textarea>
+        </div>
+        
+        <div id="audioRecordingUi" style="display: none; flex: 1; align-items: center; justify-content: space-between; background: #fee2e2; border-radius: 20px; padding: 0 15px; border: 1px solid #fca5a5; height: 40px;">
+            <div style="display: flex; align-items: center; gap: 10px; color: #ef4444; font-weight: bold; font-size: 0.9rem;">
+                <div style="width: 10px; height: 10px; background: #ef4444; border-radius: 50%; animation: pulse-red 1s infinite;"></div>
+                <span id="recordingTimer">00:00</span>
+            </div>
+            <button onclick="cancelRecording()" style="background: transparent; border: none; color: #ef4444; cursor: pointer; font-size: 1.2rem;"><i class="ph-fill ph-trash"></i></button>
+        </div>
+
+        <button class="btn-send" onclick="handleMainAction()" id="btnSendMessage"><i id="btnSendMessageIcon" class="ph-fill ph-microphone"></i></button>
+        
+        <!-- Chat Lock Overlay -->
+        <div id="chatLockOverlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 200; align-items: center; justify-content: center; border-radius: 12px; backdrop-filter: blur(2px);">
+            <div style="text-align: center; color: #64748b; font-weight: 600; padding: 0 20px;">
+                <i class="ph-fill ph-lock-key" style="font-size: 2rem; color: #ef4444; margin-bottom: 5px;"></i><br>
+                Chat siendo atendido por <span id="lockedByTechName" style="color:#0f172a;"></span>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+</div>
+
+<!-- Lightbox Modal -->
+<div id="imageLightbox" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999999; align-items:center; justify-content:center; flex-direction:column; backdrop-filter: blur(5px);">
+    <button onclick="document.getElementById('imageLightbox').style.display='none'" style="position:absolute; top:20px; right:20px; background:rgba(255,255,255,0.1); border:none; color:white; font-size:1.5rem; cursor:pointer; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'"><i class="ph-bold ph-x"></i></button>
+    <img id="lightboxImg" style="max-width:90%; max-height:90%; border-radius:12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); object-fit: contain;">
+</div>
+
+<!-- Modal de Ubicación Tipo Uber / InDrive y Cámara Webcam -->
+<?php require_once __DIR__ . '/includes/location_modal.php'; ?>
+<?php require_once __DIR__ . '/includes/webcam_modal.php'; ?>
+
+<script>
+    const currentTicketId = <?php echo $ticket_id; ?>;
+    const token = '<?php echo $token; ?>';
+    let lastMessageId = 0;
+    let isPollingMessages = false;
+    const escapeHtml = (str) => String(str || '').replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
+
+    const formatTime = (dateStr) => {
+        const d = new Date(dateStr);
+        return d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    };
+
+    const loadMessages = async () => {
+        if(isPollingMessages) return;
+        isPollingMessages = true;
+        try {
+            const fd = new FormData();
+            fd.append('action', 'get_messages');
+            fd.append('ticket_id', currentTicketId);
+            fd.append('token', token);
+            fd.append('last_id', lastMessageId);
+
+            const res = await fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd, cache: 'no-store' }).then(r=>r.json());
+            if(res.success && res.data.length > 0) {
+                const container = document.getElementById('chatMessages');
+                res.data.forEach(msg => {
+                    if (msg.is_system_message == 1) {
+                        container.innerHTML += `<div class="sys-message">${msg.message}</div>`;
+                    } else {
+                        const isMe = msg.user_id === null;
+                        const bubbleClass = isMe ? 'message-sent' : 'message-received';
+                        const userName = isMe ? 'Tú' : (msg.user_name || 'Soporte Técnico');
+                        
+                        let msgContent = msg.message.replace(/\n/g, '<br>');
+                        
+                        // Parse Location
+                        if (msgContent.startsWith('[LOCATION:') && msgContent.endsWith(']')) {
+                            const coords = msgContent.replace('[LOCATION:', '').replace(']', '').split(',');
+                            const lat = coords[0];
+                            const lng = coords[1];
+                            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=300x150&markers=color:red%7C${lat},${lng}&key=AIzaSyAzf2GmB9lw1k7ONXk1VHScmd-pe-FtMtE`;
+                            msgContent = `<div style="margin-bottom:8px;"><a href="https://maps.google.com/?q=${lat},${lng}" target="_blank"><img src="${mapUrl}" style="max-width:100%; border-radius:8px; cursor:pointer;" alt="Ubicación estática"></a><br><small style="color:var(--primary-color);">Ubicación estática</small></div>`;
+                        } else if (msgContent.startsWith('[LIVE_LOCATION:') && msgContent.endsWith(']')) {
+                            const coords = msgContent.replace('[LIVE_LOCATION:', '').replace(']', '').split(',');
+                            const lat = coords[0];
+                            const lng = coords[1];
+                            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=300x150&markers=color:blue%7C${lat},${lng}&key=AIzaSyAzf2GmB9lw1k7ONXk1VHScmd-pe-FtMtE`;
+                            msgContent = `<div style="margin-bottom:8px;" class="live-location-container" data-user="${msg.user_id || 'client'}"><a href="https://maps.google.com/?q=${lat},${lng}" target="_blank"><img src="${mapUrl}" style="max-width:100%; border-radius:8px; cursor:pointer;" alt="Ubicación en tiempo real"></a><br><small style="color:var(--primary-color);">📍 Ubicación en tiempo real iniciada</small></div>`;
+                        }
+
+                        // Attachments
+                        let attHtml = '';
+                        if (msg.attachments && msg.attachments.length > 0) {
+                            msg.attachments.forEach(att => {
+                                let url = att.file_path;
+                                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                                    url = `<?php echo BASE_URL; ?>/` + url;
+                                }
+                                const ext = att.file_name.split('.').pop().toLowerCase();
+                                const isVideo = ['mp4', 'mov', 'avi', 'mkv'].includes(ext) || (ext === 'webm' && !att.file_name.includes('Nota de Voz'));
+                                const isAudio = ['mp3', 'ogg', 'wav', 'm4a'].includes(ext) || (ext === 'webm' && att.file_name.includes('Nota de Voz'));
+                                
+                                if (isVideo) {
+                                    if (url.includes('drive.google.com')) {
+                                        let embedUrl = url;
+                                        if (url.includes('/view')) {
+                                            embedUrl = url.replace(/\/view.*$/, '/preview');
+                                        } else if (url.includes('uc?id=')) {
+                                            const idMatch = url.match(/id=([^&]+)/);
+                                            if (idMatch) embedUrl = `https://drive.google.com/file/d/${idMatch[1]}/preview`;
+                                        }
+                                        attHtml += `<div style="margin-top: 6px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(0,0,0,0.1);"><iframe src="${embedUrl}" width="100%" height="220" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe></div>`;
+                                    } else {
+                                        attHtml += `<video controls preload="metadata" style="max-width: 100%; border-radius: 10px; margin-top: 6px; border: 1px solid rgba(0,0,0,0.1); background: #000;">
+                                            <source src="${url}">Tu navegador no soporta video.
+                                        </video>`;
+                                    }
+                                } else if (isAudio) {
+                                    attHtml += `<audio controls src="${url}" style="max-width: 100%; margin-top: 5px; outline: none; height: 35px;"></audio>`;
+                                } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+                                    attHtml += `<img src="${url}" referrerpolicy="no-referrer" onclick="openLightbox('${url}')" style="cursor: pointer; max-width: 100%; border-radius: 8px; margin-top: 5px; border: 1px solid rgba(0,0,0,0.1); transition: opacity 0.2s;" onmouseover="this.style.opacity=0.9" onmouseout="this.style.opacity=1">`;
+                                } else {
+                                    attHtml += `<div style="margin-top: 5px;"><a href="${url}" target="_blank" style="color: inherit; text-decoration: underline; font-weight: 600;"><i class="ph-fill ph-file"></i> ${escapeHtml(att.file_name)}</a></div>`;
+                                }
+                            });
+                        }
+                        
+                        container.innerHTML += `
+                            <div class="message-bubble ${bubbleClass}">
+                                ${!isMe ? `<div style="font-size:0.75rem; font-weight:700; color:#064e3b; margin-bottom:3px;">${userName}</div>` : ''}
+                                <div>${msgContent}</div>
+                                ${attHtml}
+                                <span class="message-time">${formatTime(msg.created_at)}</span>
+                            </div>
+                        `;
+                    }
+                    lastMessageId = msg.id;
+                });
+                container.scrollTop = container.scrollHeight;
+            }
+            if (res.success && res.live_lat && res.live_lng) {
+                document.querySelectorAll('.live-location-container img').forEach(img => {
+                    const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${res.live_lat},${res.live_lng}&zoom=15&size=300x150&markers=color:blue%7C${res.live_lat},${res.live_lng}&key=AIzaSyAzf2GmB9lw1k7ONXk1VHScmd-pe-FtMtE`;
+                    if (img.src !== mapUrl) {
+                        img.src = mapUrl;
+                        img.parentElement.href = `https://maps.google.com/?q=${res.live_lat},${res.live_lng}`;
+                    }
+                });
+            }
+        } catch(e) {}
+        isPollingMessages = false;
+    };
+
+    const showUploadBanner = (filename) => {
+        const banner = document.getElementById('chatUploadingBanner');
+        const filenameEl = document.getElementById('chatUploadFilename');
+        const fillEl = document.getElementById('chatUploadProgressFill');
+        const percentEl = document.getElementById('chatUploadPercentText');
+        if (banner) {
+            filenameEl.textContent = filename || 'Archivo multimedia';
+            fillEl.style.width = '10%';
+            if (percentEl) percentEl.textContent = '10%';
+            banner.style.display = 'block';
+        }
+    };
+
+    const updateUploadProgress = (percent) => {
+        const fillEl = document.getElementById('chatUploadProgressFill');
+        const percentEl = document.getElementById('chatUploadPercentText');
+        const p = Math.min(100, Math.max(10, Math.round(percent)));
+        if (fillEl) fillEl.style.width = p + '%';
+        if (percentEl) percentEl.textContent = p + '%';
+    };
+
+    const hideUploadBanner = () => {
+        const banner = document.getElementById('chatUploadingBanner');
+        if (banner) banner.style.display = 'none';
+    };
+
+    const sendChatAjaxWithProgress = (formData, filename = null) => {
+        return new Promise((resolve, reject) => {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            if (csrfToken && !formData.has('csrf_token')) {
+                formData.append('csrf_token', csrfToken);
+            }
+
+            if (filename) showUploadBanner(filename);
+            
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '<?php echo BASE_URL; ?>/ajax/soporte.php', true);
+            if (csrfToken) {
+                xhr.setRequestHeader('X-CSRF-Token', csrfToken);
+            }
+
+            if (filename && xhr.upload) {
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const percent = (e.loaded / e.total) * 100;
+                        updateUploadProgress(percent);
+                    }
+                };
+            }
+
+            xhr.onload = () => {
+                hideUploadBanner();
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        resolve(JSON.parse(xhr.responseText));
+                    } catch (err) {
+                        reject(err);
+                    }
+                } else {
+                    reject(new Error('Error en el servidor'));
+                }
+            };
+
+            xhr.onerror = () => {
+                hideUploadBanner();
+                reject(new Error('Error de red'));
+            };
+
+            xhr.send(formData);
+        });
+    };
+
+    // Lightbox handling
+    const openLightbox = (src) => {
+        document.getElementById('lightboxImg').src = src;
+        document.getElementById('imageLightbox').style.display = 'flex';
+    };
+
+    let selectedFile = null;
+
+    // Cámara en Vivo (Cámara trasera por defecto)
+    const chatCameraInput = document.createElement('input');
+    chatCameraInput.type = 'file';
+    chatCameraInput.accept = 'image/*';
+    chatCameraInput.capture = 'environment';
+    chatCameraInput.onchange = (e) => handleFileSelect(e.target);
+
+    // Selección de Galería / Documentos
+    const chatGalleryInput = document.createElement('input');
+    chatGalleryInput.type = 'file';
+    chatGalleryInput.accept = 'image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx';
+    chatGalleryInput.onchange = (e) => handleFileSelect(e.target);
+
+    const openCameraInput = () => triggerSmartCameraInput();
+    const openGalleryInput = () => chatGalleryInput.click();
+
+    const toggleActionMenu = () => {
+        const menu = document.getElementById('chatActionMenu');
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    };
+
+    const clearFileSelection = () => {
+        selectedFile = null;
+        chatCameraInput.value = '';
+        chatGalleryInput.value = '';
+        document.getElementById('filePreviewContainer').style.display = 'none';
+        updateMainButton();
+    };
+
+    const handleFileSelect = (input) => {
+        if (input.files && input.files[0]) {
+            selectedFile = input.files[0];
+            document.getElementById('filePreviewName').innerText = selectedFile.name;
+            document.getElementById('filePreviewContainer').style.display = 'flex';
+            updateMainButton();
+        }
+    };
+
+    // -- Modal de Ubicación Start --
+    let locationMap = null;
+    let locationMarker = null;
+    let selectedLat = 0;
+    let selectedLng = 0;
+    
+    const openLocationModal = () => {
+        if (!navigator.geolocation) {
+            alert('Geolocalización no soportada por el navegador');
+            return;
+        }
+        
+        document.getElementById('locationSendModal').style.display = 'flex';
+        
+        navigator.geolocation.getCurrentPosition((pos) => {
+            selectedLat = pos.coords.latitude;
+            selectedLng = pos.coords.longitude;
+            initMap(selectedLat, selectedLng);
+        }, (err) => {
+            alert('No se pudo obtener la ubicación actual');
+            selectedLat = -12.046374;
+            selectedLng = -77.042793;
+            initMap(selectedLat, selectedLng);
+        });
+    };
+
+    const initMap = (lat, lng) => {
+        const center = { lat: lat, lng: lng };
+        if (!locationMap) {
+            locationMap = new google.maps.Map(document.getElementById("mapSendContainer"), {
+                zoom: 15,
+                center: center,
+                mapTypeControl: false,
+                streetViewControl: false
+            });
+            locationMarker = new google.maps.Marker({
+                position: center,
+                map: locationMap,
+                draggable: true,
+                title: "Tu ubicación"
+            });
+            
+            google.maps.event.addListener(locationMarker, 'dragend', function() {
+                const pos = locationMarker.getPosition();
+                selectedLat = pos.lat();
+                selectedLng = pos.lng();
+            });
+            
+            google.maps.event.addListener(locationMap, 'click', function(event) {
+                locationMarker.setPosition(event.latLng);
+                selectedLat = event.latLng.lat();
+                selectedLng = event.latLng.lng();
+            });
+        } else {
+            locationMap.setCenter(center);
+            locationMarker.setPosition(center);
+        }
+    };
+
+    const closeLocationSendModal = () => {
+        document.getElementById('locationSendModal').style.display = 'none';
+    };
+
+    document.getElementById('btnSendLocationModal').addEventListener('click', () => {
+        if (selectedLat && selectedLng) {
+            sendLocationMessage(selectedLat, selectedLng, false);
+            closeLocationSendModal();
+        }
+    });
+
+    document.getElementById('btnLiveLocation').addEventListener('click', () => {
+        if (selectedLat && selectedLng) {
+            sendLocationMessage(selectedLat, selectedLng, true);
+            closeLocationSendModal();
+            startLiveLocationUpdates();
+        }
+    });
+
+    const sendLocationMessage = async (lat, lng, isLive) => {
+        const text = isLive ? `[LIVE_LOCATION:${lat},${lng}]` : `[LOCATION:${lat},${lng}]`;
+        const fd = new FormData();
+        fd.append('action', 'send_message');
+        fd.append('ticket_id', currentTicketId);
+        fd.append('token', token);
+        fd.append('message', text);
+        try {
+            const res = await fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd }).then(r=>r.json());
+            if(res.success) loadMessages();
+        } catch(e) {}
+    };
+
+    let liveLocationInterval = null;
+    const startLiveLocationUpdates = () => {
+        if (liveLocationInterval) return;
+        
+        const sendUpdate = () => {
+            navigator.geolocation.getCurrentPosition((pos) => {
+                const fd = new FormData();
+                fd.append('action', 'update_live_location');
+                fd.append('ticket_id', currentTicketId);
+                fd.append('token', token);
+                fd.append('lat', pos.coords.latitude);
+                fd.append('lng', pos.coords.longitude);
+                fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd });
+            });
+        };
+        
+        sendUpdate();
+        liveLocationInterval = setInterval(sendUpdate, 15000);
+        
+        setTimeout(() => {
+            if(liveLocationInterval) {
+                clearInterval(liveLocationInterval);
+                liveLocationInterval = null;
+            }
+        }, 60 * 60 * 1000);
+    };
+    // -- Modal de Ubicación End --
+
+    // Voice Notes Logic
+    let isRecording = false;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let recordingTimerInterval = null;
+    let recordingSeconds = 0;
+
+    const updateMainButton = () => {
+        const text = document.getElementById('messageInput').value.trim();
+        const btnIcon = document.getElementById('btnSendMessageIcon');
+        if (text || selectedFile) {
+            btnIcon.className = 'ph-fill ph-paper-plane-right';
+        } else {
+            btnIcon.className = 'ph-fill ph-microphone';
+        }
+    };
+
+    const handleMainAction = () => {
+        const text = document.getElementById('messageInput').value.trim();
+        if (text || selectedFile) {
+            sendMessage();
+        } else {
+            if (isRecording) {
+                stopRecordingAndSend();
+            } else {
+                startRecording();
+            }
+        }
+    };
+
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+            
+            mediaRecorder.addEventListener("dataavailable", event => {
+                audioChunks.push(event.data);
+            });
+            
+            mediaRecorder.addEventListener("stop", () => {
+                if (isRecording) {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    sendAudioMessage(audioBlob);
+                }
+                isRecording = false;
+                stream.getTracks().forEach(track => track.stop());
+                
+                document.getElementById('audioRecordingUi').style.display = 'none';
+                document.querySelector('.chat-input-wrapper').style.display = 'flex';
+                updateMainButton();
+                clearInterval(recordingTimerInterval);
+            });
+            
+            isRecording = true;
+            mediaRecorder.start();
+            
+            document.querySelector('.chat-input-wrapper').style.display = 'none';
+            document.getElementById('audioRecordingUi').style.display = 'flex';
+            document.getElementById('btnSendMessageIcon').className = 'ph-fill ph-paper-plane-right';
+            
+            recordingSeconds = 0;
+            document.getElementById('recordingTimer').innerText = '00:00';
+            recordingTimerInterval = setInterval(() => {
+                recordingSeconds++;
+                const m = String(Math.floor(recordingSeconds / 60)).padStart(2, '0');
+                const s = String(recordingSeconds % 60).padStart(2, '0');
+                document.getElementById('recordingTimer').innerText = `${m}:${s}`;
+            }, 1000);
+            
+        } catch (e) {
+            alert('No se pudo acceder al micrófono. Verifica los permisos.');
+        }
+    };
+
+    const cancelRecording = () => {
+        isRecording = false;
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+        }
+    };
+
+    const stopRecordingAndSend = () => {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+        }
+    };
+
+    const sendAudioMessage = async (audioBlob) => {
+        const btnSend = document.getElementById('btnSendMessage');
+        if (btnSend) btnSend.disabled = true;
+
+        const tempId = 'opt_audio_' + Date.now();
+        const container = document.getElementById('chatMessages');
+        container.innerHTML += `
+            <div class="message-bubble message-sent sending-optimistic" id="${tempId}">
+                <div style="font-size:0.85rem; font-weight:600;"><i class="ph-fill ph-microphone"></i> Grabación de audio...</div>
+                <div class="sending-status-tag"><i class="ph ph-spinner spinner"></i> Subiendo a Google Drive...</div>
+            </div>`;
+        container.scrollTop = container.scrollHeight;
+
+        const fd = new FormData();
+        fd.append('action', 'send_message');
+        fd.append('ticket_id', currentTicketId);
+        fd.append('token', token);
+        fd.append('message', '');
+        fd.append('attachment', audioBlob, 'audio_record.webm');
+
+        try {
+            const res = await sendChatAjaxWithProgress(fd, 'Nota de Voz.webm');
+            const optEl = document.getElementById(tempId);
+            if (optEl) optEl.remove();
+            if(res.success) {
+                loadMessages();
+            }
+        } catch(e) {
+            const optEl = document.getElementById(tempId);
+            if (optEl) optEl.remove();
+        }
+        
+        if (btnSend) btnSend.disabled = false;
+    };
+
+    const sendMessage = async () => {
+        const input = document.getElementById('messageInput');
+        const text = input.value.trim();
+        const fileToSend = selectedFile;
+        if((!text && !fileToSend)) return;
+
+        input.value = '';
+        input.style.height = '';
+        if (fileToSend) clearFileSelection();
+        const btnSend = document.getElementById('btnSendMessage');
+        if (btnSend) btnSend.disabled = true;
+
+        const tempId = 'opt_msg_' + Date.now();
+        const container = document.getElementById('chatMessages');
+        let fileText = fileToSend ? `<div style="font-size:0.85rem; margin-top:4px; font-weight:600; color:#3b82f6;"><i class="ph ph-file"></i> ${escapeHtml(fileToSend.name)}</div>` : '';
+        container.innerHTML += `
+            <div class="message-bubble message-sent sending-optimistic" id="${tempId}">
+                <div>${escapeHtml(text)}</div>
+                ${fileText}
+                <div class="sending-status-tag"><i class="ph ph-spinner spinner"></i> ${fileToSend ? 'Subiendo a Google Drive...' : 'Enviando...'}</div>
+            </div>`;
+        container.scrollTop = container.scrollHeight;
+
+        const fd = new FormData();
+        fd.append('action', 'send_message');
+        fd.append('ticket_id', currentTicketId);
+        fd.append('token', token);
+        fd.append('message', text);
+        if (fileToSend) {
+            fd.append('attachment', fileToSend);
+        }
+
+        try {
+            const res = await sendChatAjaxWithProgress(fd, fileToSend ? fileToSend.name : null);
+            const optEl = document.getElementById(tempId);
+            if (optEl) optEl.remove();
+            if(res.success) {
+                loadMessages();
+                updateMainButton();
+            } else {
+                alert(res.message || 'Error al enviar');
+            }
+        } catch(e) {
+            const optEl = document.getElementById(tempId);
+            if (optEl) optEl.remove();
+            alert('Error de conexión');
+        }
+        
+        if (btnSend) btnSend.disabled = false;
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadMessages();
+        setInterval(loadMessages, 1200);
+        
+        <?php if ($has_session): ?>
+        // Ping to keep the chat locked for this technician
+        const chatPing = async () => {
+            const fd = new FormData();
+            fd.append('action', 'chat_ping');
+            fd.append('ticket_id', currentTicketId);
+            fd.append('token', token);
+            
+            try {
+                const res = await fetch('<?php echo BASE_URL; ?>/ajax/soporte.php', { method: 'POST', body: fd }).then(r=>r.json());
+                const overlay = document.getElementById('chatLockOverlay');
+                if (overlay) {
+                    if (res.locked) {
+                        document.getElementById('lockedByTechName').innerText = res.locked_by;
+                        overlay.style.display = 'flex';
+                    } else {
+                        overlay.style.display = 'none';
+                    }
+                }
+            } catch(e) {}
+        };
+        
+        chatPing(); // Initial ping
+        setInterval(chatPing, 5000); // Ping every 5 seconds
+
+        window.addEventListener('beforeunload', () => {
+            const fd = new FormData();
+            fd.append('action', 'chat_leave');
+            fd.append('ticket_id', currentTicketId);
+            navigator.sendBeacon('<?php echo BASE_URL; ?>/ajax/soporte.php', fd);
+        });
+        <?php endif; ?>
+
+        document.getElementById('messageInput').addEventListener('keydown', (e) => {
+            if(e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    });
+</script>
+
+<!-- Modal de Enviar Ubicación -->
+<div id="locationSendModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:99999; align-items:center; justify-content:center;">
+    <div style="background:#ffffff; padding:20px; border-radius:12px; width:90%; max-width:500px; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+        <h4 style="margin-top:0; margin-bottom:15px; font-weight:bold; color: #0f172a;">Enviar Ubicación</h4>
+        <div id="mapSendContainer" style="width:100%; height:300px; background:#e2e8f0; border-radius:8px; margin-bottom:15px;"></div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <button type="button" style="padding: 8px 12px; background: transparent; color: #3b82f6; border: 1px solid #3b82f6; border-radius: 8px; cursor: pointer; font-weight: 600;" id="btnLiveLocation">En Vivo</button>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button type="button" style="padding: 8px 12px; background: #e2e8f0; color: #334155; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;" onclick="closeLocationSendModal()">Cancelar</button>
+                <button type="button" style="padding: 8px 12px; background: #00a884; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;" id="btnSendLocationModal">Enviar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
