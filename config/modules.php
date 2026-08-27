@@ -28,6 +28,19 @@ $system_modules = [
         'description' => 'Registro y visualización de clientes',
         'default_access' => false
     ],
+    'comercial' => [
+        'name' => 'Comercial',
+        'icon' => 'ph-chart-line-up',
+        'url' => '/modules/comercial',
+        'description' => 'Gestión comercial y ventas',
+        'default_access' => false,
+        'submodules' => [
+            'crm' => [
+                'name' => 'CRM',
+                'url' => '/modules/comercial/crm',
+            ]
+        ]
+    ],
     'mochila' => [
         'name' => 'Mochila',
         'icon' => 'ph-backpack',
