@@ -2661,7 +2661,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Abrir Escáner con la tecla 'K'
     document.addEventListener('keydown', function(e) {
-        if (e.key.toLowerCase() === 'k' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+        if (e.key && e.key.toLowerCase() === 'k' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
             const escanerBtn = document.querySelector('button[data-tab="escaner"]');
             if (escanerBtn) {
                 escanerBtn.click();

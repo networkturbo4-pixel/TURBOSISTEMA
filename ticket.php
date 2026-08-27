@@ -15,7 +15,7 @@ $stmt->execute([$ticket_id, $token]);
 $ticket = $stmt->fetch();
 
 if (!$ticket) {
-    die("Ticket no encontrado o enlace inválido.");
+    die("Ticket no encontrado o enlace invÃ¡lido.");
 }
 
 $has_session = isset($_SESSION['user_id']);
@@ -122,8 +122,8 @@ $primaryColor = '#064e3b'; // Default
             word-wrap: break-word;
         }
         
-        /* En la vista pública, los mensajes con user_id NULO son del cliente (Enviado),
-           y los que tienen user_id son del técnico (Recibido). */
+        /* En la vista pÃºblica, los mensajes con user_id NULO son del cliente (Enviado),
+           y los que tienen user_id son del tÃ©cnico (Recibido). */
         .message-sent {
             align-self: flex-end;
             background: #d9fdd3;
@@ -303,23 +303,23 @@ $primaryColor = '#064e3b'; // Default
             100% { transform: scale(1); opacity: 1; }
         }
     </style>
-    <!-- Añadir script de Google Maps para el modal de envío -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAzf2GmB9lw1k7ONXk1VHScmd-pe-FtMtE&libraries=places"></script>
+    <!-- AÃ±adir script de Google Maps para el modal de envÃ­o -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBNXLdtgdStVUGqNeDFdaHRTpCjaVHF6RE&libraries=places"></script>
 </head>
 <body>
 
 <?php if (isset($_SESSION['user_id']) && strtolower($_SESSION['user_role'] ?? '') !== 'cliente'): ?>
 <div style="background-color: #dbeafe; color: #1e40af; padding: 10px; text-align: center; font-size: 0.9rem;">
-    Estás viendo la vista pública del ticket. <a href="<?php echo BASE_URL; ?>/modules/soporte/index.php" style="color:#1e3a8a; font-weight:bold;">Volver al Panel Administrativo</a>
+    EstÃ¡s viendo la vista pÃºblica del ticket. <a href="<?php echo BASE_URL; ?>/modules/soporte/index.php" style="color:#1e3a8a; font-weight:bold;">Volver al Panel Administrativo</a>
 </div>
 <?php elseif (isset($_SESSION['public_cliente_id'])): ?>
 <div style="background-color: #e0f2fe; color: #0369a1; padding: 10px; text-align: center; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 10px;">
-    <i class="ph-fill ph-info"></i> Estás en la sala de chat de tu ticket. <a href="portal.php" style="color:#0284c7; font-weight:bold;">Volver al Portal del Cliente</a>
+    <i class="ph-fill ph-info"></i> EstÃ¡s en la sala de chat de tu ticket. <a href="portal.php" style="color:#0284c7; font-weight:bold;">Volver al Portal del Cliente</a>
 </div>
 <?php else: ?>
 <div class="public-banner">
     <i class="ph-fill ph-warning-circle" style="font-size: 1.2rem;"></i>
-    Atención: Recomendamos iniciar sesión en el <a href="soporte.php" style="color:#854d0e; text-decoration:underline; font-weight:bold;">Portal del Cliente</a> para no perder el historial de su ticket.
+    AtenciÃ³n: Recomendamos iniciar sesiÃ³n en el <a href="soporte.php" style="color:#854d0e; text-decoration:underline; font-weight:bold;">Portal del Cliente</a> para no perder el historial de su ticket.
 </div>
 <?php endif; ?>
 
@@ -332,7 +332,7 @@ $primaryColor = '#064e3b'; // Default
                 <a href="<?php echo BASE_URL; ?>/modules/soporte/index.php" style="color: #64748b; font-size: 1.5rem; text-decoration: none;"><i class="ph ph-arrow-left"></i></a>
             <?php endif; ?>
             <div>
-                <div style="font-weight: bold; font-size: 1.1rem;">Soporte Técnico</div>
+                <div style="font-weight: bold; font-size: 1.1rem;">Soporte TÃ©cnico</div>
                 <div style="font-size: 0.8rem; color: #64748b;">Ticket #<?php echo str_pad($ticket_id, 4, '0', STR_PAD_LEFT); ?> | <?php echo htmlspecialchars($ticket['asunto']); ?></div>
             </div>
         </div>
@@ -347,7 +347,7 @@ $primaryColor = '#064e3b'; // Default
 
     <?php if ($ticket['estado'] === 'terminado'): ?>
         <div style="text-align:center; padding:15px; color:#ef4444; font-weight:bold; background:#fee2e2; border-top:1px solid #fca5a5; margin-top: auto;">
-            El ticket ha sido marcado como TERMINADO. Ya no puedes enviar más mensajes.
+            El ticket ha sido marcado como TERMINADO. Ya no puedes enviar mÃ¡s mensajes.
         </div>
     <?php else: ?>
     <div class="chat-input-area" style="position: relative;">
@@ -356,13 +356,13 @@ $primaryColor = '#064e3b'; // Default
             <!-- Actions Menu (Optional now, but kept for location/files) -->
             <div id="chatActionMenu" style="display: none; position: absolute; bottom: 100%; left: 15px; margin-bottom: 10px; background: #ffffff; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid rgba(0,0,0,0.05); padding: 8px; z-index: 100; min-width: 220px;">
                 <button type="button" onclick="openCameraInput(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.95rem; font-weight: 500; color: #333;">
-                    <i class="ph-fill ph-camera" style="font-size: 1.3rem; color: #10b981;"></i> Cámara
+                    <i class="ph-fill ph-camera" style="font-size: 1.3rem; color: #10b981;"></i> CÃ¡mara
                 </button>
                 <button type="button" onclick="openGalleryInput(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.95rem; font-weight: 500; color: #333;">
                     <i class="ph-fill ph-image" style="font-size: 1.3rem; color: #3b82f6;"></i> Fotos y Videos
                 </button>
                 <button type="button" onclick="openLocationModal(); toggleActionMenu();" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: none; text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.95rem; font-weight: 500; color: #333;">
-                    <i class="ph-fill ph-map-pin" style="font-size: 1.3rem; color: #ef4444;"></i> Ubicación
+                    <i class="ph-fill ph-map-pin" style="font-size: 1.3rem; color: #ef4444;"></i> UbicaciÃ³n
                 </button>
             </div>
 
@@ -375,7 +375,7 @@ $primaryColor = '#064e3b'; // Default
             </div>
         </div>
         
-        <!-- Banner de Animación de Subida Moderno -->
+        <!-- Banner de AnimaciÃ³n de Subida Moderno -->
         <div id="chatUploadingBanner" class="chat-upload-banner" style="display: none;">
             <div class="chat-upload-content">
                 <div class="chat-upload-spinner"></div>
@@ -427,7 +427,7 @@ $primaryColor = '#064e3b'; // Default
     <img id="lightboxImg" style="max-width:90%; max-height:90%; border-radius:12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); object-fit: contain;">
 </div>
 
-<!-- Modal de Ubicación Tipo Uber / InDrive y Cámara Webcam -->
+<!-- Modal de UbicaciÃ³n Tipo Uber / InDrive y CÃ¡mara Webcam -->
 <?php require_once __DIR__ . '/includes/location_modal.php'; ?>
 <?php require_once __DIR__ . '/includes/webcam_modal.php'; ?>
 
@@ -462,7 +462,7 @@ $primaryColor = '#064e3b'; // Default
                     } else {
                         const isMe = msg.user_id === null;
                         const bubbleClass = isMe ? 'message-sent' : 'message-received';
-                        const userName = isMe ? 'Tú' : (msg.user_name || 'Soporte Técnico');
+                        const userName = isMe ? 'TÃº' : (msg.user_name || 'Soporte TÃ©cnico');
                         
                         let msgContent = msg.message.replace(/\n/g, '<br>');
                         
@@ -471,14 +471,14 @@ $primaryColor = '#064e3b'; // Default
                             const coords = msgContent.replace('[LOCATION:', '').replace(']', '').split(',');
                             const lat = coords[0];
                             const lng = coords[1];
-                            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=300x150&markers=color:red%7C${lat},${lng}&key=AIzaSyAzf2GmB9lw1k7ONXk1VHScmd-pe-FtMtE`;
-                            msgContent = `<div style="margin-bottom:8px;"><a href="https://maps.google.com/?q=${lat},${lng}" target="_blank"><img src="${mapUrl}" style="max-width:100%; border-radius:8px; cursor:pointer;" alt="Ubicación estática"></a><br><small style="color:var(--primary-color);">Ubicación estática</small></div>`;
+                            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=300x150&markers=color:red%7C${lat},${lng}&key=AIzaSyBNXLdtgdStVUGqNeDFdaHRTpCjaVHF6RE`;
+                            msgContent = `<div style="margin-bottom:8px;"><a href="https://maps.google.com/?q=${lat},${lng}" target="_blank"><img src="${mapUrl}" style="max-width:100%; border-radius:8px; cursor:pointer;" alt="UbicaciÃ³n estÃ¡tica"></a><br><small style="color:var(--primary-color);">UbicaciÃ³n estÃ¡tica</small></div>`;
                         } else if (msgContent.startsWith('[LIVE_LOCATION:') && msgContent.endsWith(']')) {
                             const coords = msgContent.replace('[LIVE_LOCATION:', '').replace(']', '').split(',');
                             const lat = coords[0];
                             const lng = coords[1];
-                            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=300x150&markers=color:blue%7C${lat},${lng}&key=AIzaSyAzf2GmB9lw1k7ONXk1VHScmd-pe-FtMtE`;
-                            msgContent = `<div style="margin-bottom:8px;" class="live-location-container" data-user="${msg.user_id || 'client'}"><a href="https://maps.google.com/?q=${lat},${lng}" target="_blank"><img src="${mapUrl}" style="max-width:100%; border-radius:8px; cursor:pointer;" alt="Ubicación en tiempo real"></a><br><small style="color:var(--primary-color);">📍 Ubicación en tiempo real iniciada</small></div>`;
+                            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=300x150&markers=color:blue%7C${lat},${lng}&key=AIzaSyBNXLdtgdStVUGqNeDFdaHRTpCjaVHF6RE`;
+                            msgContent = `<div style="margin-bottom:8px;" class="live-location-container" data-user="${msg.user_id || 'client'}"><a href="https://maps.google.com/?q=${lat},${lng}" target="_blank"><img src="${mapUrl}" style="max-width:100%; border-radius:8px; cursor:pointer;" alt="UbicaciÃ³n en tiempo real"></a><br><small style="color:var(--primary-color);">ðŸ“ UbicaciÃ³n en tiempo real iniciada</small></div>`;
                         }
 
                         // Attachments
@@ -533,7 +533,7 @@ $primaryColor = '#064e3b'; // Default
             }
             if (res.success && res.live_lat && res.live_lng) {
                 document.querySelectorAll('.live-location-container img').forEach(img => {
-                    const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${res.live_lat},${res.live_lng}&zoom=15&size=300x150&markers=color:blue%7C${res.live_lat},${res.live_lng}&key=AIzaSyAzf2GmB9lw1k7ONXk1VHScmd-pe-FtMtE`;
+                    const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${res.live_lat},${res.live_lng}&zoom=15&size=300x150&markers=color:blue%7C${res.live_lat},${res.live_lng}&key=AIzaSyBNXLdtgdStVUGqNeDFdaHRTpCjaVHF6RE`;
                     if (img.src !== mapUrl) {
                         img.src = mapUrl;
                         img.parentElement.href = `https://maps.google.com/?q=${res.live_lat},${res.live_lng}`;
@@ -624,14 +624,14 @@ $primaryColor = '#064e3b'; // Default
 
     let selectedFile = null;
 
-    // Cámara en Vivo (Cámara trasera por defecto)
+    // CÃ¡mara en Vivo (CÃ¡mara trasera por defecto)
     const chatCameraInput = document.createElement('input');
     chatCameraInput.type = 'file';
     chatCameraInput.accept = 'image/*';
     chatCameraInput.capture = 'environment';
     chatCameraInput.onchange = (e) => handleFileSelect(e.target);
 
-    // Selección de Galería / Documentos
+    // SelecciÃ³n de GalerÃ­a / Documentos
     const chatGalleryInput = document.createElement('input');
     chatGalleryInput.type = 'file';
     chatGalleryInput.accept = 'image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx';
@@ -662,7 +662,7 @@ $primaryColor = '#064e3b'; // Default
         }
     };
 
-    // -- Modal de Ubicación Start --
+    // -- Modal de UbicaciÃ³n Start --
     let locationMap = null;
     let locationMarker = null;
     let selectedLat = 0;
@@ -670,7 +670,7 @@ $primaryColor = '#064e3b'; // Default
     
     const openLocationModal = () => {
         if (!navigator.geolocation) {
-            alert('Geolocalización no soportada por el navegador');
+            alert('GeolocalizaciÃ³n no soportada por el navegador');
             return;
         }
         
@@ -681,7 +681,7 @@ $primaryColor = '#064e3b'; // Default
             selectedLng = pos.coords.longitude;
             initMap(selectedLat, selectedLng);
         }, (err) => {
-            alert('No se pudo obtener la ubicación actual');
+            alert('No se pudo obtener la ubicaciÃ³n actual');
             selectedLat = -12.046374;
             selectedLng = -77.042793;
             initMap(selectedLat, selectedLng);
@@ -701,7 +701,7 @@ $primaryColor = '#064e3b'; // Default
                 position: center,
                 map: locationMap,
                 draggable: true,
-                title: "Tu ubicación"
+                title: "Tu ubicaciÃ³n"
             });
             
             google.maps.event.addListener(locationMarker, 'dragend', function() {
@@ -779,7 +779,7 @@ $primaryColor = '#064e3b'; // Default
             }
         }, 60 * 60 * 1000);
     };
-    // -- Modal de Ubicación End --
+    // -- Modal de UbicaciÃ³n End --
 
     // Voice Notes Logic
     let isRecording = false;
@@ -852,7 +852,7 @@ $primaryColor = '#064e3b'; // Default
             }, 1000);
             
         } catch (e) {
-            alert('No se pudo acceder al micrófono. Verifica los permisos.');
+            alert('No se pudo acceder al micrÃ³fono. Verifica los permisos.');
         }
     };
 
@@ -877,7 +877,7 @@ $primaryColor = '#064e3b'; // Default
         const container = document.getElementById('chatMessages');
         container.innerHTML += `
             <div class="message-bubble message-sent sending-optimistic" id="${tempId}">
-                <div style="font-size:0.85rem; font-weight:600;"><i class="ph-fill ph-microphone"></i> Grabación de audio...</div>
+                <div style="font-size:0.85rem; font-weight:600;"><i class="ph-fill ph-microphone"></i> GrabaciÃ³n de audio...</div>
                 <div class="sending-status-tag"><i class="ph ph-spinner spinner"></i> Subiendo a Google Drive...</div>
             </div>`;
         container.scrollTop = container.scrollHeight;
@@ -949,7 +949,7 @@ $primaryColor = '#064e3b'; // Default
         } catch(e) {
             const optEl = document.getElementById(tempId);
             if (optEl) optEl.remove();
-            alert('Error de conexión');
+            alert('Error de conexiÃ³n');
         }
         
         if (btnSend) btnSend.disabled = false;
@@ -1001,10 +1001,10 @@ $primaryColor = '#064e3b'; // Default
     });
 </script>
 
-<!-- Modal de Enviar Ubicación -->
+<!-- Modal de Enviar UbicaciÃ³n -->
 <div id="locationSendModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:99999; align-items:center; justify-content:center;">
     <div style="background:#ffffff; padding:20px; border-radius:12px; width:90%; max-width:500px; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
-        <h4 style="margin-top:0; margin-bottom:15px; font-weight:bold; color: #0f172a;">Enviar Ubicación</h4>
+        <h4 style="margin-top:0; margin-bottom:15px; font-weight:bold; color: #0f172a;">Enviar UbicaciÃ³n</h4>
         <div id="mapSendContainer" style="width:100%; height:300px; background:#e2e8f0; border-radius:8px; margin-bottom:15px;"></div>
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <div>

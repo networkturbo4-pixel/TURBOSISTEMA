@@ -8,15 +8,15 @@ include '../../includes/sidebar.php';
 ?>
 
 <!-- Google Maps API -->
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAzf2GmB9lw1k7ONXk1VHScmd-pe-FtMtE&libraries=drawing,places,geometry,elevation,marker&v=3.64"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBNXLdtgdStVUGqNeDFdaHRTpCjaVHF6RE&libraries=drawing,places,geometry,elevation,marker&v=3.64"></script>
 <!-- Turf.js y togeojson para KML / GeoJSON -->
 <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js"></script>
 
 <style>
-/* ══════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    RED DE FIBRA - MODERN TELECOM COMMAND CENTER
-   ══════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .fibra-container {
     padding: 10px 0 30px;
 }
@@ -189,9 +189,9 @@ include '../../includes/sidebar.php';
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* ══════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    TAB 1: VISOR CENTRAL / RED GLOBAL
-   ══════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .central-map-card {
     background: var(--surface-color);
     border: 1px solid var(--border-color);
@@ -337,9 +337,9 @@ include '../../includes/sidebar.php';
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* ══════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    TAB 2: MAPAS DE ZONAS (FILTRO POR ZONAS)
-   ══════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .zonas-filter-bar {
     display: flex;
     justify-content: space-between;
@@ -545,9 +545,9 @@ include '../../includes/sidebar.php';
     gap: 6px;
 }
 
-/* ══════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    TAB 3: GPS & NODOS
-   ══════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .gps-header-card {
     background: var(--surface-color);
     border: 1px solid var(--border-color);
@@ -618,9 +618,9 @@ include '../../includes/sidebar.php';
     background: rgba(255,255,255,0.02);
 }
 
-/* ══════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    TAB 4: VER ARCHIVOS (KML / GEOJSON)
-   ══════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .files-upload-zone {
     background: var(--surface-color);
     border: 2px dashed rgba(2, 132, 199, 0.35);
@@ -657,9 +657,9 @@ include '../../includes/sidebar.php';
     padding: 20px;
 }
 
-/* ══════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    MODAL EDITAR / CREAR
-   ══════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .edit-modal-overlay {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
     background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
@@ -700,8 +700,8 @@ include '../../includes/sidebar.php';
                 <i class="ph-bold ph-map-trifold"></i>
             </div>
             <div>
-                <h2 class="fibra-header-title">Red de Fibra Óptica</h2>
-                <p class="fibra-header-desc">Centro de control geográfico, infraestructura FTTH y mapeo satelital de zonas</p>
+                <h2 class="fibra-header-title">Red de Fibra Ã“ptica</h2>
+                <p class="fibra-header-desc">Centro de control geogrÃ¡fico, infraestructura FTTH y mapeo satelital de zonas</p>
             </div>
         </div>
         <div class="fibra-header-actions">
@@ -770,9 +770,9 @@ include '../../includes/sidebar.php';
         </button>
     </div>
 
-    <!-- ══════════════════════════════════════════════════
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
          TAB 1: VISOR CENTRAL / RED GLOBAL
-         ══════════════════════════════════════════════════ -->
+         â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
     <div class="fibra-tab-content active" id="tab-central">
         <div class="central-map-card">
             <!-- Controls Bar -->
@@ -780,7 +780,7 @@ include '../../includes/sidebar.php';
                 <div class="map-control-group">
                     <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Vista:</span>
                     <button type="button" class="map-type-btn active" onclick="setGlobalMapType('hybrid')">
-                        <i class="ph-bold ph-planet"></i> Satelital / Híbrido
+                        <i class="ph-bold ph-planet"></i> Satelital / HÃ­brido
                     </button>
                     <button type="button" class="map-type-btn" onclick="setGlobalMapType('roadmap')">
                         <i class="ph-bold ph-road-horizon"></i> Callejero
@@ -853,9 +853,9 @@ include '../../includes/sidebar.php';
         </div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
          TAB 2: MAPAS DE ZONAS (FILTRO POR ZONAS)
-         ══════════════════════════════════════════════════ -->
+         â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
     <div class="fibra-tab-content" id="tab-zonas">
         <div class="zonas-filter-bar">
             <div class="zonas-search-box">
@@ -879,18 +879,18 @@ include '../../includes/sidebar.php';
         </div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
          TAB 3: GPS & NODOS
-         ══════════════════════════════════════════════════ -->
+         â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
     <div class="fibra-tab-content" id="tab-gps">
         <div class="gps-header-card">
             <div>
-                <h3 style="margin:0 0 4px; font-size:1.15rem; font-weight:800; color:var(--text-color);">Geolocalización y Registro de Nodos</h3>
+                <h3 style="margin:0 0 4px; font-size:1.15rem; font-weight:800; color:var(--text-color);">GeolocalizaciÃ³n y Registro de Nodos</h3>
                 <p style="margin:0; font-size:0.82rem; color:var(--text-muted);">Listado de Cajas NAP, Mufas y puntos georreferenciados con coordenadas exactas</p>
             </div>
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <button type="button" class="gps-loc-btn" onclick="detectLiveLocation()">
-                    <i class="ph-bold ph-crosshair"></i> Mi Ubicación GPS en Vivo
+                    <i class="ph-bold ph-crosshair"></i> Mi UbicaciÃ³n GPS en Vivo
                 </button>
             </div>
         </div>
@@ -925,9 +925,9 @@ include '../../includes/sidebar.php';
         </div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
          TAB 4: VER ARCHIVOS / KML / GEOJSON
-         ══════════════════════════════════════════════════ -->
+         â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
     <div class="fibra-tab-content" id="tab-archivos">
         <div class="files-upload-zone" id="filesUploadZone" onclick="document.getElementById('kmlFileInput').click()">
             <input type="file" id="kmlFileInput" accept=".kml,.kmz,.geojson,.json" style="display:none;" onchange="handleKmlFileUpload(event)">
@@ -936,13 +936,13 @@ include '../../includes/sidebar.php';
             </div>
             <h3 style="margin:0 0 6px; font-size:1.2rem; font-weight:800; color:var(--text-color);">Importar Archivos de Red (KML, KMZ, GeoJSON)</h3>
             <p style="margin:0; font-size:0.85rem; color:var(--text-muted); max-width:500px; margin:0 auto;">
-                Arrastra y suelta aquí tus archivos exportados de Google Earth, MyMaps o QGIS para crear una nueva zona de fibra automáticamente.
+                Arrastra y suelta aquÃ­ tus archivos exportados de Google Earth, MyMaps o QGIS para crear una nueva zona de fibra automÃ¡ticamente.
             </p>
         </div>
 
         <div class="files-grid-card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
-                <h4 style="margin:0; font-size:1.05rem; font-weight:800; color:var(--text-color);">Exportación y Formatos Soportados</h4>
+                <h4 style="margin:0; font-size:1.05rem; font-weight:800; color:var(--text-color);">ExportaciÃ³n y Formatos Soportados</h4>
                 <div style="display:flex; gap:8px;">
                     <button type="button" class="btn btn-sm btn-secondary" onclick="exportAllGeoJson()">
                         <i class="ph-bold ph-download-simple"></i> Exportar GeoJSON Completo
@@ -955,12 +955,12 @@ include '../../includes/sidebar.php';
                         <span class="badge" style="background:#0284c7; color:#fff; font-size:0.75rem;">KML / KMZ</span>
                         <strong style="font-size:0.9rem;">Google Earth & MyMaps</strong>
                     </div>
-                    <p style="margin:0; font-size:0.8rem; color:var(--text-muted);">Soporta puntos de cajas NAP, mufas, polígonos de zonas y líneas de trazado de cable.</p>
+                    <p style="margin:0; font-size:0.8rem; color:var(--text-muted);">Soporta puntos de cajas NAP, mufas, polÃ­gonos de zonas y lÃ­neas de trazado de cable.</p>
                 </div>
                 <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:12px; padding:16px;">
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
                         <span class="badge" style="background:#10b981; color:#fff; font-size:0.75rem;">GeoJSON</span>
-                        <strong style="font-size:0.9rem;">Estándar GIS / Web</strong>
+                        <strong style="font-size:0.9rem;">EstÃ¡ndar GIS / Web</strong>
                     </div>
                     <p style="margin:0; font-size:0.8rem; color:var(--text-muted);">Formato abierto con propiedades personalizadas (potencia dBm, puertos, cable de origen).</p>
                 </div>
@@ -975,7 +975,7 @@ include '../../includes/sidebar.php';
     <div class="edit-modal-content">
         <h3 id="editModalTitle">Editar nombre del proyecto</h3>
         <input type="text" id="editProjectNameInput" placeholder="Nombre de la zona o sector">
-        <textarea id="editProjectDescInput" placeholder="Descripción de la zona de cobertura (opcional)" rows="3"></textarea>
+        <textarea id="editProjectDescInput" placeholder="DescripciÃ³n de la zona de cobertura (opcional)" rows="3"></textarea>
         <div class="edit-modal-actions">
             <button class="btn-cancel" onclick="closeEditModal()">Cancelar</button>
             <button class="btn-save" onclick="saveEditProject()">Guardar</button>
@@ -984,9 +984,9 @@ include '../../includes/sidebar.php';
 </div>
 
 <script>
-// ══════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // GLOBAL VARIABLES & STATE
-// ══════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 let globalMapInstance = null;
 let globalMarkers = [];
 let globalPolylines = [];
@@ -996,9 +996,9 @@ let currentZonasFilter = 'todas';
 let editProjectId = null;
 let liveUserMarker = null;
 
-// ══════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // INITIALIZATION
-// ══════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 document.addEventListener('DOMContentLoaded', () => {
     loadGlobalStats();
     loadProjects();
@@ -1024,9 +1024,9 @@ function switchFibraTab(tabId) {
     }
 }
 
-// ══════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // STATS & DATA LOADING
-// ══════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 async function loadGlobalStats() {
     try {
         const res = await fetch('api.php?action=get_global_stats').then(r => r.json());
@@ -1054,12 +1054,12 @@ async function loadProjects() {
             renderZonasGrid(allProjectsData);
         } else {
             allProjectsData = [];
-            let msg = currentZonasFilter === 'archivadas' ? "No tienes mapas archivados" : "No tienes mapas de zonas todavía";
+            let msg = currentZonasFilter === 'archivadas' ? "No tienes mapas archivados" : "No tienes mapas de zonas todavÃ­a";
             grid.innerHTML = `
                 <div style="text-align:center; grid-column: 1 / -1; padding: 60px; color: var(--text-muted); background: var(--surface-color); border-radius: 16px; border: 1px dashed var(--border-color);">
                     <i class="ph-fill ph-map-trifold" style="font-size: 3.2rem; margin-bottom: 14px; opacity: 0.35;"></i>
                     <h4 style="color:var(--text-color); margin:0 0 6px;">${msg}</h4>
-                    <p style="margin:0 0 16px;">${currentZonasFilter === 'archivadas' ? 'Las zonas que archives aparecerán aquí.' : 'Crea tu primera zona de fibra para empezar a mapear la red.'}</p>
+                    <p style="margin:0 0 16px;">${currentZonasFilter === 'archivadas' ? 'Las zonas que archives aparecerÃ¡n aquÃ­.' : 'Crea tu primera zona de fibra para empezar a mapear la red.'}</p>
                     <button class="btn btn-primary btn-sm" onclick="crearProyectoModal()">
                         <i class="ph-bold ph-plus"></i> Crear Nuevo Mapa
                     </button>
@@ -1083,7 +1083,7 @@ function renderZonasGrid(projects) {
                 if (geo.type === 'Point' && geo.coordinates) {
                     const lng = geo.coordinates[0];
                     const lat = geo.coordinates[1];
-                    bgImage = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=500x220&maptype=hybrid&key=AIzaSyAzf2GmB9lw1k7ONXk1VHScmd-pe-FtMtE`;
+                    bgImage = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=500x220&maptype=hybrid&key=AIzaSyBNXLdtgdStVUGqNeDFdaHRTpCjaVHF6RE`;
                 }
             } catch(e) {}
         }
@@ -1137,9 +1137,9 @@ function setZonasFilter(filterType, btn) {
     loadProjects();
 }
 
-// ══════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // GLOBAL MAP LOGIC (VISOR CENTRAL)
-// ═══════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 async function loadAllElementsForMap() {
     try {
         const res = await fetch('api.php?action=get_all_elements_summary').then(r => r.json());
@@ -1309,9 +1309,9 @@ function closeNodePopover() {
     if (pop) pop.style.display = 'none';
 }
 
-// ══════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // GPS TAB LOGIC
-// ══════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function renderGpsTable(nodes) {
     const tbody = document.getElementById('gpsTableBody');
     const badge = document.getElementById('gpsNodesCountBadge');
@@ -1319,7 +1319,7 @@ function renderGpsTable(nodes) {
     if (badge) badge.textContent = `${nodes.length} nodo${nodes.length === 1 ? '' : 's'} registrado${nodes.length === 1 ? '' : 's'}`;
 
     if (nodes.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:var(--text-muted);">No hay nodos georreferenciados todavía.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:var(--text-muted);">No hay nodos georreferenciados todavÃ­a.</td></tr>`;
         return;
     }
 
@@ -1377,7 +1377,7 @@ function copyCoordinates(lat, lng) {
 
 function detectLiveLocation() {
     if (!navigator.geolocation) {
-        alert('La geolocalización no está soportada en tu navegador');
+        alert('La geolocalizaciÃ³n no estÃ¡ soportada en tu navegador');
         return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -1394,7 +1394,7 @@ function detectLiveLocation() {
                 liveUserMarker = new google.maps.Marker({
                     position: { lat, lng },
                     map: globalMapInstance,
-                    title: 'Tu Ubicación Actual',
+                    title: 'Tu UbicaciÃ³n Actual',
                     icon: {
                         path: google.maps.SymbolPath.CIRCLE,
                         scale: 9,
@@ -1405,18 +1405,18 @@ function detectLiveLocation() {
                     }
                 });
             }
-            if (window.showToast) window.showToast(`📍 Ubicación encontrada: ${lat.toFixed(5)}, ${lng.toFixed(5)}`, 'success');
+            if (window.showToast) window.showToast(`ðŸ“ UbicaciÃ³n encontrada: ${lat.toFixed(5)}, ${lng.toFixed(5)}`, 'success');
         },
         err => {
-            alert('No se pudo obtener tu ubicación GPS. Verifica los permisos.');
+            alert('No se pudo obtener tu ubicaciÃ³n GPS. Verifica los permisos.');
         },
         { enableHighAccuracy: true }
     );
 }
 
-// ══════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // ARCHIVOS & EXPORT / IMPORT
-// ══════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function initDragAndDrop() {
     const dropZone = document.getElementById('filesUploadZone');
     if (!dropZone) return;
@@ -1457,12 +1457,12 @@ function processUploadedKml(file) {
             }
 
             if (!geojsonData || !geojsonData.features || geojsonData.features.length === 0) {
-                alert('El archivo no contiene elementos geográficos válidos');
+                alert('El archivo no contiene elementos geogrÃ¡ficos vÃ¡lidos');
                 return;
             }
 
             const projectName = file.name.replace(/\.[^/.]+$/, "");
-            if (!confirm(`Se detectaron ${geojsonData.features.length} elementos en "${file.name}". ¿Deseas crear la zona "${projectName}" e importar los elementos?`)) {
+            if (!confirm(`Se detectaron ${geojsonData.features.length} elementos en "${file.name}". Â¿Deseas crear la zona "${projectName}" e importar los elementos?`)) {
                 return;
             }
 
@@ -1486,7 +1486,7 @@ function processUploadedKml(file) {
             const resImp = await fetch('api.php', { method: 'POST', body: fdImp }).then(r => r.json());
 
             if (resImp.success) {
-                alert(`✅ ${resImp.message}. Redirigiendo al mapa...`);
+                alert(`âœ… ${resImp.message}. Redirigiendo al mapa...`);
                 window.location.href = `view.php?id=${resProj.id}`;
             } else {
                 alert('Error al importar elementos: ' + resImp.message);
@@ -1517,9 +1517,9 @@ function exportAllGeoJson() {
         });
 }
 
-// ══════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // PROJECT CRUD & MODALS
-// ══════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function toggleMenu(id, e) {
     e.stopPropagation();
     document.querySelectorAll('.card-menu').forEach(m => {
@@ -1603,7 +1603,7 @@ function saveEditProject() {
 function archiveProject(id, e) {
     e.stopPropagation();
     document.getElementById('menu-'+id)?.classList.remove('show');
-    if(!confirm('¿Estás seguro de archivar este mapa de zona?')) return;
+    if(!confirm('Â¿EstÃ¡s seguro de archivar este mapa de zona?')) return;
     
     const formData = new FormData();
     formData.append('action', 'archive_project');
@@ -1622,7 +1622,7 @@ function archiveProject(id, e) {
 function unarchiveProject(id, e) {
     e.stopPropagation();
     document.getElementById('menu-'+id)?.classList.remove('show');
-    if(!confirm('¿Deseas desarchivar este mapa y devolverlo a la lista de zonas activas?')) return;
+    if(!confirm('Â¿Deseas desarchivar este mapa y devolverlo a la lista de zonas activas?')) return;
     
     const formData = new FormData();
     formData.append('action', 'unarchive_project');
@@ -1641,7 +1641,7 @@ function unarchiveProject(id, e) {
 function deleteProject(id, e) {
     e.stopPropagation();
     document.getElementById('menu-'+id)?.classList.remove('show');
-    if(!confirm('¡ATENCIÓN! ¿Estás totalmente seguro de eliminar este mapa? Se borrarán todos los puntos, hilos y fotos. Esto no se puede deshacer.')) return;
+    if(!confirm('Â¡ATENCIÃ“N! Â¿EstÃ¡s totalmente seguro de eliminar este mapa? Se borrarÃ¡n todos los puntos, hilos y fotos. Esto no se puede deshacer.')) return;
     
     const formData = new FormData();
     formData.append('action', 'delete_project');

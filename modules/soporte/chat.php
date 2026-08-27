@@ -22,8 +22,8 @@ if ($ticket_id > 0) {
 include '../../includes/header.php';
 include '../../includes/sidebar.php';
 ?>
-<!-- Añadir script de Google Maps -->
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAzf2GmB9lw1k7ONXk1VHScmd-pe-FtMtE&libraries=places"></script>
+<!-- AÃ±adir script de Google Maps -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBNXLdtgdStVUGqNeDFdaHRTpCjaVHF6RE&libraries=places"></script>
 
 <style>
     .chat-layout {
@@ -126,7 +126,7 @@ include '../../includes/sidebar.php';
         color: var(--text-muted);
     }
 
-    /* COLUMNA DERECHA: CONVERSACIÓN */
+    /* COLUMNA DERECHA: CONVERSACIÃ“N */
     .chat-main {
         flex: 1;
         display: flex;
@@ -332,7 +332,7 @@ include '../../includes/sidebar.php';
             display: <?php echo $ticket_id > 0 ? 'flex' : 'none'; ?>;
         }
         .message-delete-btn {
-            opacity: 1; /* Siempre visible en móviles */
+            opacity: 1; /* Siempre visible en mÃ³viles */
             background: rgba(255,255,255,0.6);
         }
     }
@@ -349,20 +349,20 @@ include '../../includes/sidebar.php';
             <input type="text" id="chatSearchInput" placeholder="Buscar ticket o cliente...">
         </div>
         <div class="chat-list" id="chatList">
-            <!-- Cargado vía AJAX -->
+            <!-- Cargado vÃ­a AJAX -->
             <div style="padding: 20px; text-align: center; color: var(--text-muted);">Cargando chats...</div>
         </div>
     </div>
 
-    <!-- ÁREA PRINCIPAL -->
+    <!-- ÃREA PRINCIPAL -->
     <?php if ($ticket): ?>
     <div class="chat-main">
         <div id="collisionAlert" style="display:none; background:#fee2e2; color:#ef4444; padding:10px; text-align:center; font-weight:bold; border-bottom:1px solid #fca5a5;">
-            ⚠️ <span id="collisionText">Alguien ya está respondiendo este ticket</span>
+            âš ï¸ <span id="collisionText">Alguien ya estÃ¡ respondiendo este ticket</span>
         </div>
         <div class="chat-main-header">
             <div class="chat-main-profile">
-                <!-- Botón Volver solo visible en móvil -->
+                <!-- BotÃ³n Volver solo visible en mÃ³vil -->
                 <button class="btn btn-sm" style="background:transparent; border:none; font-size:1.5rem; margin-right:10px; display:none;" id="btnBackMobile" onclick="window.location.href='chat.php'"><i class="ph ph-arrow-left"></i></button>
                 
                 <div class="chat-main-avatar">
@@ -371,7 +371,7 @@ include '../../includes/sidebar.php';
                 <div>
                     <div class="chat-main-name"><?php echo htmlspecialchars($ticket['cliente_nombre']); ?></div>
                     <div class="chat-main-status">TKT-<?php echo str_pad($ticket['id'], 4, '0', STR_PAD_LEFT); ?> | <?php echo htmlspecialchars($ticket['asunto']); ?></div>
-                    <div id="typingIndicator" style="display:none; color:var(--primary-color); font-size:0.8rem; font-style:italic; margin-top:2px;">Cliente está escribiendo...</div>
+                    <div id="typingIndicator" style="display:none; color:var(--primary-color); font-size:0.8rem; font-style:italic; margin-top:2px;">Cliente estÃ¡ escribiendo...</div>
                 </div>
             </div>
             <div>
@@ -385,13 +385,13 @@ include '../../includes/sidebar.php';
         </div>
 
         <div class="chat-messages" id="chatMessages">
-            <!-- Mensajes cargados vía AJAX -->
+            <!-- Mensajes cargados vÃ­a AJAX -->
         </div>
 
         <div class="chat-input-area">
             <input type="file" id="chatFileInput" style="display:none;" accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx">
             <button class="btn-icon" title="Adjuntar archivo" onclick="document.getElementById('chatFileInput').click();"><i class="ph ph-paperclip"></i></button>
-            <button class="btn-icon" title="Enviar Ubicación" onclick="openLocationModal();"><i class="ph ph-map-pin"></i></button>
+            <button class="btn-icon" title="Enviar UbicaciÃ³n" onclick="openLocationModal();"><i class="ph ph-map-pin"></i></button>
             <div class="chat-input-wrapper">
                 <div id="chatFilePreview" style="display:none; font-size:0.8rem; background:#f1f5f9; padding:4px 8px; border-radius:4px; margin-bottom:4px; font-weight:600; color:#3b82f6;"></div>
                 <textarea id="messageInput" placeholder="Escribe un mensaje..." rows="1" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"></textarea>
@@ -403,7 +403,7 @@ include '../../includes/sidebar.php';
     <div class="empty-chat">
         <i class="ph ph-chats" style="font-size: 5rem; color: var(--border-color); margin-bottom: 20px;"></i>
         <h3>Selecciona un chat para comenzar</h3>
-        <p>Los tickets de soporte aparecerán en el panel izquierdo.</p>
+        <p>Los tickets de soporte aparecerÃ¡n en el panel izquierdo.</p>
     </div>
     <?php endif; ?>
 </div>
@@ -462,7 +462,7 @@ include '../../includes/sidebar.php';
         
         const isMe = msg.user_id == currentUserId;
         const bubbleClass = isMe ? 'message-sent' : 'message-received';
-        const userName = isMe ? 'Tú' : (msg.user_name || 'Cliente');
+        const userName = isMe ? 'TÃº' : (msg.user_name || 'Cliente');
         
         let attHtml = '';
         if (msg.attachments && msg.attachments.length > 0) {
@@ -489,14 +489,14 @@ include '../../includes/sidebar.php';
             const coords = msg.message.replace('[LOCATION:', '').replace(']', '').split(',');
             const lat = coords[0];
             const lng = coords[1];
-            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=300x150&markers=color:red%7C${lat},${lng}&key=AIzaSyAzf2GmB9lw1k7ONXk1VHScmd-pe-FtMtE`;
-            msgContent = `<div style="margin-bottom:8px;"><a href="https://maps.google.com/?q=${lat},${lng}" target="_blank"><img src="${mapUrl}" style="max-width:100%; border-radius:8px; cursor:pointer;" alt="Ubicación estática"></a><br><small>Ubicación (haz clic para abrir)</small></div>`;
+            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=300x150&markers=color:red%7C${lat},${lng}&key=AIzaSyBNXLdtgdStVUGqNeDFdaHRTpCjaVHF6RE`;
+            msgContent = `<div style="margin-bottom:8px;"><a href="https://maps.google.com/?q=${lat},${lng}" target="_blank"><img src="${mapUrl}" style="max-width:100%; border-radius:8px; cursor:pointer;" alt="UbicaciÃ³n estÃ¡tica"></a><br><small>UbicaciÃ³n (haz clic para abrir)</small></div>`;
         } else if (msg.message && msg.message.startsWith('[LIVE_LOCATION:')) {
             const parts = msg.message.replace('[LIVE_LOCATION:', '').replace(']', '').split(',');
             const lat = parts[0];
             const lng = parts[1];
-            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=300x150&markers=color:blue%7C${lat},${lng}&key=AIzaSyAzf2GmB9lw1k7ONXk1VHScmd-pe-FtMtE`;
-            msgContent = `<div style="margin-bottom:8px;" class="live-location-container" data-user="${msg.user_id || 'client'}"><a href="https://maps.google.com/?q=${lat},${lng}" target="_blank"><img src="${mapUrl}" style="max-width:100%; border-radius:8px; cursor:pointer;" alt="Ubicación en tiempo real"></a><br><small style="color:var(--primary-color);">📍 Ubicación en tiempo real iniciada</small></div>`;
+            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=300x150&markers=color:blue%7C${lat},${lng}&key=AIzaSyBNXLdtgdStVUGqNeDFdaHRTpCjaVHF6RE`;
+            msgContent = `<div style="margin-bottom:8px;" class="live-location-container" data-user="${msg.user_id || 'client'}"><a href="https://maps.google.com/?q=${lat},${lng}" target="_blank"><img src="${mapUrl}" style="max-width:100%; border-radius:8px; cursor:pointer;" alt="UbicaciÃ³n en tiempo real"></a><br><small style="color:var(--primary-color);">ðŸ“ UbicaciÃ³n en tiempo real iniciada</small></div>`;
         }
 
         const html = `
@@ -597,7 +597,7 @@ include '../../includes/sidebar.php';
             if (status.live_lat && status.live_lng) {
                 document.querySelectorAll('.live-location-container img').forEach(img => {
                     // Update only if it's the other person's live location (or both for simplicity)
-                    const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${status.live_lat},${status.live_lng}&zoom=15&size=300x150&markers=color:blue%7C${status.live_lat},${status.live_lng}&key=AIzaSyAzf2GmB9lw1k7ONXk1VHScmd-pe-FtMtE`;
+                    const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${status.live_lat},${status.live_lng}&zoom=15&size=300x150&markers=color:blue%7C${status.live_lat},${status.live_lng}&key=AIzaSyBNXLdtgdStVUGqNeDFdaHRTpCjaVHF6RE`;
                     if (img.src !== mapUrl) {
                         img.src = mapUrl;
                         img.parentElement.href = `https://maps.google.com/?q=${status.live_lat},${status.live_lng}`;
@@ -633,7 +633,7 @@ include '../../includes/sidebar.php';
             
             if(res.success && res.locked) {
                 alertEl.style.display = 'block';
-                document.getElementById('collisionText').innerText = res.locked_by + ' ya está respondiendo este ticket';
+                document.getElementById('collisionText').innerText = res.locked_by + ' ya estÃ¡ respondiendo este ticket';
                 inputEl.disabled = true;
                 btnEl.disabled = true;
             } else {
@@ -683,7 +683,7 @@ include '../../includes/sidebar.php';
                     window.showToast(res.message, 'error');
                 }
             } catch(e) {
-                window.showToast('Error de conexión', 'error');
+                window.showToast('Error de conexiÃ³n', 'error');
             }
             btnSend.disabled = false;
         };
@@ -710,7 +710,7 @@ include '../../includes/sidebar.php';
     };
 
     window.deleteMessage = async (messageId) => {
-        if (!confirm('¿Seguro que deseas eliminar este mensaje?')) return;
+        if (!confirm('Â¿Seguro que deseas eliminar este mensaje?')) return;
         
         const fd = new FormData();
         fd.append('action', 'delete_message');
@@ -726,7 +726,7 @@ include '../../includes/sidebar.php';
                 window.showToast(res.message || 'Error al eliminar', 'error');
             }
         } catch(e) {
-            window.showToast('Error de conexión', 'error');
+            window.showToast('Error de conexiÃ³n', 'error');
         }
     };
 
@@ -785,7 +785,7 @@ include '../../includes/sidebar.php';
         }
     });
 
-    // --- Lógica del Modal de Ubicación y Tiempo Real ---
+    // --- LÃ³gica del Modal de UbicaciÃ³n y Tiempo Real ---
     let locationMap = null;
     let locationMarker = null;
     let selectedLat = 0;
@@ -793,7 +793,7 @@ include '../../includes/sidebar.php';
     
     function openLocationModal() {
         if (!navigator.geolocation) {
-            window.showToast('Geolocalización no soportada por el navegador', 'error');
+            window.showToast('GeolocalizaciÃ³n no soportada por el navegador', 'error');
             return;
         }
         
@@ -804,7 +804,7 @@ include '../../includes/sidebar.php';
             selectedLng = pos.coords.longitude;
             initMap(selectedLat, selectedLng);
         }, (err) => {
-            window.showToast('No se pudo obtener la ubicación actual', 'warning');
+            window.showToast('No se pudo obtener la ubicaciÃ³n actual', 'warning');
             selectedLat = -12.046374;
             selectedLng = -77.042793;
             initMap(selectedLat, selectedLng);
@@ -824,7 +824,7 @@ include '../../includes/sidebar.php';
                 position: center,
                 map: locationMap,
                 draggable: true,
-                title: "Tu ubicación"
+                title: "Tu ubicaciÃ³n"
             });
             
             google.maps.event.addListener(locationMarker, 'dragend', function() {
@@ -877,7 +877,7 @@ include '../../includes/sidebar.php';
     let liveLocationInterval = null;
     function startLiveLocationUpdates() {
         if (liveLocationInterval) return;
-        window.showToast('Ubicación en tiempo real iniciada (1h)', 'success');
+        window.showToast('UbicaciÃ³n en tiempo real iniciada (1h)', 'success');
         
         const sendUpdate = () => {
             navigator.geolocation.getCurrentPosition((pos) => {
@@ -898,16 +898,16 @@ include '../../includes/sidebar.php';
             if(liveLocationInterval) {
                 clearInterval(liveLocationInterval);
                 liveLocationInterval = null;
-                window.showToast('Ubicación en tiempo real finalizada', 'info');
+                window.showToast('UbicaciÃ³n en tiempo real finalizada', 'info');
             }
         }, 60 * 60 * 1000);
     }
 </script>
 
-<!-- Modal de Ubicación -->
+<!-- Modal de UbicaciÃ³n -->
 <div id="locationModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
     <div style="background:var(--surface-color); padding:20px; border-radius:12px; width:90%; max-width:500px; box-shadow:var(--shadow);">
-        <h4 style="margin-top:0; margin-bottom:15px; font-weight:bold;">Enviar Ubicación</h4>
+        <h4 style="margin-top:0; margin-bottom:15px; font-weight:bold;">Enviar UbicaciÃ³n</h4>
         <div id="mapContainer" style="width:100%; height:300px; background:#e2e8f0; border-radius:8px; margin-bottom:15px;"></div>
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <div>
