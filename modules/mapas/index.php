@@ -700,8 +700,8 @@ include '../../includes/sidebar.php';
                 <i class="ph-bold ph-map-trifold"></i>
             </div>
             <div>
-                <h2 class="fibra-header-title">Red de Fibra Ã“ptica</h2>
-                <p class="fibra-header-desc">Centro de control geogrÃ¡fico, infraestructura FTTH y mapeo satelital de zonas</p>
+                <h2 class="fibra-header-title">Red de Fibra Óptica</h2>
+                <p class="fibra-header-desc">Centro de control geográfico, infraestructura FTTH y mapeo satelital de zonas</p>
             </div>
         </div>
         <div class="fibra-header-actions">
