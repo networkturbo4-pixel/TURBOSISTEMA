@@ -3935,9 +3935,6 @@
             display: block !important;
             margin: 0 auto !important;
         }
-        .label-item svg rect {
-            fill: #000000 !important;
-        }
         .label-item canvas, .label-item img {
             max-width: 100% !important;
             height: auto !important;

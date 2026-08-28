@@ -2778,9 +2778,6 @@ body.dark-theme .ms-track {
     .label-item svg {
         background: #ffffff !important;
     }
-    .label-item svg rect {
-        fill: #000000 !important;
-    }
     .label-item canvas, .label-item img {
         background: transparent !important;
         filter: none !important;
