@@ -968,6 +968,9 @@ $equiposMochila = $stmtUserEquip->fetchAll();
 
     <div class="tech-portal-wrapper">
 
+        <!-- Widget Inteligente de Asistencia Biométrica Móvil -->
+        <div id="turboShiftWidget"></div>
+
         <!-- Grid de Tarjetas de Métricas -->
         <div class="stats-grid">
             <div class="stat-card-app">
@@ -1989,5 +1992,10 @@ $equiposMochila = $stmtUserEquip->fetchAll();
     })();
     </script>
 
+    <!-- Asistencia Biométrica Móvil (Face ID / Android / GPS / Liveness) -->
+    <script>
+        window.TURBO_USER_NAME = "<?php echo addslashes($user_name); ?>";
+    </script>
+    <script src="<?php echo BASE_URL; ?>/assets/js/attendance_biometric.js"></script>
 </body>
 </html>

@@ -44,6 +44,10 @@ if (!defined('JSON_PE_TOKEN') && file_exists(__DIR__ . '/env.php')) {
     require_once __DIR__ . '/env.php';
 }
 
+if (!defined('MAPBOX_TOKEN')) {
+    define('MAPBOX_TOKEN', defined('ENV_MAPBOX_TOKEN') ? ENV_MAPBOX_TOKEN : 'pk.YOUR_MAPBOX_TOKEN_HERE');
+}
+
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);

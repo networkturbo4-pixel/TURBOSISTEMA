@@ -338,7 +338,7 @@ include __DIR__ . '/../../../includes/sidebar.php';
                         <!-- Ficha Técnica Dinámica -->
                         <div class="v-card-block">
                             <div class="block-title-row">
-                                <h4><i class="ph-bold ph-identification-card" style="color: #f07d00;"></i> Datos Principales</h4>
+                                <h4><i class="ph-bold ph-identification-card" style="color: #ff6b00;"></i> Datos Principales</h4>
                                 <span id="lblEstadoBadgeTab" class="status-badge badge-activo">Activo</span>
                             </div>
                             <div class="v-specs-list" id="dynamicSpecsList">
@@ -349,7 +349,7 @@ include __DIR__ . '/../../../includes/sidebar.php';
                         <!-- Documentos Adjuntos -->
                         <div class="v-card-block">
                             <div class="block-title-row">
-                                <h4><i class="ph-bold ph-files" style="color: #0e4194;"></i> Documentos Adjuntos</h4>
+                                <h4><i class="ph-bold ph-files" style="color: #ff6b00;"></i> Documentos Adjuntos</h4>
                                 <button type="button" class="btn btn-sm btn-action-pill" onclick="openUploadDocModal()">
                                     <i class="ph-bold ph-upload-simple"></i> Subir Doc
                                 </button>
@@ -364,7 +364,7 @@ include __DIR__ . '/../../../includes/sidebar.php';
                 <!-- TAB 2: Galería de Estado -->
                 <div class="v-tab-pane" id="vtab-galeria">
                     <div class="gallery-toolbar-row">
-                        <h4><i class="ph-bold ph-camera" style="color: #f07d00;"></i> Galería Fotográfica de Estado</h4>
+                        <h4><i class="ph-bold ph-camera" style="color: #ff6b00;"></i> Galería Fotográfica de Estado</h4>
                         <button type="button" class="btn btn-sm btn-action-pill btn-primary-pill" onclick="openUploadImageModal()">
                             <i class="ph-bold ph-plus"></i> Nueva Foto
                         </button>

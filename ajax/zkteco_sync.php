@@ -1,12 +1,12 @@
 <?php
-require_once '../config/db.php';
-require_once '../vendor/autoload.php';
+require_once __DIR__ . '/../config/db.php';
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+}
 requireLogin();
 
 header('Content-Type: application/json');
 ini_set('display_errors', '0'); // Evitar que warnings de PHP rompan el JSON
-
-use Rats\Zkteco\Lib\ZKTeco;
 
 function getZkSettings($pdo) {
     $stmt = $pdo->query("SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('zkteco_ip', 'zkteco_port')");
@@ -15,15 +15,18 @@ function getZkSettings($pdo) {
         $settings[$row['setting_key']] = $row['setting_value'];
     }
     return [
-        'ip' => $settings['zkteco_ip'] ?? '192.168.1.150', // Por defecto a la mostrada en la foto
+        'ip' => $settings['zkteco_ip'] ?? '192.168.1.150',
         'port' => $settings['zkteco_port'] ?? '4370'
     ];
 }
 
 function connectZk($ip, $port) {
+    if (!class_exists('\Rats\Zkteco\Lib\ZKTeco')) {
+        throw new Exception("Librería ZKTeco no instalada (Falta ejecutar 'composer install').");
+    }
     session_write_close(); // Evitar bloqueo de sesión
     ini_set('default_socket_timeout', 5);
-    $zk = new ZKTeco($ip, $port);
+    $zk = new \Rats\Zkteco\Lib\ZKTeco($ip, $port);
     if (!$zk->connect()) {
         throw new Exception("No se pudo conectar al dispositivo ZKTeco en $ip:$port.");
     }

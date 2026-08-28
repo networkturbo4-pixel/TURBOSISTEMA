@@ -402,12 +402,12 @@ body.dark-theme .badge-orange {
 }
 
 body.dark-theme .sidebar-theme-switch {
-    background-color: #090d16;
+    background-color: #111111;
     border-color: rgba(255, 255, 255, 0.08);
 }
 
 body.dark-theme .theme-btn.active {
-    background-color: #141f36;
+    background-color: #222222;
     color: #ff7a00;
     box-shadow: 0 2px 12px rgba(0,0,0,0.4), 0 0 12px rgba(255, 107, 0, 0.3);
 }
@@ -433,9 +433,9 @@ body.dark-theme .theme-btn.active {
 }
 
 body.dark-theme .header {
-    background: rgba(15, 23, 42, 0.85);
+    background: #000000;
     border-bottom: 1px solid rgba(255, 107, 0, 0.15);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .header-left, .header-right {
@@ -510,7 +510,7 @@ body.dark-theme .header {
 }
 
 body.dark-theme .slider {
-    background-color: #141f36;
+    background-color: #222222;
     border-color: rgba(255, 255, 255, 0.12);
 }
 
@@ -619,7 +619,7 @@ body.dark-theme .slider:before {
 }
 
 body.dark-theme .card {
-    background: #0f172a;
+    background: var(--surface-color);
     border-color: rgba(255, 255, 255, 0.08);
 }
 
@@ -764,7 +764,7 @@ th {
 }
 
 body.dark-theme th {
-    background-color: #141f36;
+    background-color: #222222;
     color: #94a3b8;
     border-bottom-color: rgba(255, 107, 0, 0.2);
 }
@@ -800,7 +800,7 @@ body.dark-theme tbody tr:hover {
 }
 
 .table-badge-dark {
-    background: linear-gradient(135deg, #111827 0%, #1e293b 100%);
+    background: linear-gradient(135deg, #111111 0%, #222222 100%);
     color: white;
     padding: 5px 12px;
     border-radius: 20px;
@@ -810,7 +810,7 @@ body.dark-theme tbody tr:hover {
 }
 
 body.dark-theme .table-badge-dark {
-    background: linear-gradient(135deg, #141f36 0%, #0f172a 100%);
+    background: linear-gradient(135deg, #222222 0%, #111111 100%);
     border-color: rgba(255, 107, 0, 0.25);
     color: #ff7a00;
 }
@@ -1131,7 +1131,7 @@ body.dark-theme .table-badge-dark {
 
 /* 3. Dark Shadow */
 .toast-style-dark {
-    background: #0f172a;
+    background: var(--surface-color);
     color: #ffffff;
     border-radius: 14px;
     box-shadow: 0 12px 35px rgba(0,0,0,0.6);
@@ -1157,7 +1157,7 @@ body.dark-theme .table-badge-dark {
 
 /* 6. Neon */
 .toast-style-neon {
-    background: #080c14;
+    background: #000000;
     color: #fff;
     border-radius: 14px;
 }
@@ -1273,7 +1273,7 @@ body.dark-theme input[type="color"] {
 }
 
 body.dark-theme .tag-pill {
-    background-color: #141f36;
+    background-color: #222222;
     border-color: rgba(255, 255, 255, 0.08);
 }
 

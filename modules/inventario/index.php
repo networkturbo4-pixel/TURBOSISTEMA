@@ -1060,79 +1060,113 @@ window.addEventListener('error', function(e) {
 
 <!-- Modal: Selector de Tipo de Producto -->
 <div class="modal-overlay" id="productTypeModal">
-    <div class="modal-content np-type-picker-modal" style="max-width:820px; border-radius:20px;">
-        <div class="modal-header np-modal-header">
-            <div class="np-header-title-box">
-                <div class="np-header-icon-badge" style="background:linear-gradient(135deg, #6366f1, #8b5cf6);">
+    <div class="modal-content np-type-picker-modal">
+        <div class="np-type-picker-header">
+            <div class="np-type-picker-title-group">
+                <div class="np-type-picker-avatar">
                     <i class="ph ph-squares-four"></i>
                 </div>
                 <div>
-                    <h3 class="np-modal-title">¿Qué tipo de producto deseas crear?</h3>
-                    <p class="np-modal-subtitle">Selecciona la estructura que mejor se adapte al control de inventario de este ítem</p>
+                    <h3 class="np-type-picker-title">¿Qué tipo de producto deseas crear?</h3>
+                    <p class="np-type-picker-subtitle">Selecciona la estructura adecuada para el control de inventario de este ítem</p>
                 </div>
             </div>
-            <button class="close-modal np-close-btn" onclick="document.getElementById('productTypeModal').classList.remove('active')"><i class="ph ph-x"></i></button>
+            <button type="button" class="np-type-picker-close" onclick="document.getElementById('productTypeModal').classList.remove('active')" title="Cerrar">
+                <i class="ph ph-x"></i>
+            </button>
         </div>
-        <div class="modal-body" style="padding:24px;">
-            <div class="product-type-grid np-type-grid-modern">
-                <!-- Normal -->
-                <div class="product-type-card np-type-card-interactive" onclick="selectProductType('normal')">
-                    <div class="np-type-card-top">
-                        <div class="product-type-icon" style="background:linear-gradient(135deg, #3b82f6, #2563eb);">
+        
+        <div class="np-type-picker-body">
+            <div class="np-type-cards-grid">
+                <!-- 1. Producto Normal -->
+                <div class="np-type-card-item card-theme-blue" onclick="selectProductType('normal')">
+                    <div class="np-type-card-glow"></div>
+                    <div class="np-type-card-head">
+                        <div class="np-type-icon-wrapper">
                             <i class="ph ph-barcode"></i>
                         </div>
-                        <span class="np-type-badge np-badge-blue">Con SKUs / Seriales</span>
+                        <span class="np-type-chip">Con SKUs / Seriales</span>
                     </div>
-                    <h4>Producto Normal</h4>
-                    <p>Unidades individuales con códigos SKU, series (SN/MAC) y escáner continuo. Ideal para routers, ONTs y herramientas.</p>
-                    <div class="np-type-card-footer">
-                        <span>Configurar SKUs</span>
-                        <i class="ph ph-arrow-right"></i>
+                    <div class="np-type-card-main">
+                        <h4 class="np-type-name">Producto Normal</h4>
+                        <p class="np-type-description">Unidades con series únicas (SN/MAC) y soporte de escáner continuo.</p>
+                    </div>
+                    <div class="np-type-card-tags">
+                        <span class="np-type-tag"><i class="ph ph-cpu"></i> Routers & ONTs</span>
+                        <span class="np-type-tag"><i class="ph ph-wrench"></i> Herramientas</span>
+                    </div>
+                    <div class="np-type-card-bottom">
+                        <span class="np-type-btn-label">Configurar SKUs</span>
+                        <div class="np-type-btn-arrow"><i class="ph ph-arrow-right"></i></div>
                     </div>
                 </div>
-                <!-- Granel -->
-                <div class="product-type-card np-type-card-interactive" onclick="selectProductType('granel')">
-                    <div class="np-type-card-top">
-                        <div class="product-type-icon" style="background:linear-gradient(135deg, #f59e0b, #d97706);">
+
+                <!-- 2. Producto a Granel -->
+                <div class="np-type-card-item card-theme-amber" onclick="selectProductType('granel')">
+                    <div class="np-type-card-glow"></div>
+                    <div class="np-type-card-head">
+                        <div class="np-type-icon-wrapper">
                             <i class="ph ph-scales"></i>
                         </div>
-                        <span class="np-type-badge np-badge-amber">Metros / Kilos / Litros</span>
+                        <span class="np-type-chip">Metros / Kilos / Litros</span>
                     </div>
-                    <h4>Producto a Granel</h4>
-                    <p>Materiales medidos por cantidad continua, metraje o volumen sin seriales unitarios (cables, conectores, bobinas).</p>
-                    <div class="np-type-card-footer">
-                        <span>Configurar Granel</span>
-                        <i class="ph ph-arrow-right"></i>
+                    <div class="np-type-card-main">
+                        <h4 class="np-type-name">Producto a Granel</h4>
+                        <p class="np-type-description">Materiales continuos, metraje o volumen sin seriales unitarios.</p>
+                    </div>
+                    <div class="np-type-card-tags">
+                        <span class="np-type-tag"><i class="ph ph-arrows-left-right"></i> Bobinas & Cables</span>
+                        <span class="np-type-tag"><i class="ph ph-drop"></i> Insumos / Metros</span>
+                    </div>
+                    <div class="np-type-card-bottom">
+                        <span class="np-type-btn-label">Configurar Granel</span>
+                        <div class="np-type-btn-arrow"><i class="ph ph-arrow-right"></i></div>
                     </div>
                 </div>
-                <!-- Agrupado -->
-                <div class="product-type-card np-type-card-interactive" onclick="selectProductType('agrupado')">
-                    <div class="np-type-card-top">
-                        <div class="product-type-icon" style="background:linear-gradient(135deg, #8b5cf6, #7c3aed);">
+
+                <!-- 3. Producto Agrupado -->
+                <div class="np-type-card-item card-theme-purple" onclick="selectProductType('agrupado')">
+                    <div class="np-type-card-glow"></div>
+                    <div class="np-type-card-head">
+                        <div class="np-type-icon-wrapper">
                             <i class="ph ph-stack"></i>
                         </div>
-                        <span class="np-type-badge np-badge-purple">Kits & Variantes</span>
+                        <span class="np-type-chip">Kits & Variantes</span>
                     </div>
-                    <h4>Producto Agrupado</h4>
-                    <p>Agrupa variantes en un producto padre con combinaciones de marca, modelo, color, medidas y cantidades.</p>
-                    <div class="np-type-card-footer">
-                        <span>Configurar Variantes</span>
-                        <i class="ph ph-arrow-right"></i>
+                    <div class="np-type-card-main">
+                        <h4 class="np-type-name">Producto Agrupado</h4>
+                        <p class="np-type-description">Agrupa variantes en un producto padre con combinaciones múltiples.</p>
+                    </div>
+                    <div class="np-type-card-tags">
+                        <span class="np-type-tag"><i class="ph ph-tree-structure"></i> Padre e Hijos</span>
+                        <span class="np-type-tag"><i class="ph ph-sliders"></i> Atributos Dinámicos</span>
+                    </div>
+                    <div class="np-type-card-bottom">
+                        <span class="np-type-btn-label">Configurar Variantes</span>
+                        <div class="np-type-btn-arrow"><i class="ph ph-arrow-right"></i></div>
                     </div>
                 </div>
-                <!-- Bundle -->
-                <div class="product-type-card np-type-card-interactive" onclick="selectProductType('bundle')">
-                    <div class="np-type-card-top">
-                        <div class="product-type-icon" style="background:linear-gradient(135deg, #10b981, #059669);">
+
+                <!-- 4. Producto Bundle -->
+                <div class="np-type-card-item card-theme-emerald" onclick="selectProductType('bundle')">
+                    <div class="np-type-card-glow"></div>
+                    <div class="np-type-card-head">
+                        <div class="np-type-icon-wrapper">
                             <i class="ph ph-package"></i>
                         </div>
-                        <span class="np-type-badge np-badge-emerald">Variantes con Foto</span>
+                        <span class="np-type-chip">Variantes con Foto</span>
                     </div>
-                    <h4>Producto Bundle</h4>
-                    <p>Variantes avanzadas con fotos individuales, unidades de medida y stock propio independiente por cada opción.</p>
-                    <div class="np-type-card-footer">
-                        <span>Configurar Bundle</span>
-                        <i class="ph ph-arrow-right"></i>
+                    <div class="np-type-card-main">
+                        <h4 class="np-type-name">Producto Bundle</h4>
+                        <p class="np-type-description">Variantes con fotos individuales y stock propio independiente.</p>
+                    </div>
+                    <div class="np-type-card-tags">
+                        <span class="np-type-tag"><i class="ph ph-image"></i> Foto por Variante</span>
+                        <span class="np-type-tag"><i class="ph ph-cube"></i> Stock Propio</span>
+                    </div>
+                    <div class="np-type-card-bottom">
+                        <span class="np-type-btn-label">Configurar Bundle</span>
+                        <div class="np-type-btn-arrow"><i class="ph ph-arrow-right"></i></div>
                     </div>
                 </div>
             </div>

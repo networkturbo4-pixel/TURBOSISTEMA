@@ -23,8 +23,14 @@ include '../../includes/sidebar.php';
 ?>
 
 <!-- Google Maps API -->
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBNXLdtgdStVUGqNeDFdaHRTpCjaVHF6RE&libraries=drawing,places,geometry,elevation,marker"></script>
-<!-- Turf.js para mediciÃƒÂ³n de distancias y polÃƒÂ­gonos -->
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" rel="stylesheet">
+<script>mapboxgl.accessToken = "<?php echo defined('MAPBOX_TOKEN') ? MAPBOX_TOKEN : ''; ?>";</script>
+<!-- Turf.js para medición de distancias y polígonos -->
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.3/mapbox-gl-draw.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.3/mapbox-gl-draw.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.3/mapbox-gl-geocoder.min.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.3/mapbox-gl-geocoder.css" rel="stylesheet">
 <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js"></script>
 
@@ -110,7 +116,7 @@ include '../../includes/sidebar.php';
         background: rgba(56, 189, 248, 0.2);
     }
 
-    /* Modal Elemento (Restringido al ÃƒÂ¡rea del mapa) */
+    /* Modal Elemento (Restringido al área del mapa) */
     .element-modal {
         position: absolute;
         top: 0; left: 0; right: 0; bottom: 0;
@@ -133,7 +139,7 @@ include '../../includes/sidebar.php';
         transform: translateY(0) scale(1);
     }
 
-    /* Variante Modal PequeÃƒÂ±o (Para LÃƒÂ­neas y PolÃƒÂ­gonos) */
+    /* Variante Modal Pequeño (Para Líneas y Polígonos) */
     .element-modal.modal-compact {
         width: 420px;
         height: auto;
@@ -271,7 +277,7 @@ include '../../includes/sidebar.php';
 
     #fileUploadInput { display: none; }
 
-    /* Visor de ImÃƒÂ¡genes (Lightbox) */
+    /* Visor de Imágenes (Lightbox) */
     #lightboxOverlay {
         position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
         background: rgba(0, 0, 0, 0.95); backdrop-filter: blur(10px);
@@ -393,7 +399,7 @@ include '../../includes/sidebar.php';
     }
     .geocoder-container input::placeholder { color: #94a3b8 !important; }
     
-    /* Distancia de MediciÃƒÂ³n */
+    /* Distancia de Medición */
     .measurement-box {
         position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
         background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px);
@@ -497,7 +503,7 @@ include '../../includes/sidebar.php';
     }
     body:not(.dark-theme) .geocoder-container input::placeholder { color: #94a3b8 !important; }
 
-    /* Estilo general para selects dinÃƒÂ¡micos */
+    /* Estilo general para selects dinámicos */
     select.map-select { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.1); }
     select.map-select option { color: black; }
     body:not(.dark-theme) select.map-select { background: white; color: #0f172a; border-color: rgba(0,0,0,0.1); }
@@ -565,7 +571,7 @@ include '../../includes/sidebar.php';
             <h4>Vista del Mapa</h4>
             <select id="styleSwitcher" class="form-select form-select-sm map-select">
                 <option value="mapbox://styles/mapbox/dark-v11">Oscuro Premium</option>
-                <option value="mapbox://styles/mapbox/satellite-streets-v12">SatÃƒÂ©lite</option>
+                <option value="mapbox://styles/mapbox/satellite-streets-v12">Satélite</option>
                 <option value="mapbox://styles/mapbox/streets-v12">Calles</option>
             </select>
         </div>
@@ -578,9 +584,9 @@ include '../../includes/sidebar.php';
             <button class="btn-close-modal" onclick="closeModal()"><i class="ph-bold ph-x"></i></button>
         </div>
         <div class="modal-layout">
-            <!-- Izquierda: Detalles TÃƒÂ©cnicos -->
+            <!-- Izquierda: Detalles Técnicos -->
             <div class="modal-col-left">
-                <textarea id="modalDesc" class="modal-desc" rows="2" placeholder="AÃƒÂ±adir descripciÃƒÂ³n o notas..."></textarea>
+                <textarea id="modalDesc" class="modal-desc" rows="2" placeholder="Añadir descripción o notas..."></textarea>
                 
                 <div class="carousel" id="carousel">
                     <div class="no-image">
@@ -593,7 +599,7 @@ include '../../includes/sidebar.php';
                     <div class="coord-box">
                         <i class="ph-fill ph-map-pin"></i> <span id="modalCoords">-11.84, -77.11</span>
                     </div>
-                    <button class="btn-whatsapp-share" onclick="shareLocationWhatsApp()" title="Compartir ubicaciÃƒÂ³n por WhatsApp">
+                    <button class="btn-whatsapp-share" onclick="shareLocationWhatsApp()" title="Compartir ubicación por WhatsApp">
                         <i class="ph-bold ph-whatsapp-logo"></i>
                     </button>
                 </div>
@@ -643,15 +649,15 @@ include '../../includes/sidebar.php';
                     </label>
                     <input type="file" id="fileUploadInput" class="no-dropzone" accept="image/*" capture="environment" style="display:none;" multiple>
                     <button class="action-btn" title="Cambiar Color" onclick="toggleStylePicker(event)"><i class="ph-bold ph-palette"></i></button>
-                    <button class="action-btn btn-nav" title="CÃƒÂ³mo llegar" id="btnNav"><i class="ph-bold ph-navigation-arrow"></i></button>
+                    <button class="action-btn btn-nav" title="Cómo llegar" id="btnNav"><i class="ph-bold ph-navigation-arrow"></i></button>
                     <button class="action-btn btn-del" title="Eliminar" onclick="deleteElement()"><i class="ph-bold ph-trash"></i></button>
                 </div>
             </div>
             
-            <!-- Derecha: GestiÃƒÂ³n de Hilos -->
+            <!-- Derecha: Gestión de Hilos -->
             <div class="modal-col-right" id="portsContainer">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h4 style="margin:0;"><i class="ph-fill ph-graph"></i> GestiÃƒÂ³n de Hilos</h4>
+                    <h4 style="margin:0;"><i class="ph-fill ph-graph"></i> Gestión de Hilos</h4>
                     <select id="techCapacidad" class="form-select form-select-sm map-select" style="width: auto;">
                         <option value="0">Sin Hilos</option>
                         <option value="8">Caja de 8 Hilos</option>
@@ -690,11 +696,11 @@ include '../../includes/sidebar.php';
         <div class="toolbar-tools">
             <button class="tool-btn tool-btn-back" onclick="window.location.href='index.php'" title="Volver a Proyectos"><i class="ph-bold ph-arrow-left"></i></button>
             <div class="toolbar-divider"></div>
-            <button class="tool-btn" onclick="document.querySelector('.map-sidebar').classList.toggle('sidebar-active');" title="MenÃƒÂº"><i class="ph-bold ph-list"></i></button>
+            <button class="tool-btn" onclick="document.querySelector('.map-sidebar').classList.toggle('sidebar-active');" title="Menú"><i class="ph-bold ph-list"></i></button>
             <button class="tool-btn active" id="tool-hand" title="Mover mapa (Esc)" onclick="setTool('simple_select', this)"><i class="ph-bold ph-hand-palm"></i></button>
-            <button class="tool-btn" id="tool-point" title="AÃƒÂ±adir Punto" onclick="setTool('draw_point', this)"><i class="ph-bold ph-map-pin-plus"></i></button>
-            <button class="tool-btn" id="tool-line" title="Dibujar LÃƒÂ­nea" onclick="setTool('draw_line_string', this)"><i class="ph-bold ph-trend-up"></i></button>
-            <button class="tool-btn" id="tool-polygon" title="Dibujar PolÃƒÂ­gono" onclick="setTool('draw_polygon', this)"><i class="ph-bold ph-hexagon"></i></button>
+            <button class="tool-btn" id="tool-point" title="Añadir Punto" onclick="setTool('draw_point', this)"><i class="ph-bold ph-map-pin-plus"></i></button>
+            <button class="tool-btn" id="tool-line" title="Dibujar Línea" onclick="setTool('draw_line_string', this)"><i class="ph-bold ph-trend-up"></i></button>
+            <button class="tool-btn" id="tool-polygon" title="Dibujar Polígono" onclick="setTool('draw_polygon', this)"><i class="ph-bold ph-hexagon"></i></button>
             <button class="tool-btn" id="tool-measure" title="Medir Distancia" onclick="toggleMeasure(this)"><i class="ph-bold ph-ruler"></i></button>
         </div>
         <div class="geocoder-container" id="geocoder">
@@ -706,16 +712,16 @@ include '../../includes/sidebar.php';
     <!-- Panel Estilo Google Earth -->
     <div class="earth-panel" id="earthPanel">
         <div class="earth-panel-header">
-            <span id="epTitle">Ruta o polÃƒÂ­gono</span>
+            <span id="epTitle">Ruta o polígono</span>
             <button onclick="cancelDrawing()" style="background:none;border:none;color:white;cursor:pointer;"><i class="ph-bold ph-x"></i></button>
         </div>
         <div class="earth-panel-body">
             <div id="epLengthArea"></div>
             
             <div id="epElevation" style="display:none; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
-                <div class="earth-stat-label">Perfil de elevaciÃƒÂ³n</div>
+                <div class="earth-stat-label">Perfil de elevación</div>
                 <div class="earth-stat-label" style="margin-top: 5px;">
-                    MÃƒÂ­n.: <span id="epMinElev" style="color:white">-</span> | Media: <span id="epAvgElev" style="color:white">-</span> | MÃƒÂ¡x.: <span id="epMaxElev" style="color:white">-</span>
+                    Mín.: <span id="epMinElev" style="color:white">-</span> | Media: <span id="epAvgElev" style="color:white">-</span> | Máx.: <span id="epMaxElev" style="color:white">-</span>
                 </div>
                 <canvas id="elevationChart" class="elevation-chart"></canvas>
             </div>
@@ -726,7 +732,7 @@ include '../../includes/sidebar.php';
 
 </div>
 
-<!-- Visor de ImÃƒÂ¡genes a Pantalla Completa -->
+<!-- Visor de Imágenes a Pantalla Completa -->
 <div id="lightboxOverlay" onclick="closeLightbox(event)">
     <button id="lightboxClose" class="lb-btn lb-close" onclick="closeLightbox(event)">&times;</button>
     <button class="lb-btn lb-prev" onclick="lbChangeImg(-1, event)"><i class="ph-bold ph-caret-left"></i></button>
@@ -762,135 +768,135 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function initMap() {
-    map = new google.maps.Map(document.getElementById("map"), {
-        center: { lat: -11.865, lng: -77.086 },
+    map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/satellite-streets-v12',
+        center: [-77.086, -11.865],
         zoom: 15,
-        mapTypeId: google.maps.MapTypeId.HYBRID, // SatÃƒÂ©lite con calles
-        tilt: 45, // Modo Earth 3D
-        streetViewControl: true,
-        mapTypeControl: false,
-        fullscreenControl: false,
-        zoomControl: true,
-        zoomControlOptions: {
-            position: google.maps.ControlPosition.RIGHT_BOTTOM,
-        },
-        streetViewControlOptions: {
-            position: google.maps.ControlPosition.RIGHT_BOTTOM,
-        }
+        pitch: 45
     });
 
-    elevationService = new google.maps.ElevationService();
+    map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
 
-    // Data Layer para cargar GeoJSON
-    map.data.setStyle(function(feature) {
-        let type = feature.getGeometry().getType();
-        let color = feature.getProperty('color') || '#a78bfa';
-        
-        if (type === 'LineString') {
-            return { strokeColor: color, strokeWeight: 4 };
-        } else if (type === 'Polygon') {
-            return { fillColor: color, fillOpacity: 0.3, strokeColor: color, strokeWeight: 2 };
-        }
-        return { visible: false }; // Markers manejados por separado
+    const geocoder = new MapboxGeocoder({
+        accessToken: mapboxgl.accessToken,
+        mapboxgl: mapboxgl,
+        marker: false,
+        placeholder: 'Buscar dirección o nodo...'
+    });
+    document.getElementById('googleSearchInput').parentNode.replaceChild(geocoder.onAdd(map), document.getElementById('googleSearchInput'));
+
+    geocoder.on('result', (e) => {
+        // Fallback for local search if not found in Mapbox geocoder is tricky with this plugin,
+        // but we can just use the standard geocoder results for now.
     });
 
-    map.data.addListener('click', function(event) {
-        let f = currentGeoJson.features.find(x => x.properties.id == event.feature.getProperty('id'));
-        if(f) {
-            let center;
-            if (f.geometry.type === 'Polygon') center = f.geometry.coordinates[0][0];
-            else center = f.geometry.coordinates[0];
-            openModal(f.properties.id, center, f.properties.name, f.properties.color, f.properties.icono, f.properties.descripcion, f.geometry.type, f);
-        }
-    });
-
-    // Drawing Manager
-    drawingManager = new google.maps.drawing.DrawingManager({
-        drawingMode: null,
-        drawingControl: false,
-        polygonOptions: { fillColor: '#38bdf8', fillOpacity: 0.3, strokeWeight: 2, strokeColor: '#38bdf8', editable: true },
-        polylineOptions: { strokeColor: '#38bdf8', strokeWeight: 4, editable: true }
-    });
-    drawingManager.setMap(map);
-
-    google.maps.event.addListener(drawingManager, 'overlaycomplete', function(event) {
-        drawingManager.setDrawingMode(null);
-        document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById('tool-hand').classList.add('active');
-        
-        if(currentDrawing) currentDrawing.setMap(null); // Borrar anterior si hay
-        currentDrawing = event.overlay;
-
-        let tipo = event.type === 'polyline' ? 'LineString' : (event.type === 'polygon' ? 'Polygon' : 'Point');
-        
-        // Crear GeoJSON temporal para Turf
-        if(tipo === 'LineString') {
-            let path = currentDrawing.getPath().getArray().map(p => [p.lng(), p.lat()]);
-            currentDrawingFeature = turf.lineString(path);
-            showEarthPanel(currentDrawingFeature, 'LineString');
-            
-            // Re-calcular si el usuario edita la lÃƒÂ­nea
-            google.maps.event.addListener(currentDrawing.getPath(), 'set_at', () => updateEarthPanelStats());
-            google.maps.event.addListener(currentDrawing.getPath(), 'insert_at', () => updateEarthPanelStats());
-            
-        } else if (tipo === 'Polygon') {
-            let path = currentDrawing.getPath().getArray().map(p => [p.lng(), p.lat()]);
-            path.push(path[0]); // Cerrar polÃƒÂ­gono
-            currentDrawingFeature = turf.polygon([path]);
-            showEarthPanel(currentDrawingFeature, 'Polygon');
-            
-            google.maps.event.addListener(currentDrawing.getPath(), 'set_at', () => updateEarthPanelStats());
-            google.maps.event.addListener(currentDrawing.getPath(), 'insert_at', () => updateEarthPanelStats());
-            
-        } else if (tipo === 'Point') {
-            currentDrawingFeature = turf.point([currentDrawing.getPosition().lng(), currentDrawing.getPosition().lat()]);
-            // Guardar directo para punto
-            saveCurrentDrawing(true); // true = auto
-        }
-    });
-
-    // Buscador Google Places Autocomplete
-    const input = document.getElementById("googleSearchInput");
-    const autocomplete = new google.maps.places.Autocomplete(input);
-    autocomplete.bindTo("bounds", map);
-
-    autocomplete.addListener("place_changed", () => {
-        const place = autocomplete.getPlace();
-        if (!place.geometry || !place.geometry.location) {
-            // Buscar en BD local si no es lugar de Google
-            let res = currentGeoJson.features.find(f => f.properties.name.toLowerCase().includes(input.value.toLowerCase()));
-            if(res) {
-                let center = res.geometry.type === 'Point' ? res.geometry.coordinates : res.geometry.coordinates[0];
-                map.setCenter({lng: center[0], lat: center[1]});
-                map.setZoom(18);
-                openModal(res.properties.id, center, res.properties.name, res.properties.color, res.properties.icono, res.properties.descripcion, res.geometry.type, res);
+    draw = new MapboxDraw({
+        displayControlsDefault: false,
+        styles: [
+            // Line stroke
+            {
+                "id": "gl-draw-line",
+                "type": "line",
+                "filter": ["all", ["==", "$type", "LineString"], ["!=", "mode", "static"]],
+                "layout": {
+                    "line-cap": "round",
+                    "line-join": "round"
+                },
+                "paint": {
+                    "line-color": "#38bdf8",
+                    "line-width": 4
+                }
+            },
+            // Polygon fill
+            {
+                "id": "gl-draw-polygon-fill",
+                "type": "fill",
+                "filter": ["all", ["==", "$type", "Polygon"], ["!=", "mode", "static"]],
+                "paint": {
+                    "fill-color": "#38bdf8",
+                    "fill-outline-color": "#38bdf8",
+                    "fill-opacity": 0.3
+                }
+            },
+            // Point marker
+            {
+                "id": "gl-draw-point",
+                "type": "circle",
+                "filter": ["all", ["==", "$type", "Point"], ["!=", "mode", "static"]],
+                "paint": {
+                    "circle-radius": 7,
+                    "circle-color": "#38bdf8"
+                }
             }
-            return;
-        }
-        map.setCenter(place.geometry.location);
-        map.setZoom(17);
+        ]
     });
+    map.addControl(draw);
 
-    loadMapData();
+    map.on('draw.create', handleDrawEvent);
+    map.on('draw.update', handleDrawEvent);
+
+    map.on('load', () => {
+        loadMapData();
+        
+        map.on('click', 'layer-lines', (e) => handleFeatureClick(e));
+        map.on('click', 'layer-polygons', (e) => handleFeatureClick(e));
+        
+        map.on('mouseenter', 'layer-lines', () => map.getCanvas().style.cursor = 'pointer');
+        map.on('mouseleave', 'layer-lines', () => map.getCanvas().style.cursor = '');
+        map.on('mouseenter', 'layer-polygons', () => map.getCanvas().style.cursor = 'pointer');
+        map.on('mouseleave', 'layer-polygons', () => map.getCanvas().style.cursor = '');
+    });
+}
+
+function handleFeatureClick(e) {
+    if(!e.features || !e.features.length) return;
+    const f = currentGeoJson.features.find(x => x.properties.id == e.features[0].properties.id);
+    if(f) {
+        let center;
+        if (f.geometry.type === 'Polygon') center = f.geometry.coordinates[0][0];
+        else center = f.geometry.coordinates[0];
+        // Note: Coordinates in GeoJSON are [lng, lat]. OpenModal expects [lng, lat] (or [lat, lng] depending on implementation).
+        // Original code: coords[1].toFixed(5), coords[0].toFixed(5) -> openModal(id, center, ...) center[0]=lng, center[1]=lat
+        openModal(f.properties.id, center, f.properties.name, f.properties.color, f.properties.icono, f.properties.descripcion, f.geometry.type, f);
+    }
+}
+
+function handleDrawEvent(e) {
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tool-hand').classList.add('active');
+    
+    if(e.features && e.features.length > 0) {
+        const feature = e.features[0];
+        currentDrawing = feature;
+        currentDrawingFeature = feature;
+
+        let tipo = feature.geometry.type;
+        
+        if(tipo === 'LineString') {
+            showEarthPanel(currentDrawingFeature, 'LineString');
+        } else if (tipo === 'Polygon') {
+            showEarthPanel(currentDrawingFeature, 'Polygon');
+        } else if (tipo === 'Point') {
+            saveCurrentDrawing(true);
+        }
+    }
 }
 
 // PANEL EARTH
 function showEarthPanel(feature, type) {
     document.getElementById('earthPanel').classList.add('active');
-    document.getElementById('epTitle').innerText = type === 'LineString' ? 'Ruta de Cable' : 'Zona PolÃƒÂ­gono';
+    document.getElementById('epTitle').innerText = type === 'LineString' ? 'Ruta de Cable' : 'Zona Polígono';
     updateEarthPanelStats();
 }
 
 function updateEarthPanelStats() {
-    if(!currentDrawing || !currentDrawingFeature) return;
+    if(!currentDrawingFeature) return;
     
     let html = '';
     let tipo = currentDrawingFeature.geometry.type;
     
     if (tipo === 'LineString') {
-        let path = currentDrawing.getPath().getArray().map(p => [p.lng(), p.lat()]);
-        currentDrawingFeature = turf.lineString(path); // Update feature
-        
         let len = turf.length(currentDrawingFeature, {units: 'meters'});
         let lenTxt = len > 1000 ? (len/1000).toFixed(2) + ' km' : len.toFixed(2) + ' m';
         
@@ -901,25 +907,21 @@ function updateEarthPanelStats() {
                 
         document.getElementById('epLengthArea').innerHTML = html;
         document.getElementById('epElevation').style.display = 'block';
-        calculateElevation(currentDrawing.getPath().getArray());
+        calculateElevation(currentDrawingFeature.geometry.coordinates);
         
     } else if (tipo === 'Polygon') {
-        let path = currentDrawing.getPath().getArray().map(p => [p.lng(), p.lat()]);
-        path.push(path[0]);
-        currentDrawingFeature = turf.polygon([path]); // Update feature
-        
         let area = turf.area(currentDrawingFeature);
         let perim = turf.length(turf.polygonToLine(currentDrawingFeature), {units: 'meters'});
         
-        let areaTxt = area > 1000000 ? (area/1000000).toFixed(2) + ' kmÃ‚Â²' : area.toFixed(2) + ' mÃ‚Â²';
+        let areaTxt = area > 1000000 ? (area/1000000).toFixed(2) + ' km²' : area.toFixed(2) + ' m²';
         let perimTxt = perim > 1000 ? (perim/1000).toFixed(2) + ' km' : perim.toFixed(2) + ' m';
         
         html = `<div class="earth-stat">
-                    <span class="earth-stat-label">PerÃƒÂ­metro</span>
+                    <span class="earth-stat-label">Perímetro</span>
                     <span class="earth-stat-value">${perimTxt}</span>
                 </div>
                 <div class="earth-stat">
-                    <span class="earth-stat-label">ÃƒÂrea</span>
+                    <span class="earth-stat-label">Área</span>
                     <span class="earth-stat-value">${areaTxt}</span>
                 </div>`;
                 
@@ -931,12 +933,24 @@ function updateEarthPanelStats() {
 function calculateElevation(pathArray) {
     if(pathArray.length < 2) return;
     
-    elevationService.getElevationAlongPath({
-        path: pathArray,
-        samples: 50
-    }, function(results, status) {
-        if (status === 'OK' && results) {
-            let elevations = results.map(r => r.elevation);
+    // We will sample 50 points along the line
+    const line = turf.lineString(pathArray);
+    const length = turf.length(line, {units: 'kilometers'});
+    const locations = [];
+    for(let i=0; i<=50; i++) {
+        const p = turf.along(line, (i/50)*length, {units: 'kilometers'});
+        locations.push({latitude: p.geometry.coordinates[1], longitude: p.geometry.coordinates[0]});
+    }
+
+    fetch('https://api.open-elevation.com/api/v1/lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locations })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if(res && res.results) {
+            let elevations = res.results.map(r => r.elevation);
             let min = Math.min(...elevations);
             let max = Math.max(...elevations);
             let avg = elevations.reduce((a,b)=>a+b,0) / elevations.length;
@@ -947,7 +961,8 @@ function calculateElevation(pathArray) {
             
             drawElevationChart(elevations, min, max);
         }
-    });
+    })
+    .catch(e => console.warn('Elevation error:', e));
 }
 
 function drawElevationChart(elevations, min, max) {
@@ -960,7 +975,7 @@ function drawElevationChart(elevations, min, max) {
     if(elevations.length === 0) return;
     
     const range = max - min;
-    const padding = range === 0 ? 10 : range * 0.2; // Evitar division por cero
+    const padding = range === 0 ? 10 : range * 0.2;
     const graphMin = min - padding;
     const graphMax = max + padding;
     
@@ -989,7 +1004,9 @@ function drawElevationChart(elevations, min, max) {
 }
 
 function cancelDrawing() {
-    if(currentDrawing) currentDrawing.setMap(null);
+    if(currentDrawing && currentDrawing.id) {
+        draw.delete(currentDrawing.id);
+    }
     currentDrawing = null;
     currentDrawingFeature = null;
     document.getElementById('earthPanel').classList.remove('active');
@@ -1036,14 +1053,13 @@ function setTool(mode, btn) {
     document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     
-    if (mode === 'simple_select') drawingManager.setDrawingMode(null);
-    if (mode === 'draw_point') drawingManager.setDrawingMode(google.maps.drawing.OverlayType.MARKER);
-    if (mode === 'draw_line_string') drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYLINE);
-    if (mode === 'draw_polygon') drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
+    if (mode === 'simple_select') draw.changeMode('simple_select');
+    if (mode === 'draw_point') draw.changeMode('draw_point');
+    if (mode === 'draw_line_string') draw.changeMode('draw_line_string');
+    if (mode === 'draw_polygon') draw.changeMode('draw_polygon');
 }
 
 function toggleMeasure(btn) {
-    // La medidÃƒÂ³n se maneja usando draw_line_string que ahora abre el panel Earth
     setTool('draw_line_string', btn);
 }
 
@@ -1053,11 +1069,39 @@ function loadMapData() {
         .then(res => {
             if(res.success) {
                 currentGeoJson = res.geojson;
-                // Actualizar Data Layer
-                map.data.forEach(function(feature) {
-                    map.data.remove(feature);
-                });
-                map.data.addGeoJson(currentGeoJson);
+                
+                if (map.getSource('project-data')) {
+                    map.getSource('project-data').setData(currentGeoJson);
+                } else {
+                    map.addSource('project-data', {
+                        type: 'geojson',
+                        data: currentGeoJson
+                    });
+                    
+                    map.addLayer({
+                        id: 'layer-polygons',
+                        type: 'fill',
+                        source: 'project-data',
+                        filter: ['==', '$type', 'Polygon'],
+                        paint: {
+                            'fill-color': ['coalesce', ['get', 'color'], '#a78bfa'],
+                            'fill-opacity': 0.3,
+                            'fill-outline-color': ['coalesce', ['get', 'color'], '#a78bfa']
+                        }
+                    });
+                    
+                    map.addLayer({
+                        id: 'layer-lines',
+                        type: 'line',
+                        source: 'project-data',
+                        filter: ['==', '$type', 'LineString'],
+                        paint: {
+                            'line-color': ['coalesce', ['get', 'color'], '#a78bfa'],
+                            'line-width': 4
+                        }
+                    });
+                }
+                
                 renderMarkers();
                 fitMapToBounds();
             }
@@ -1065,7 +1109,9 @@ function loadMapData() {
 }
 
 function renderMarkers() {
-    currentMarkers.forEach(m => m.setMap(null));
+    if(typeof currentMarkers !== 'undefined' && currentMarkers) {
+        currentMarkers.forEach(m => m.remove());
+    }
     currentMarkers = [];
     
     currentGeoJson.features.forEach(f => {
@@ -1074,26 +1120,32 @@ function renderMarkers() {
             const icono = f.properties.icono || 'ph-map-pin';
             const color = f.properties.color || '#a78bfa';
             
-            // Usar AdvancedMarkerElement si es posible, o Marker clÃƒÂ¡sico
-            let iconUrl;
+            const el = document.createElement('div');
+            el.className = 'custom-marker';
+            el.style.width = '32px';
+            el.style.height = '32px';
+            el.style.display = 'flex';
+            el.style.alignItems = 'center';
+            el.style.justifyContent = 'center';
+            el.style.cursor = 'pointer';
+            
             if (icono.includes('/')) {
-                iconUrl = '../../' + icono; // Ruta a PNG
+                const img = document.createElement('img');
+                img.src = '../../' + icono;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                el.appendChild(img);
             } else {
-                // Generar icono en canvas temporal (simplificado para SVG)
-                iconUrl = `data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' width='32' height='32'%3E%3Cpath fill='${encodeURIComponent(color)}' d='M128,64a40,40,0,1,0,40,40A40,40,0,0,0,128,64Zm0,64a24,24,0,1,1,24-24A24,24,0,0,1,128,128Zm0-112a88.1,88.1,0,0,0-88,88c0,31.4,14.51,64.68,42,96.25a254.19,254.19,0,0,0,41.45,38.3,8,8,0,0,0,9.18,0A254.19,254.19,0,0,0,174,200.25c27.45-31.57,42-64.85,42-96.25A88.1,88.1,0,0,0,128,16Zm0,206.5c-35.39-27.18-72-65.75-72-118.5a72,72,0,0,1,144,0C200,156.75,163.39,195.32,128,222.5Z'/%3E%3C/svg%3E`;
+                const svg = document.createElement('div');
+                svg.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="32" height="32"><path fill="${color}" d="M128,64a40,40,0,1,0,40,40A40,40,0,0,0,128,64Zm0,64a24,24,0,1,1,24-24A24,24,0,0,1,128,128Zm0-112a88.1,88.1,0,0,0-88,88c0,31.4,14.51,64.68,42,96.25a254.19,254.19,0,0,0,41.45,38.3,8,8,0,0,0,9.18,0A254.19,254.19,0,0,0,174,200.25c27.45-31.57,42-64.85,42-96.25A88.1,88.1,0,0,0,128,16Zm0,206.5c-35.39-27.18-72-65.75-72-118.5a72,72,0,0,1,144,0C200,156.75,163.39,195.32,128,222.5Z"/></svg>`;
+                el.appendChild(svg);
             }
             
-            const marker = new google.maps.Marker({
-                position: { lat: coords[1], lng: coords[0] },
-                map: map,
-                icon: {
-                    url: iconUrl,
-                    scaledSize: new google.maps.Size(32, 32)
-                },
-                title: f.properties.name
-            });
-            
-            marker.addListener('click', () => {
+            const marker = new mapboxgl.Marker(el)
+                .setLngLat(coords)
+                .addTo(map);
+                
+            el.addEventListener('click', () => {
                 openModal(f.properties.id, coords, f.properties.name, f.properties.color, f.properties.icono, f.properties.descripcion, 'Point', f);
             });
                 
@@ -1104,31 +1156,16 @@ function renderMarkers() {
 
 function fitMapToBounds() {
     if(currentGeoJson.features.length === 0) return;
-    const bounds = new google.maps.LatLngBounds();
+    const bounds = new mapboxgl.LngLatBounds();
     currentGeoJson.features.forEach(f => {
-        if(f.geometry.type === 'Point') bounds.extend({lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0]});
-        else if (f.geometry.type === 'LineString') f.geometry.coordinates.forEach(c => bounds.extend({lat: c[1], lng: c[0]}));
-        else if (f.geometry.type === 'Polygon') f.geometry.coordinates[0].forEach(c => bounds.extend({lat: c[1], lng: c[0]}));
+        if(f.geometry.type === 'Point') bounds.extend(f.geometry.coordinates);
+        else if (f.geometry.type === 'LineString') f.geometry.coordinates.forEach(c => bounds.extend(c));
+        else if (f.geometry.type === 'Polygon') f.geometry.coordinates[0].forEach(c => bounds.extend(c));
     });
-    map.fitBounds(bounds);
-}
-
-document.getElementById('styleSwitcher').addEventListener('change', function(e) {
-    if(this.value.includes('dark')) {
-        map.setMapTypeId(google.maps.MapTypeId.ROADMAP);
-        map.setOptions({styles: [
-          { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
-          { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
-          { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] }
-        ]}); // Estilo oscuro simplificado
-    } else if (this.value.includes('satellite')) {
-        map.setMapTypeId(google.maps.MapTypeId.HYBRID);
-        map.setOptions({styles: []});
-    } else {
-        map.setMapTypeId(google.maps.MapTypeId.ROADMAP);
-        map.setOptions({styles: []});
+    if (!bounds.isEmpty()) {
+        map.fitBounds(bounds, { padding: 50 });
     }
-});
+}
 
 // Importar KML
 function processKmlFile(file) {
@@ -1182,13 +1219,13 @@ kmlDropZone.addEventListener('drop', (e) => {
     }
 });
 
-// MODAL LOGIC (Se mantiene prÃƒÂ¡cticamente igual)
+// MODAL LOGIC (Se mantiene prácticamente igual)
 let activePuertos = [];
 
 function shareLocationWhatsApp() {
     if (!activeElementId) return;
     const coordsText = document.getElementById('modalCoords').innerText;
-    const title = document.getElementById('modalTitle').value || 'UbicaciÃƒÂ³n';
+    const title = document.getElementById('modalTitle').value || 'Ubicación';
     const url = `https://www.google.com/maps/search/?api=1&query=${coordsText.replace(/ /g, '')}`;
     const message = `*${title}*\nCoordenadas: ${coordsText}\nMapa: ${url}`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
@@ -1236,7 +1273,7 @@ function openModal(id, coords, name, color, icono, descripcion, type = 'Point', 
         if (type === 'Polygon' && feature) {
             techPoly.style.display = 'block';
             let area = turf.area(feature);
-            document.getElementById('techArea').value = area > 1000000 ? (area/1000000).toFixed(2) + ' kmÃ‚Â²' : area.toFixed(2) + ' mÃ‚Â²';
+            document.getElementById('techArea').value = area > 1000000 ? (area/1000000).toFixed(2) + ' km²' : area.toFixed(2) + ' m²';
         } else {
             techPoly.style.display = 'none';
         }
@@ -1263,7 +1300,7 @@ function openModal(id, coords, name, color, icono, descripcion, type = 'Point', 
                     renderCarousel();
                 }
                 
-                // Datos TÃƒÂ©cnicos
+                // Datos Técnicos
                 document.getElementById('techCable').value = res.data.cable_origen || '';
                 document.getElementById('techDbm').value = res.data.potencia_dbm || '';
                 document.getElementById('techSplitter').value = res.data.splitter_tipo || '';
@@ -1303,7 +1340,7 @@ function closeModal() {
     fetch('api.php', {method: 'POST', body: formData}).then(() => loadMapData());
 }
 
-// LÃƒâ€œGICA DE PUERTOS
+// LÓGICA DE PUERTOS
 document.getElementById('techCapacidad').addEventListener('change', () => {
     closeModal();
     setTimeout(() => {
@@ -1596,7 +1633,7 @@ carouselEl.addEventListener('drop', (e) => {
 });
 
 function deleteElement() {
-    if(confirm('Ã‚Â¿Seguro que deseas eliminar este elemento del mapa?')) {
+    if(confirm('¿Seguro que deseas eliminar este elemento del mapa?')) {
         const formData = new FormData();
         formData.append('action', 'delete_element');
         formData.append('id', activeElementId);

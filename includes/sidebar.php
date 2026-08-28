@@ -2,10 +2,10 @@
 if (isset($_GET['embedded']) || isset($_GET['portal'])) {
     return;
 }
-$logoLight = $globalSettings['logo_light'] ?? '';
-$logoDark = $globalSettings['logo_dark'] ?? '';
-$logoCollapsedLight = $globalSettings['logo_collapsed_light'] ?? '';
-$logoCollapsedDark = $globalSettings['logo_collapsed_dark'] ?? '';
+$logoLight = !empty($globalSettings['logo_light']) && file_exists(__DIR__ . '/../' . $globalSettings['logo_light']) ? $globalSettings['logo_light'] : '';
+$logoDark = !empty($globalSettings['logo_dark']) && file_exists(__DIR__ . '/../' . $globalSettings['logo_dark']) ? $globalSettings['logo_dark'] : '';
+$logoCollapsedLight = !empty($globalSettings['logo_collapsed_light']) && file_exists(__DIR__ . '/../' . $globalSettings['logo_collapsed_light']) ? $globalSettings['logo_collapsed_light'] : '';
+$logoCollapsedDark = !empty($globalSettings['logo_collapsed_dark']) && file_exists(__DIR__ . '/../' . $globalSettings['logo_collapsed_dark']) ? $globalSettings['logo_collapsed_dark'] : '';
 $appNameSidebar = $globalSettings['app_name'] ?? 'Turbo SaaS';
 ?>
 <aside class="sidebar">

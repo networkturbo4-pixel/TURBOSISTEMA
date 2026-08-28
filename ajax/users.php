@@ -1,7 +1,8 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
-require_once __DIR__ . '/../vendor/autoload.php';
-use Rats\Zkteco\Lib\ZKTeco;
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+}
 
 header('Content-Type: application/json');
 
@@ -52,10 +53,11 @@ function getZkSettingsLocal($pdo) {
 
 function syncUserToZKTeco($pdo, $biometric_id, $name) {
     if (empty($biometric_id)) return;
+    if (!class_exists('\Rats\Zkteco\Lib\ZKTeco')) return;
     try {
         $settings = getZkSettingsLocal($pdo);
         ini_set('default_socket_timeout', 2); // Fast fail
-        $zk = new ZKTeco($settings['ip'], $settings['port']);
+        $zk = new \Rats\Zkteco\Lib\ZKTeco($settings['ip'], $settings['port']);
         if ($zk->connect()) {
             $zk->setUser((int)$biometric_id, (string)$biometric_id, substr($name, 0, 24), '', 0);
             $zk->disconnect();
@@ -65,10 +67,11 @@ function syncUserToZKTeco($pdo, $biometric_id, $name) {
 
 function removeUserFromZKTeco($pdo, $biometric_id) {
     if (empty($biometric_id)) return;
+    if (!class_exists('\Rats\Zkteco\Lib\ZKTeco')) return;
     try {
         $settings = getZkSettingsLocal($pdo);
         ini_set('default_socket_timeout', 2);
-        $zk = new ZKTeco($settings['ip'], $settings['port']);
+        $zk = new \Rats\Zkteco\Lib\ZKTeco($settings['ip'], $settings['port']);
         if ($zk->connect()) {
             $zk->removeUser((int)$biometric_id);
             $zk->disconnect();

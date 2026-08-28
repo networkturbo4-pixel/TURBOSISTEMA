@@ -2563,28 +2563,32 @@ try {
             }
 
             // 6. Historial de Escaneos
-            $stmtScans = $pdo->prepare("
-                SELECT sc.id, sc.sku_code, sc.created_at, u.name as user_name
-                FROM inventory_scans sc
-                LEFT JOIN users u ON sc.user_id = u.id
-                WHERE sc.product_id IN ($inPlaceholders)
-                ORDER BY sc.created_at DESC
-                LIMIT 50
-            ");
-            $stmtScans->execute($allProductIds);
-            foreach ($stmtScans->fetchAll() as $r) {
-                $timeline[] = [
-                    'id' => 'scan_' . $r['id'],
-                    'type' => 'scan',
-                    'badge_class' => 'badge-scan',
-                    'icon' => 'ph-barcode',
-                    'title' => 'Escaneo de Producto',
-                    'description' => "Se escaneó el código: <strong>" . htmlspecialchars($r['sku_code'] ?? 'Desconocido') . "</strong>",
-                    'details' => null,
-                    'user' => $r['user_name'] ?? 'Usuario',
-                    'date' => $r['created_at'],
-                    'timestamp' => strtotime($r['created_at'])
-                ];
+            try {
+                $stmtScans = $pdo->prepare("
+                    SELECT sc.id, sc.sku_code, sc.created_at, u.name as user_name
+                    FROM inventory_scans sc
+                    LEFT JOIN users u ON sc.user_id = u.id
+                    WHERE sc.product_id IN ($inPlaceholders)
+                    ORDER BY sc.created_at DESC
+                    LIMIT 50
+                ");
+                $stmtScans->execute($allProductIds);
+                foreach ($stmtScans->fetchAll() as $r) {
+                    $timeline[] = [
+                        'id' => 'scan_' . $r['id'],
+                        'type' => 'scan',
+                        'badge_class' => 'badge-scan',
+                        'icon' => 'ph-barcode',
+                        'title' => 'Escaneo de Producto',
+                        'description' => "Se escaneó el código: <strong>" . htmlspecialchars($r['sku_code'] ?? 'Desconocido') . "</strong>",
+                        'details' => null,
+                        'user' => $r['user_name'] ?? 'Usuario',
+                        'date' => $r['created_at'],
+                        'timestamp' => strtotime($r['created_at'])
+                    ];
+                }
+            } catch (Exception $eScans) {
+                // Si la tabla no está disponible o falla, continuar sin bloquear el timeline
             }
 
             // Ordenar timeline desc por fecha
