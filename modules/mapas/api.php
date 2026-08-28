@@ -8,6 +8,12 @@ if (!hasAccess($pdo, 'mapas')) {
     exit;
 }
 
+// IMPORTANTE: Liberar la sesión inmediatamente. 
+// Como las consultas de mapas (GeoJSON) pueden tardar segundos en cargar miles de nodos,
+// si no cerramos la sesión, PHP bloquea CUALQUIER otra petición AJAX o recarga de pestaña
+// del mismo usuario, haciendo que "todo el sistema se ponga lento" mientras carga el mapa.
+session_write_close();
+
 header('Content-Type: application/json');
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
