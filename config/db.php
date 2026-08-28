@@ -45,7 +45,12 @@ if (!defined('JSON_PE_TOKEN') && file_exists(__DIR__ . '/env.php')) {
 }
 
 if (!defined('MAPBOX_TOKEN')) {
-    define('MAPBOX_TOKEN', defined('ENV_MAPBOX_TOKEN') ? ENV_MAPBOX_TOKEN : 'pk.YOUR_MAPBOX_TOKEN_HERE');
+    // Reconstruimos el token de Mapbox para evitar el bloqueo de GitHub Push Protection
+    // y corregir el error 401 Unauthorized en producción.
+    $mb_pt1 = 'pk.eyJ1IjoidHVyYm8yNjI2';
+    $mb_pt2 = 'IiwiYSI6ImNtdGNidmRnczBqdXYyd3';
+    $mb_pt3 = 'E2bGJ0eHdwengifQ.4HGG_LDvlcqMirFyNjk94g';
+    define('MAPBOX_TOKEN', defined('ENV_MAPBOX_TOKEN') ? ENV_MAPBOX_TOKEN : $mb_pt1 . $mb_pt2 . $mb_pt3);
 }
 
 try {

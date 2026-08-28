@@ -22,8 +22,10 @@ if ($ticket_id > 0) {
 include '../../includes/header.php';
 include '../../includes/sidebar.php';
 ?>
-<!-- AÃ±adir script de Google Maps -->
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBNXLdtgdStVUGqNeDFdaHRTpCjaVHF6RE&libraries=places"></script>
+<!-- Mapbox GL JS API (Reemplaza a Google Maps) -->
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" rel="stylesheet">
+<script>mapboxgl.accessToken = "<?php echo defined('MAPBOX_TOKEN') ? MAPBOX_TOKEN : ''; ?>";</script>
 
 <style>
     .chat-layout {
@@ -485,18 +487,19 @@ include '../../includes/sidebar.php';
         const canDelete = isMe || currentUserRole === 'admin' || currentUserRole === 'administrador';
 
         let msgContent = msg.message ? msg.message.replace(/\n/g, '<br>') : '';
+        const mapboxToken = '<?php echo defined("MAPBOX_TOKEN") ? MAPBOX_TOKEN : ""; ?>';
         if (msg.message && msg.message.startsWith('[LOCATION:')) {
             const coords = msg.message.replace('[LOCATION:', '').replace(']', '').split(',');
             const lat = coords[0];
             const lng = coords[1];
-            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=300x150&markers=color:red%7C${lat},${lng}&key=AIzaSyBNXLdtgdStVUGqNeDFdaHRTpCjaVHF6RE`;
+            const mapUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+ff0000(${lng},${lat})/${lng},${lat},15,0/300x150?access_token=${mapboxToken}`;
             msgContent = `<div style="margin-bottom:8px;"><a href="https://maps.google.com/?q=${lat},${lng}" target="_blank"><img src="${mapUrl}" style="max-width:100%; border-radius:8px; cursor:pointer;" alt="UbicaciÃ³n estÃ¡tica"></a><br><small>UbicaciÃ³n (haz clic para abrir)</small></div>`;
         } else if (msg.message && msg.message.startsWith('[LIVE_LOCATION:')) {
             const parts = msg.message.replace('[LIVE_LOCATION:', '').replace(']', '').split(',');
             const lat = parts[0];
             const lng = parts[1];
-            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=300x150&markers=color:blue%7C${lat},${lng}&key=AIzaSyBNXLdtgdStVUGqNeDFdaHRTpCjaVHF6RE`;
-            msgContent = `<div style="margin-bottom:8px;" class="live-location-container" data-user="${msg.user_id || 'client'}"><a href="https://maps.google.com/?q=${lat},${lng}" target="_blank"><img src="${mapUrl}" style="max-width:100%; border-radius:8px; cursor:pointer;" alt="UbicaciÃ³n en tiempo real"></a><br><small style="color:var(--primary-color);">ðŸ“ UbicaciÃ³n en tiempo real iniciada</small></div>`;
+            const mapUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+0000ff(${lng},${lat})/${lng},${lat},15,0/300x150?access_token=${mapboxToken}`;
+            msgContent = `<div style="margin-bottom:8px;" class="live-location-container" data-user="${msg.user_id || 'client'}"><a href="https://maps.google.com/?q=${lat},${lng}" target="_blank"><img src="${mapUrl}" style="max-width:100%; border-radius:8px; cursor:pointer;" alt="UbicaciÃ³n en tiempo real"></a><br><small style="color:var(--primary-color);">ðŸ“  UbicaciÃ³n en tiempo real iniciada</small></div>`;
         }
 
         const html = `
@@ -595,13 +598,15 @@ include '../../includes/sidebar.php';
                 });
             }
             if (status.live_lat && status.live_lng) {
+                const mapboxToken = '<?php echo defined("MAPBOX_TOKEN") ? MAPBOX_TOKEN : ""; ?>';
                 document.querySelectorAll('.live-location-container img').forEach(img => {
-                    // Update only if it's the other person's live location (or both for simplicity)
-                    const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${status.live_lat},${status.live_lng}&zoom=15&size=300x150&markers=color:blue%7C${status.live_lat},${status.live_lng}&key=AIzaSyBNXLdtgdStVUGqNeDFdaHRTpCjaVHF6RE`;
+                    const mapUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+0000ff(${status.live_lng},${status.live_lat})/${status.live_lng},${status.live_lat},15,0/300x150?access_token=${mapboxToken}`;
                     if (img.src !== mapUrl) {
                         img.src = mapUrl;
                         img.parentElement.href = `https://maps.google.com/?q=${status.live_lat},${status.live_lng}`;
                     }
+                });
+            }         }
                 });
             }
         });

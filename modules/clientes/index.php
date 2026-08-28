@@ -212,8 +212,10 @@ include '../../includes/sidebar.php';
     </div>
 </div>
 
-<!-- Google Maps API -->
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBNXLdtgdStVUGqNeDFdaHRTpCjaVHF6RE&libraries=places"></script>
+<!-- Mapbox GL JS API (Reemplaza a Google Maps) -->
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" rel="stylesheet">
+<script>mapboxgl.accessToken = "<?php echo defined('MAPBOX_TOKEN') ? MAPBOX_TOKEN : ''; ?>";</script>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -446,39 +448,38 @@ document.addEventListener('DOMContentLoaded', () => {
         lat = parseFloat(lat);
         lng = parseFloat(lng);
 
-        const mapOptions = {
-            center: { lat, lng },
-            zoom: 15,
-            mapTypeControl: false,
-            streetViewControl: false
-        };
-
-        if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
-            console.error('Google Maps API no cargada.');
-            return;
-        }
-
         if (!map) {
-            map = new google.maps.Map(document.getElementById('cliente_map'), mapOptions);
-            marker = new google.maps.Marker({
-                position: { lat, lng },
-                map: map,
-                draggable: true
+            map = new mapboxgl.Map({
+                container: 'cliente_map',
+                style: 'mapbox://styles/mapbox/streets-v12',
+                center: [lng, lat],
+                zoom: 14
             });
 
-            google.maps.event.addListener(marker, 'dragend', function (evt) {
-                document.getElementById('cliente_latitud').value = evt.latLng.lat();
-                document.getElementById('cliente_longitud').value = evt.latLng.lng();
+            map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
+
+            marker = new mapboxgl.Marker({ draggable: true, color: '#FF385C' })
+                .setLngLat([lng, lat])
+                .addTo(map);
+
+            marker.on('dragend', () => {
+                const lngLat = marker.getLngLat();
+                document.getElementById('cliente_latitud').value = lngLat.lat;
+                document.getElementById('cliente_longitud').value = lngLat.lng;
             });
 
-            google.maps.event.addListener(map, 'click', function (evt) {
-                marker.setPosition(evt.latLng);
-                document.getElementById('cliente_latitud').value = evt.latLng.lat();
-                document.getElementById('cliente_longitud').value = evt.latLng.lng();
+            map.on('click', (e) => {
+                marker.setLngLat(e.lngLat);
+                document.getElementById('cliente_latitud').value = e.lngLat.lat;
+                document.getElementById('cliente_longitud').value = e.lngLat.lng;
             });
+            
+            // Fix map resize when modal opens
+            setTimeout(() => { map.resize(); }, 400);
         } else {
-            map.setCenter({ lat, lng });
-            marker.setPosition({ lat, lng });
+            map.setCenter([lng, lat]);
+            marker.setLngLat([lng, lat]);
+            setTimeout(() => { map.resize(); }, 400);
         }
         
         document.getElementById('cliente_latitud').value = lat;
