@@ -35,7 +35,7 @@ if ($action === 'get_user_biometric_status') {
 if ($action === 'get_register_challenge') {
     try {
         // Generar un challenge aleatorio de 32 bytes
-        $challenge = bin2hex(random_bytes(32));
+        $challenge = base64_encode(random_bytes(32));
         $_SESSION['webauthn_reg_challenge'] = $challenge;
 
         $stmt = $pdo->prepare("SELECT id, name, email, username FROM users WHERE id = ?");
@@ -118,7 +118,7 @@ if ($action === 'verify_register') {
 
 if ($action === 'get_auth_challenge') {
     try {
-        $challenge = bin2hex(random_bytes(32));
+        $challenge = base64_encode(random_bytes(32));
         $_SESSION['webauthn_auth_challenge'] = $challenge;
 
         // Obtener credenciales registradas del usuario

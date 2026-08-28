@@ -155,9 +155,16 @@
                 const options = await res.json();
                 if (!options.success) throw new Error(options.message || 'Error obteniendo desafío');
 
+                // Helper para decodificar base64 o base64url
+                const decodeB64 = (str) => {
+                    const base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+                    const pad = base64.length % 4 === 0 ? '' : '='.repeat(4 - (base64.length % 4));
+                    return Uint8Array.from(atob(base64 + pad), c => c.charCodeAt(0));
+                };
+
                 // Convertir challenge y user.id a ArrayBuffer
-                options.challenge = Uint8Array.from(atob(options.challenge), c => c.charCodeAt(0));
-                options.user.id = Uint8Array.from(atob(options.user.id), c => c.charCodeAt(0));
+                options.challenge = decodeB64(options.challenge);
+                options.user.id = decodeB64(options.user.id);
 
                 const credential = await navigator.credentials.create({ publicKey: options });
                 
@@ -196,10 +203,17 @@
                     return { success: true, verified: true, type: 'device_screen_lock' };
                 }
 
-                options.challenge = Uint8Array.from(atob(options.challenge), c => c.charCodeAt(0));
+                // Helper para decodificar base64 o base64url
+                const decodeB64 = (str) => {
+                    const base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+                    const pad = base64.length % 4 === 0 ? '' : '='.repeat(4 - (base64.length % 4));
+                    return Uint8Array.from(atob(base64 + pad), c => c.charCodeAt(0));
+                };
+
+                options.challenge = decodeB64(options.challenge);
                 options.allowCredentials = options.allowCredentials.map(c => ({
                     ...c,
-                    id: Uint8Array.from(atob(c.id), ch => ch.charCodeAt(0))
+                    id: decodeB64(c.id)
                 }));
 
                 const assertion = await navigator.credentials.get({ publicKey: options });
