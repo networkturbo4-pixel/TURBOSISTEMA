@@ -9,16 +9,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pin = trim($_POST['pin'] ?? '');
         $ip_address = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
 
-        // Create table for login attempts if it doesn't exist
+        // Clean up old attempts (older than 15 mins)
         try {
-            $pdo->exec("CREATE TABLE IF NOT EXISTS login_attempts (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                ip_address VARCHAR(45) NOT NULL,
-                identifier VARCHAR(255) NOT NULL,
-                attempt_time DATETIME DEFAULT CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-            
-            // Clean up old attempts (older than 15 mins)
             $pdo->exec("DELETE FROM login_attempts WHERE attempt_time < NOW() - INTERVAL 15 MINUTE");
         } catch (Exception $e) {}
 
