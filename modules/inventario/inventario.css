@@ -2648,6 +2648,10 @@ body.dark-theme .ms-track {
     line-height: 1.45;
 }
 
+.labels-logo-box .file-drop-area {
+    display: none !important;
+}
+
 /* Thermal Label Sheet — 2 Column Layout */
 .label-sheet {
     --label-w: 50mm;

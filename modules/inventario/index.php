@@ -551,7 +551,7 @@ window.addEventListener('error', function(e) {
                                     <img id="labelLogoThumb" src="" alt="Logo" style="max-width:100%; max-height:100%; object-fit:contain;">
                                 </div>
                                 <div style="flex:1;">
-                                    <input type="file" id="labelLogoFileInput" accept="image/png, image/jpeg, image/svg+xml, image/webp" style="display:none;" onchange="handleCustomLabelLogo(this)">
+                                    <input type="file" id="labelLogoFileInput" class="no-dropzone" accept="image/png, image/jpeg, image/svg+xml, image/webp" style="display:none;" onchange="handleCustomLabelLogo(this)">
                                     <button type="button" class="btn btn-sm btn-outline-secondary" style="width:100%; height:34px; font-size:0.78rem; display:flex; align-items:center; justify-content:center; gap:6px;" onclick="document.getElementById('labelLogoFileInput').click()">
                                         <i class="ph ph-upload-simple"></i> Subir Logo Monocromático
                                     </button>
