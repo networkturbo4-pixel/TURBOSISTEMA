@@ -31,6 +31,8 @@ $primaryColor = '#064e3b'; // Default
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/style.css">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script>
+const mapboxToken = '<?php echo $mapboxToken; ?>';
+
         // CSRF Fetch Interceptor
         const originalFetch = window.fetch;
         window.fetch = async function() {
@@ -304,7 +306,9 @@ $primaryColor = '#064e3b'; // Default
         }
     </style>
     <!-- AÃ±adir script de Google Maps para el modal de envÃ­o -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBNXLdtgdStVUGqNeDFdaHRTpCjaVHF6RE&libraries=places"></script>
+    
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js"></script>
 </head>
 <body>
 
@@ -432,6 +436,8 @@ $primaryColor = '#064e3b'; // Default
 <?php require_once __DIR__ . '/includes/webcam_modal.php'; ?>
 
 <script>
+const mapboxToken = '<?php echo $mapboxToken; ?>';
+
     const currentTicketId = <?php echo $ticket_id; ?>;
     const token = '<?php echo $token; ?>';
     let lastMessageId = 0;
@@ -471,13 +477,13 @@ $primaryColor = '#064e3b'; // Default
                             const coords = msgContent.replace('[LOCATION:', '').replace(']', '').split(',');
                             const lat = coords[0];
                             const lng = coords[1];
-                            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=300x150&markers=color:red%7C${lat},${lng}&key=AIzaSyBNXLdtgdStVUGqNeDFdaHRTpCjaVHF6RE`;
+                            const mapUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s-marker+ff0000(lng,lat)/lng,lat,15,0/300x150?access_token=${mapboxToken}`;
                             msgContent = `<div style="margin-bottom:8px;"><a href="https://maps.google.com/?q=${lat},${lng}" target="_blank"><img src="${mapUrl}" style="max-width:100%; border-radius:8px; cursor:pointer;" alt="UbicaciÃ³n estÃ¡tica"></a><br><small style="color:var(--primary-color);">UbicaciÃ³n estÃ¡tica</small></div>`;
                         } else if (msgContent.startsWith('[LIVE_LOCATION:') && msgContent.endsWith(']')) {
                             const coords = msgContent.replace('[LIVE_LOCATION:', '').replace(']', '').split(',');
                             const lat = coords[0];
                             const lng = coords[1];
-                            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=300x150&markers=color:blue%7C${lat},${lng}&key=AIzaSyBNXLdtgdStVUGqNeDFdaHRTpCjaVHF6RE`;
+                            const mapUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s-marker+0000ff(lng,lat)/lng,lat,15,0/300x150?access_token=${mapboxToken}`;
                             msgContent = `<div style="margin-bottom:8px;" class="live-location-container" data-user="${msg.user_id || 'client'}"><a href="https://maps.google.com/?q=${lat},${lng}" target="_blank"><img src="${mapUrl}" style="max-width:100%; border-radius:8px; cursor:pointer;" alt="UbicaciÃ³n en tiempo real"></a><br><small style="color:var(--primary-color);">ðŸ“ UbicaciÃ³n en tiempo real iniciada</small></div>`;
                         }
 
@@ -533,7 +539,7 @@ $primaryColor = '#064e3b'; // Default
             }
             if (res.success && res.live_lat && res.live_lng) {
                 document.querySelectorAll('.live-location-container img').forEach(img => {
-                    const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${res.live_lat},${res.live_lng}&zoom=15&size=300x150&markers=color:blue%7C${res.live_lat},${res.live_lng}&key=AIzaSyBNXLdtgdStVUGqNeDFdaHRTpCjaVHF6RE`;
+                    const mapUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s-marker+0000ff(res.live_lng,res.live_lat)/res.live_lng,res.live_lat,15,0/300x150?access_token=${mapboxToken}`;
                     if (img.src !== mapUrl) {
                         img.src = mapUrl;
                         img.parentElement.href = `https://maps.google.com/?q=${res.live_lat},${res.live_lng}`;
