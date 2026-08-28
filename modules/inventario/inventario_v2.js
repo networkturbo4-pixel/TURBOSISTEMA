@@ -3635,7 +3635,115 @@
         const btn = document.getElementById('btnGenLabels');
         if (btn) btn.addEventListener('click', generateLabels);
         initReprintSearch();
+        initPersistentLabelConfig();
+        initCustomLabelLogo();
     }
+
+    function initPersistentLabelConfig() {
+        const fields = [
+            'labelWidth', 'labelHeight', 'labelCols', 'labelCopies',
+            'labelShowLogo', 'labelShowCompanyName', 'labelShowName', 'labelShowSku', 'labelShowDate'
+        ];
+
+        try {
+            const saved = localStorage.getItem('turbo_label_config');
+            if (saved) {
+                const cfg = JSON.parse(saved);
+                if (cfg.labelWidth !== undefined && document.getElementById('labelWidth')) document.getElementById('labelWidth').value = cfg.labelWidth;
+                if (cfg.labelHeight !== undefined && document.getElementById('labelHeight')) document.getElementById('labelHeight').value = cfg.labelHeight;
+                if (cfg.labelCols !== undefined && document.getElementById('labelCols')) document.getElementById('labelCols').value = cfg.labelCols;
+                if (cfg.labelCopies !== undefined && document.getElementById('labelCopies')) document.getElementById('labelCopies').value = cfg.labelCopies;
+                if (cfg.labelShowLogo !== undefined && document.getElementById('labelShowLogo')) document.getElementById('labelShowLogo').checked = cfg.labelShowLogo;
+                if (cfg.labelShowCompanyName !== undefined && document.getElementById('labelShowCompanyName')) document.getElementById('labelShowCompanyName').checked = cfg.labelShowCompanyName;
+                if (cfg.labelShowName !== undefined && document.getElementById('labelShowName')) document.getElementById('labelShowName').checked = cfg.labelShowName;
+                if (cfg.labelShowSku !== undefined && document.getElementById('labelShowSku')) document.getElementById('labelShowSku').checked = cfg.labelShowSku;
+                if (cfg.labelShowDate !== undefined && document.getElementById('labelShowDate')) document.getElementById('labelShowDate').checked = cfg.labelShowDate;
+            }
+        } catch(e) { console.warn('Error loading label config:', e); }
+
+        fields.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const evt = el.type === 'checkbox' ? 'change' : 'input';
+            el.addEventListener(evt, () => {
+                savePersistentLabelConfig();
+            });
+        });
+    }
+
+    function savePersistentLabelConfig() {
+        try {
+            const cfg = {
+                labelWidth: document.getElementById('labelWidth')?.value || '50',
+                labelHeight: document.getElementById('labelHeight')?.value || '30',
+                labelCols: document.getElementById('labelCols')?.value || '2',
+                labelCopies: document.getElementById('labelCopies')?.value || '1',
+                labelShowLogo: document.getElementById('labelShowLogo')?.checked ?? false,
+                labelShowCompanyName: document.getElementById('labelShowCompanyName')?.checked ?? false,
+                labelShowName: document.getElementById('labelShowName')?.checked ?? true,
+                labelShowSku: document.getElementById('labelShowSku')?.checked ?? true,
+                labelShowDate: document.getElementById('labelShowDate')?.checked ?? false
+            };
+            localStorage.setItem('turbo_label_config', JSON.stringify(cfg));
+        } catch(e) { console.warn('Error saving label config:', e); }
+    }
+
+    function initCustomLabelLogo() {
+        const thumb = document.getElementById('labelLogoThumb');
+        const resetBtn = document.getElementById('btnResetLabelLogo');
+        const systemLogo = window.appSettings ? (window.appSettings.logo_dark || window.appSettings.logo_light || '') : '';
+        const customLogo = localStorage.getItem('turbo_label_custom_logo');
+
+        if (thumb) {
+            if (customLogo) {
+                thumb.src = customLogo;
+                if (resetBtn) resetBtn.style.display = 'inline-flex';
+            } else if (systemLogo) {
+                thumb.src = BASE + '/' + systemLogo;
+                if (resetBtn) resetBtn.style.display = 'none';
+            } else {
+                thumb.src = '';
+                if (resetBtn) resetBtn.style.display = 'none';
+            }
+        }
+    }
+
+    window.handleCustomLabelLogo = function(input) {
+        if (!input.files || !input.files[0]) return;
+        const file = input.files[0];
+        if (file.size > 2 * 1024 * 1024) {
+            if (window.showToast) window.showToast('El logo no debe superar los 2MB', 'warning');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const dataUrl = e.target.result;
+            try {
+                localStorage.setItem('turbo_label_custom_logo', dataUrl);
+                initCustomLabelLogo();
+                if (window.showToast) window.showToast('Logo térmico guardado correctamente', 'success');
+                const preview = document.getElementById('labelPreview');
+                if (preview && preview.querySelector('.label-sheet')) {
+                    document.getElementById('btnGenLabels')?.click();
+                }
+            } catch(err) {
+                console.error('Error saving custom logo in localStorage:', err);
+                if (window.showToast) window.showToast('No se pudo guardar el logo (archivo muy grande)', 'error');
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+
+    window.resetCustomLabelLogo = function() {
+        localStorage.removeItem('turbo_label_custom_logo');
+        initCustomLabelLogo();
+        if (window.showToast) window.showToast('Logo restablecido al original del sistema', 'info');
+        const preview = document.getElementById('labelPreview');
+        if (preview && preview.querySelector('.label-sheet')) {
+            document.getElementById('btnGenLabels')?.click();
+        }
+    };
 
     async function generateLabels() {
         const preview = document.getElementById('labelPreview');
@@ -3713,13 +3821,15 @@
 
         // Global settings (Brand name & logo)
         const appName = window.appSettings ? (window.appSettings.app_name || 'TURBO SAAS') : 'TURBO SAAS';
-        const appLogo = window.appSettings ? (window.appSettings.logo_dark || window.appSettings.logo_light || '') : '';
+        const systemLogo = window.appSettings ? (window.appSettings.logo_dark || window.appSettings.logo_light || '') : '';
+        const customLogo = localStorage.getItem('turbo_label_custom_logo');
+        const effectiveLogo = customLogo || (systemLogo ? `${BASE}/${systemLogo}` : '');
 
         // Build label sheet
         let html = `<div class="label-sheet" style="--label-w:${labelW}mm; --label-h:${labelH}mm; --label-cols:${labelCols};">`;
 
         let textLinesHeight = 0;
-        if (showLogo && appLogo) textLinesHeight += 4;
+        if (showLogo && effectiveLogo) textLinesHeight += 4;
         if (showCompanyName) textLinesHeight += 3;
         if (showName) textLinesHeight += 4;
         if (showSku) textLinesHeight += 4;
@@ -3737,7 +3847,7 @@
             for (let c = 0; c < labelCopies; c++) {
                 const copySuffix = labelCopies > 1 ? `-${c}` : '';
                 const id = 'lbl-' + s.id + copySuffix;
-                const logoHtml = (showLogo && appLogo) ? `<img src="${BASE}/${appLogo}" class="label-company-logo" alt="Logo">` : '';
+                const logoHtml = (showLogo && effectiveLogo) ? `<img src="${effectiveLogo}" class="label-company-logo" alt="Logo">` : '';
                 const companyHtml = showCompanyName ? `<div class="label-company-name">${esc(appName)}</div>` : '';
                 const nameHtml = showName ? `<div class="label-product-name">${esc(pName)}</div>` : '';
                 const skuHtml = showSku ? `<div class="label-sku-text">${s.sku_code}</div>` : '';

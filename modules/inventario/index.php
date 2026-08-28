@@ -535,6 +535,32 @@ window.addEventListener('error', function(e) {
                                 <span class="ms-track"><span class="ms-thumb"></span></span>
                             </label>
                         </div>
+
+                        <!-- Campo para Subir Logo Monocromático de Etiquetas -->
+                        <div class="labels-logo-box" id="labelLogoUploadWrap" style="margin-top:12px; padding:10px 12px; background:var(--surface-color); border:1px solid var(--border-color); border-radius:10px;">
+                            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                                <span style="font-size:0.78rem; font-weight:700; color:var(--text-color); display:flex; align-items:center; gap:6px;">
+                                    <i class="ph ph-image" style="color:#6366f1;"></i> Logo Térmico (Monocromático)
+                                </span>
+                                <button type="button" class="btn btn-xs btn-outline-danger" id="btnResetLabelLogo" onclick="resetCustomLabelLogo()" style="display:none; padding:2px 8px; font-size:0.72rem;" title="Restablecer logo por defecto">
+                                    <i class="ph ph-arrow-counter-clockwise"></i> Restablecer
+                                </button>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <div id="labelLogoThumbWrap" style="width:54px; height:34px; background:#ffffff; border:1px solid #cbd5e1; border-radius:6px; display:flex; align-items:center; justify-content:center; padding:2px; overflow:hidden; flex-shrink:0;">
+                                    <img id="labelLogoThumb" src="" alt="Logo" style="max-width:100%; max-height:100%; object-fit:contain;">
+                                </div>
+                                <div style="flex:1;">
+                                    <input type="file" id="labelLogoFileInput" accept="image/png, image/jpeg, image/svg+xml, image/webp" style="display:none;" onchange="handleCustomLabelLogo(this)">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" style="width:100%; height:34px; font-size:0.78rem; display:flex; align-items:center; justify-content:center; gap:6px;" onclick="document.getElementById('labelLogoFileInput').click()">
+                                        <i class="ph ph-upload-simple"></i> Subir Logo Monocromático
+                                    </button>
+                                </div>
+                            </div>
+                            <small style="font-size:0.71rem; color:var(--text-muted); display:block; margin-top:6px; line-height:1.35;">
+                                <i class="ph ph-info"></i> Sube un logo con texto en <strong>negro puro (#000000)</strong> para que la impresora térmica imprima todas las letras nítidas.
+                            </small>
+                        </div>
                     </div>
 
                     <!-- Action Buttons -->
