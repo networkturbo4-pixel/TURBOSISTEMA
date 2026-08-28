@@ -3790,6 +3790,8 @@
                                 width: barcodeWidth,
                                 height: barcodeHeight,
                                 displayValue: false,
+                                lineColor: "#000000",
+                                background: "#ffffff",
                                 margin: 0
                             });
                         } catch(e) { console.warn('Barcode error:', e); }
@@ -3822,6 +3824,196 @@
         const markBtn = document.getElementById('btnMarkPrinted');
         if (markBtn) markBtn.style.display = 'inline-flex';
     }
+
+    window.printThermalLabels = function() {
+        const previewContainer = document.getElementById('labelPreview');
+        const sheet = previewContainer ? previewContainer.querySelector('.label-sheet') : null;
+        if (!sheet) {
+            if (window.showToast) window.showToast('Primero genera las etiquetas antes de imprimir', 'warning');
+            return;
+        }
+
+        const labelW = parseFloat(document.getElementById('labelWidth')?.value) || 50;
+        const labelH = parseFloat(document.getElementById('labelHeight')?.value) || 30;
+        const labelCols = parseInt(document.getElementById('labelCols')?.value) || 2;
+        const labelGap = 1; // 1mm gap
+        const sheetWidth = (labelW * labelCols) + (labelGap * (labelCols - 1));
+
+        const clone = sheet.cloneNode(true);
+
+        // Convert any canvas elements to high-res images
+        const origCanvases = sheet.querySelectorAll('canvas');
+        const cloneCanvases = clone.querySelectorAll('canvas');
+        for (let i = 0; i < origCanvases.length; i++) {
+            const orig = origCanvases[i];
+            const dest = cloneCanvases[i];
+            if (orig && dest) {
+                const img = document.createElement('img');
+                img.src = orig.toDataURL('image/png');
+                img.style.width = orig.style.width || (orig.width + 'px');
+                img.style.height = orig.style.height || (orig.height + 'px');
+                img.style.display = 'block';
+                img.style.margin = '0 auto';
+                dest.parentNode.replaceChild(img, dest);
+            }
+        }
+
+        let printFrame = document.getElementById('thermalLabelPrintIframe');
+        if (printFrame) printFrame.remove();
+
+        printFrame = document.createElement('iframe');
+        printFrame.id = 'thermalLabelPrintIframe';
+        printFrame.style.position = 'fixed';
+        printFrame.style.right = '0';
+        printFrame.style.bottom = '0';
+        printFrame.style.width = '0px';
+        printFrame.style.height = '0px';
+        printFrame.style.border = 'none';
+        printFrame.style.visibility = 'hidden';
+        document.body.appendChild(printFrame);
+
+        const doc = printFrame.contentWindow.document;
+        doc.open();
+        doc.write(`<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Imprimir Etiquetas</title>
+    <style>
+        @page {
+            size: ${sheetWidth}mm ${labelH}mm;
+            margin: 0mm;
+        }
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            background: transparent !important;
+            color: #000000 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            width: 100% !important;
+            font-family: Arial, Helvetica, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .label-sheet {
+            width: ${sheetWidth}mm !important;
+            max-width: ${sheetWidth}mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: grid !important;
+            grid-template-columns: repeat(${labelCols}, ${labelW}mm) !important;
+            gap: ${labelGap}mm !important;
+            background: #ffffff !important;
+        }
+        .label-item {
+            width: ${labelW}mm !important;
+            height: ${labelH}mm !important;
+            border: none !important;
+            border-radius: 0 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 1.2mm 1.2mm !important;
+            overflow: hidden !important;
+            background: #ffffff !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            box-sizing: border-box !important;
+        }
+        .label-item svg {
+            max-width: 100% !important;
+            height: auto !important;
+            background: #ffffff !important;
+            display: block !important;
+            margin: 0 auto !important;
+        }
+        .label-item svg rect {
+            fill: #000000 !important;
+        }
+        .label-item canvas, .label-item img {
+            max-width: 100% !important;
+            height: auto !important;
+            background: transparent !important;
+            display: block !important;
+            margin: 0 auto !important;
+        }
+        .label-company-logo {
+            max-height: 4mm !important;
+            max-width: 100% !important;
+            margin-bottom: 0.4mm !important;
+            object-fit: contain !important;
+            filter: grayscale(100%) contrast(200%) !important;
+            display: block !important;
+        }
+        .label-company-name {
+            font-size: 5pt !important;
+            font-weight: 800 !important;
+            color: #000000 !important;
+            text-transform: uppercase !important;
+            text-align: center !important;
+            line-height: 1 !important;
+            margin-bottom: 0.3mm !important;
+            font-family: Arial, Helvetica, sans-serif !important;
+        }
+        .label-product-name {
+            font-size: 5.8pt !important;
+            font-weight: 800 !important;
+            color: #000000 !important;
+            text-align: center !important;
+            line-height: 1.15 !important;
+            max-height: 3.5mm !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+            width: 100% !important;
+            margin-bottom: 0.4mm !important;
+            font-family: Arial, Helvetica, sans-serif !important;
+            letter-spacing: -0.2px !important;
+        }
+        .label-sku-text {
+            font-size: 5.5pt !important;
+            font-weight: 700 !important;
+            color: #000000 !important;
+            margin-top: 0.4mm !important;
+            font-family: 'Courier New', Courier, monospace !important;
+            letter-spacing: 0.5px !important;
+            text-align: center !important;
+        }
+        .label-date-text {
+            font-size: 4.8pt !important;
+            font-weight: 600 !important;
+            color: #000000 !important;
+            margin-top: 0.3mm !important;
+            font-family: Arial, Helvetica, sans-serif !important;
+            letter-spacing: 0.2px !important;
+            text-align: center !important;
+        }
+    </style>
+</head>
+<body>
+    ${clone.outerHTML}
+</body>
+</html>`);
+        doc.close();
+
+        setTimeout(() => {
+            try {
+                printFrame.contentWindow.focus();
+                printFrame.contentWindow.print();
+            } catch (e) {
+                console.error('Error al imprimir etiquetas térmicas:', e);
+                window.print();
+            }
+        }, 250);
+    };
 
     window.markGeneratedAsPrinted = async function() {
         if (!window.lastGeneratedSkuIds || window.lastGeneratedSkuIds.length === 0) return;

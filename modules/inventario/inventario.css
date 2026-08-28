@@ -2730,36 +2730,70 @@ body.dark-theme .ms-track {
     text-align: center;
 }
 
-/* Print Styles — Thermal Label Printer */
+/* Print Styles — Thermal Label Printer (Strict B&W Isolation) */
 @media print {
+    html, body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
     /* Hide everything except labels */
-    body, body * { visibility: hidden !important; }
+    body * { visibility: hidden !important; }
     .label-preview-container, .label-preview-container * { 
         visibility: visible !important; 
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        background: transparent !important;
+        color: #000000 !important;
     }
     .label-preview-container {
         position: absolute !important;
         left: 0 !important; top: 0 !important;
-        width: auto !important;
+        width: 100% !important;
         border: none !important;
         padding: 0 !important;
         margin: 0 !important;
-        background: #fff !important;
+        background: #ffffff !important;
         border-radius: 0 !important;
         box-shadow: none !important;
+    }
+    .label-preview-container > div:not(.label-sheet) {
+        display: none !important;
     }
     .label-sheet {
         padding: 0 !important;
         margin: 0 !important;
+        background: #ffffff !important;
     }
     .label-item {
         border: none !important;
         border-radius: 0 !important;
+        background: #ffffff !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
     }
-    .label-company-logo {
+    .label-item svg {
+        background: #ffffff !important;
+    }
+    .label-item svg rect {
+        fill: #000000 !important;
+    }
+    .label-item canvas, .label-item img {
+        background: transparent !important;
+        filter: none !important;
+    }
+    .label-item .label-company-logo {
         display: block !important;
+        filter: grayscale(100%) contrast(200%) !important;
+    }
+    .label-item .label-company-name,
+    .label-item .label-product-name,
+    .label-item .label-sku-text,
+    .label-item .label-date-text {
+        color: #000000 !important;
     }
     @page {
         size: auto;

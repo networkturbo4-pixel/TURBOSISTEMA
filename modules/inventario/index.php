@@ -543,7 +543,7 @@ window.addEventListener('error', function(e) {
                             <i class="ph ph-barcode"></i> Generar Etiquetas
                         </button>
                         <div class="labels-actions-secondary" style="display:flex; gap:8px;">
-                            <button class="btn btn-secondary" id="btnPrint" style="display:none; flex:1; height:42px; font-weight:700;" onclick="window.print()">
+                            <button class="btn btn-secondary" id="btnPrint" style="display:none; flex:1; height:42px; font-weight:700;" onclick="printThermalLabels()">
                                 <i class="ph ph-printer"></i> Imprimir
                             </button>
                             <button class="btn" id="btnMarkPrinted" style="display:none; flex:1; height:42px; font-weight:700; background-color:#10b981; color:white; border:none; border-radius:10px;" onclick="markGeneratedAsPrinted()">
