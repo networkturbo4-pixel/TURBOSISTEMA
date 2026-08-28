@@ -18,7 +18,7 @@ try {
             $stages = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             // Prospectos
-            $stmt = $pdo->prepare("SELECT p.*, s.name as plan_name, u.name as agent_name 
+            $stmt = $pdo->prepare("SELECT p.*, s.nombre as plan_name, u.name as agent_name 
                                      FROM crm_prospects p 
                                      LEFT JOIN servicios s ON p.interest_service_id = s.id
                                      LEFT JOIN users u ON p.assigned_to = u.id
