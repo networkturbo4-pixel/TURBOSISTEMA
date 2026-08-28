@@ -2447,7 +2447,7 @@
                     <span class="reprint-item-sku">${esc(item.sku_code)}</span>
                     <span class="reprint-item-prod text-truncate">${esc(item.product_name || '')}</span>
                 </div>
-                <button type="button" class="reprint-item-del" onclick="removeReprintItem(${item.id})" title="Eliminar de la lista">
+                <button type="button" class="reprint-item-del" onclick="removeReprintItem('${item.id}')" title="Eliminar de la lista">
                     <i class="ph ph-x"></i>
                 </button>
             </div>
@@ -2456,7 +2456,7 @@
 
     window.addSkuToReprint = function(sku) {
         if (!sku || !sku.id) return;
-        if (!window.reprintQueue.some(x => x.id === sku.id)) {
+        if (!window.reprintQueue.some(x => String(x.id) === String(sku.id))) {
             window.reprintQueue.push({
                 id: sku.id,
                 sku_code: sku.sku_code,
@@ -2475,7 +2475,7 @@
     };
 
     window.removeReprintItem = function(id) {
-        window.reprintQueue = window.reprintQueue.filter(x => x.id !== id);
+        window.reprintQueue = window.reprintQueue.filter(x => String(x.id) !== String(id));
         window.renderReprintQueue();
     };
 
