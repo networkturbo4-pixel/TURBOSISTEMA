@@ -1387,7 +1387,7 @@ $equiposMochila = $stmtUserEquip->fetchAll();
             
             loadTechChatMessages();
             if (techChatPollInterval) clearInterval(techChatPollInterval);
-            techChatPollInterval = setInterval(loadTechChatMessages, 1200);
+            techChatPollInterval = setInterval(loadTechChatMessages, 8000);
         }
 
         function closeTechChat(fromHistory = false) {

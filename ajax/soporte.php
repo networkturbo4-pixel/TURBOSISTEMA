@@ -15,6 +15,9 @@ if (!$is_public && !$has_session && empty($token)) {
 $user_id = $_SESSION['user_id'] ?? null;
 $user_role = $_SESSION['user_role'] ?? 'user';
 
+// Liberar la sesión inmediatamente para evitar bloqueos por polling (chat)
+session_write_close();
+
 // Helper for token validation
 function validateToken($pdo, $ticket_id, $token) {
     $stmt = $pdo->prepare("SELECT public_token FROM tickets WHERE id = ?");

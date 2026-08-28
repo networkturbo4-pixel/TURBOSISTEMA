@@ -963,7 +963,7 @@ const mapboxToken = '<?php echo $mapboxToken; ?>';
 
     document.addEventListener('DOMContentLoaded', () => {
         loadMessages();
-        setInterval(loadMessages, 1200);
+        setInterval(loadMessages, 8000);
         
         <?php if ($has_session): ?>
         // Ping to keep the chat locked for this technician

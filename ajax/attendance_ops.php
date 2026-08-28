@@ -7,6 +7,9 @@ header('Content-Type: application/json');
 $userId = (int)($_SESSION['user_id'] ?? 0);
 $userRole = $_SESSION['user_role'] ?? 'tecnico';
 
+// Liberar la sesión inmediatamente para evitar cuellos de botella
+session_write_close();
+
 // Helper: Calcular distancia en metros entre dos coordenadas (Haversine)
 function calculateHaversineDistance($lat1, $lon1, $lat2, $lon2) {
     $earthRadius = 6371000; // metros

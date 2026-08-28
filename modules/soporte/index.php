@@ -1091,7 +1091,7 @@ $clientes = $pdo->query("SELECT id, nombre_completo, dni FROM clientes ORDER BY 
     document.addEventListener('DOMContentLoaded', () => {
         loadTickets();
         setInterval(loadTickets, 10000); // Poll kanban updates
-        setInterval(loadMessages, 1200); // Ultra-fast chat polling (1.2s)
+        setInterval(loadMessages, 8000); // Ultra-fast chat polling (1.2s)
         
         document.getElementById('messageInput').addEventListener('keydown', (e) => {
             if(e.key === 'Enter' && !e.shiftKey) {
