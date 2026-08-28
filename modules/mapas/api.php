@@ -333,61 +333,61 @@ try {
                 WHERE (p.archivado = 0 OR p.archivado IS NULL)
                 ORDER BY e.id DESC
             ");
-            $elementos = $stmt->fetchAll();
-
-            $features = [];
-            $gps_nodes = [];
-
-            foreach ($elementos as $el) {
-                $geo = json_decode($el['geojson'], true);
-                if (!$geo) continue;
-
-                $features[] = [
-                    'type' => 'Feature',
-                    'geometry' => $geo,
-                    'properties' => [
-                        'id' => $el['id'],
-                        'proyecto_id' => $el['proyecto_id'],
-                        'proyecto_nombre' => $el['proyecto_nombre'],
-                        'name' => $el['nombre'],
-                        'tipo' => $el['tipo'],
-                        'description' => $el['descripcion'],
-                        'color' => $el['color'],
-                        'icono' => $el['icono'],
-                        'potencia_dbm' => $el['potencia_dbm'],
-                        'capacidad_puertos' => $el['capacidad_puertos']
-                    ]
+            
+            // Usamos streaming y concatenación de strings para reducir drásticamente el consumo de RAM y CPU (evita que el servidor colapse por Timeout)
+            echo '{"success":true,"geojson":{"type":"FeatureCollection","features":[';
+            $firstFeature = true;
+            $gpsNodes = [];
+            
+            while ($el = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $geoStr = trim($el['geojson']);
+                if (empty($geoStr) || $geoStr === 'null') continue;
+                
+                $props = [
+                    'id' => $el['id'],
+                    'proyecto_id' => $el['proyecto_id'],
+                    'proyecto_nombre' => $el['proyecto_nombre'],
+                    'name' => $el['nombre'],
+                    'tipo' => $el['tipo'],
+                    'description' => $el['descripcion'],
+                    'color' => $el['color'],
+                    'icono' => $el['icono'],
+                    'potencia_dbm' => $el['potencia_dbm'],
+                    'capacidad_puertos' => $el['capacidad_puertos']
                 ];
-
-                if ($el['tipo'] === 'Point' && isset($geo['coordinates']) && is_array($geo['coordinates'])) {
-                    $lng = $geo['coordinates'][0] ?? null;
-                    $lat = $geo['coordinates'][1] ?? null;
-                    if ($lat !== null && $lng !== null) {
-                        $gps_nodes[] = [
-                            'id' => $el['id'],
-                            'proyecto_id' => $el['proyecto_id'],
-                            'proyecto_nombre' => $el['proyecto_nombre'],
-                            'nombre' => $el['nombre'] ?: 'Nodo de Fibra',
-                            'descripcion' => $el['descripcion'],
-                            'color' => $el['color'],
-                            'lat' => $lat,
-                            'lng' => $lng,
-                            'potencia_dbm' => $el['potencia_dbm'],
-                            'capacidad_puertos' => $el['capacidad_puertos'],
-                            'created_at' => $el['created_at']
-                        ];
+                
+                $featureStr = '{"type":"Feature","geometry":' . $geoStr . ',"properties":' . json_encode($props) . '}';
+                
+                if (!$firstFeature) echo ',';
+                echo $featureStr;
+                $firstFeature = false;
+                
+                if ($el['tipo'] === 'Point') {
+                    // Extraer coordenadas con parseo rápido solo si es punto
+                    $geo = json_decode($geoStr, true);
+                    if (isset($geo['coordinates']) && is_array($geo['coordinates'])) {
+                        $lng = $geo['coordinates'][0] ?? null;
+                        $lat = $geo['coordinates'][1] ?? null;
+                        if ($lat !== null && $lng !== null) {
+                            $gpsNodes[] = [
+                                'id' => $el['id'],
+                                'proyecto_id' => $el['proyecto_id'],
+                                'proyecto_nombre' => $el['proyecto_nombre'],
+                                'nombre' => $el['nombre'] ?: 'Nodo de Fibra',
+                                'descripcion' => $el['descripcion'],
+                                'color' => $el['color'],
+                                'lat' => $lat,
+                                'lng' => $lng,
+                                'potencia_dbm' => $el['potencia_dbm'],
+                                'capacidad_puertos' => $el['capacidad_puertos'],
+                                'created_at' => $el['created_at']
+                            ];
+                        }
                     }
                 }
             }
-
-            echo json_encode([
-                'success' => true,
-                'geojson' => [
-                    'type' => 'FeatureCollection',
-                    'features' => $features
-                ],
-                'gps_nodes' => $gps_nodes
-            ]);
+            
+            echo ']},"gps_nodes":' . json_encode($gpsNodes) . '}';
             break;
 
         default:
