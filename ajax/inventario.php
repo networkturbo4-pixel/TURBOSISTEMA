@@ -756,20 +756,22 @@ try {
                 echo json_encode(['success' => true, 'data' => []]);
                 break;
             }
+            $cleanQ = str_replace([' ', '-'], '', $q);
             $searchTerm = "%{$q}%";
+            $cleanSearchTerm = "%{$cleanQ}%";
             $stmt = $pdo->prepare("
                 SELECT s.id, s.sku_code, s.product_id, s.status, s.created_at, s.is_printed,
-                       p.name as product_name, p.product_image, p.product_type,
-                       c.name as category_name
+                       COALESCE(p.name, 'Producto General') as product_name, p.product_image, p.product_type,
+                       COALESCE(c.name, 'General') as category_name
                 FROM inventory_skus s
-                JOIN inventory_products p ON s.product_id = p.id
+                LEFT JOIN inventory_products p ON s.product_id = p.id
                 LEFT JOIN inventory_categories c ON p.category_id = c.id
                 WHERE s.is_deleted = 0 
-                  AND (s.sku_code LIKE ? OR p.name LIKE ? OR s.custom_data LIKE ?)
+                  AND (s.sku_code LIKE ? OR REPLACE(REPLACE(s.sku_code, ' ', ''), '-', '') LIKE ? OR p.name LIKE ? OR s.custom_data LIKE ?)
                 ORDER BY (s.sku_code = ?) DESC, (s.sku_code LIKE CONCAT(?, '%')) DESC, s.id DESC
                 LIMIT 15
             ");
-            $stmt->execute([$searchTerm, $searchTerm, $searchTerm, $q, $q]);
+            $stmt->execute([$searchTerm, $cleanSearchTerm, $searchTerm, $searchTerm, $q, $q]);
             $skus = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // También buscar en productos agrupados / granel por master_sku o nombre
@@ -778,7 +780,7 @@ try {
                     SELECT p.id, COALESCE(p.master_sku, CONCAT('BLK-', p.id)) as sku_code, 
                            p.id as product_id, 'disponible' as status, p.created_at, 0 as is_printed,
                            p.name as product_name, p.product_image, p.product_type,
-                           c.name as category_name, p.variant_brand, p.variant_size
+                           COALESCE(c.name, 'General') as category_name, p.variant_brand, p.variant_size
                     FROM inventory_products p
                     LEFT JOIN inventory_categories c ON p.category_id = c.id
                     WHERE p.is_deleted = 0

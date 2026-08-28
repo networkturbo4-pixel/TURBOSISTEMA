@@ -3562,11 +3562,25 @@
         try {
             const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
             if (res.success && res.data && res.data.length > 0) {
-                window.addSkuToReprint(res.data[0]);
+                const exact = res.data.find(x => x.sku_code.toUpperCase() === q.toUpperCase()) || res.data[0];
+                window.addSkuToReprint(exact);
             } else {
-                if (window.showToast) window.showToast('No se encontró ningún SKU con ese código', 'error');
+                window.addSkuToReprint({
+                    id: 'custom_' + Date.now(),
+                    sku_code: q.toUpperCase(),
+                    product_name: 'Etiqueta Manual',
+                    category_name: 'Reimpresión'
+                });
             }
-        } catch(e) { console.error(e); }
+        } catch(e) { 
+            console.error(e);
+            window.addSkuToReprint({
+                id: 'custom_' + Date.now(),
+                sku_code: q.toUpperCase(),
+                product_name: 'Etiqueta Manual',
+                category_name: 'Reimpresión'
+            });
+        }
     };
 
     function initReprintSearch() {
@@ -3602,7 +3616,15 @@
                         `).join('');
                         dropdown.style.display = 'block';
                     } else {
-                        dropdown.innerHTML = '<div style="padding:10px 12px; font-size:0.78rem; color:var(--text-muted); text-align:center;">No hay resultados</div>';
+                        dropdown.innerHTML = `
+                            <div class="reprint-result-item" onclick='addSkuToReprint({ id: "custom_" + Date.now(), sku_code: "${esc(val.toUpperCase())}", product_name: "Etiqueta Manual", category_name: "Reimpresión" })'>
+                                <div class="reprint-res-left">
+                                    <span class="reprint-res-sku"><i class="ph ph-plus-circle" style="color:#6366f1;"></i> Agregar "${esc(val.toUpperCase())}"</span>
+                                    <span class="reprint-res-prod" style="color:var(--text-muted);">Código manual para imprimir</span>
+                                </div>
+                                <span style="font-size:0.75rem; color:#6366f1; font-weight:700;">+ Agregar</span>
+                            </div>
+                        `;
                         dropdown.style.display = 'block';
                     }
                 } catch(e) { console.error(e); }
@@ -3767,17 +3789,29 @@
                 return;
             }
 
-            const skuIds = window.reprintQueue.map(x => x.id);
-            const fd = new FormData();
-            fd.append('action', 'get_specific_skus_for_labels');
-            fd.append('sku_ids', JSON.stringify(skuIds));
+            const numIds = window.reprintQueue.filter(x => typeof x.id === 'number' || (typeof x.id === 'string' && /^\d+$/.test(x.id))).map(x => parseInt(x.id));
+            const customItems = window.reprintQueue.filter(x => typeof x.id === 'string' && isNaN(parseInt(x.id)));
 
-            const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
-            if (!res.success || !res.data || !res.data.length) {
-                if (window.showToast) window.showToast(res.message || 'Error al obtener SKUs para reimpresión', 'error');
-                return;
+            skusToRender = [...customItems];
+
+            if (numIds.length > 0) {
+                const fd = new FormData();
+                fd.append('action', 'get_specific_skus_for_labels');
+                fd.append('sku_ids', JSON.stringify(numIds));
+
+                try {
+                    const res = await fetch(BASE + '/ajax/inventario.php', { method: 'POST', body: fd }).then(r => r.json());
+                    if (res.success && res.data && res.data.length) {
+                        skusToRender = [...skusToRender, ...res.data];
+                    }
+                } catch(e) {
+                    console.error('Error fetching specific skus:', e);
+                }
             }
-            skusToRender = res.data;
+
+            if (!skusToRender.length) {
+                skusToRender = [...window.reprintQueue];
+            }
         } else {
             // Modo Producto / Lote
             const productId = document.getElementById('labelProduct')?.value;
